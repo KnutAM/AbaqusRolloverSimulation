@@ -29,7 +29,7 @@ def RolloverSetup():
     rail_geometry = {'length': 100.0, 'height': 30.0}
     rail_mesh = {'fine': 1.0, 'coarse': 5.0}
     
-    wheel_geometry = {'diameter': 400.0, 'rolling_angle': 1.5*100.0/(400.0/2.0)}
+    wheel_geometry = {'diameter': 400.0, 'rolling_angle': 1.5*100.0/(400.0/2.0), 'id': 50.0}
     wheel_mesh = {'fine': 1.0, 'coarse': 100.0, 'refine_thickness': 1.0}
     
     
@@ -79,6 +79,7 @@ def setup_rail(model, geometry, mesh, section_name):
 def setup_wheel(model, geometry, mesh, section_name):
     # Geometry
     diameter = geometry['diameter']
+    inner_diameter = geometry['id']
     refine_thickness = mesh['refine_thickness']
     rolling_angle = geometry['rolling_angle']/2.0
     
@@ -86,17 +87,20 @@ def setup_wheel(model, geometry, mesh, section_name):
     sketch = model.ConstrainedSketch(name='__wheel_profile__', sheetSize=200.0)
     sketch.setPrimaryObject(option=STANDALONE)
     sketch.CircleByCenterPerimeter(center=(0.0, diameter/2.0), point1=(0.0, 0.0))
+    sketch.CircleByCenterPerimeter(center=(0.0, diameter/2.0), point1=(0.0, diameter/2.0 - inner_diameter/2.0))
     part.BaseShell(sketch=sketch)
     
     # Partitioning
     partition_sketch = model.ConstrainedSketch(name='__wheel_partition__', sheetSize=200.0)
     partition_sketch.setPrimaryObject(option=SUPERIMPOSE)
-    dx = np.array([diameter, diameter - 2*refine_thickness])*np.sin(rolling_angle)/2.0
-    dy = np.array([diameter, diameter - 2*refine_thickness])*(1.0 - np.cos(rolling_angle))/2.0
+    dias = np.array([diameter, diameter - 2*refine_thickness])
+    dx = dias*np.sin(rolling_angle)/2.0
+    dy = dias*(1.0 - np.cos(rolling_angle))/2.0
+    dy[1] = dy[1] + refine_thickness
     partition_sketch.ArcByCenterEnds(center=(0.0, diameter/2.0), point1=(dx[1], dy[1]), point2=(-dx[1], dy[1]), direction=CLOCKWISE)
     partition_sketch.Line(point1=(-dx[0], dy[0]), point2=(-dx[1], dy[1]))
     partition_sketch.Line(point1=(dx[0], dy[0]), point2=(dx[1], dy[1]))
-    part.PartitionFaceBySketch(faces=part.faces.findAt(((0.0, diameter/2.0, 0.0),)), sketch=partition_sketch)
+    part.PartitionFaceBySketch(faces=part.faces.findAt(((0.0, 1.0, 0.0),)), sketch=partition_sketch)
     
     
     # Mesh wheel
