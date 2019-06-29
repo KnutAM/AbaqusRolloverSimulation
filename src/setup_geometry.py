@@ -36,46 +36,84 @@ def RolloverSetup():
     # Material and sections
     rollover_model.Material(name='ElasticSteel')
     rollover_model.materials['ElasticSteel'].Elastic(table=((210000.0, 0.3), ))
+    rollover_model.Material(name='ShadowMaterial')
+    rollover_model.materials['ShadowMaterial'].Elastic(table=((1.e-6, 0.3), ))
     rollover_model.HomogeneousSolidSection(name='WheelSection', material='ElasticSteel', thickness=None)
     rollover_model.HomogeneousSolidSection(name='RailSection', material='ElasticSteel', thickness=None)
+    rollover_model.HomogeneousSolidSection(name='ShadowSection', material='ShadowMaterial', thickness=None)
     
     rollover_model.StaticStep(name='Step-1', previous='Initial', nlgeom=ON)
     
-    rail = setup_rail(rollover_model, rail_geometry, rail_mesh, 'RailSection')
+    rail = setup_rail(rollover_model, rail_geometry, rail_mesh, 'RailSection', 'ShadowSection')
     wheel = setup_wheel(rollover_model, wheel_geometry, wheel_mesh, 'WheelSection')
     assy = assemble(rollover_model, rail, wheel)
-    assy.translate(instanceList=('WHEEL', ), vector=(-40.0, 0.0, 0.0))
+    # assy.translate(instanceList=('WHEEL', ), vector=(-40.0, 0.0, 0.0))
     
     setup_contact(rollover_model, assy, 'Step-1')
     
     connect_nodes(rollover_model, assy, rail, rail_geometry)
     
+    bc = loading(rollover_model, assy, rail_geometry, wheel_geometry, 'Step-1')
     
-def setup_rail(model, geometry, mesh, section_name):
+    
+def setup_rail(model, geometry, mesh, section_name, shadow_section):
     # Rail
     name = 'RAIL'
     length = geometry['length']
     height = geometry['height']
+    max_contact_zone = 25.
+    number_of_top_elements = int(length/mesh['fine'])
+    true_fine_element_length = length/number_of_top_elements
+    number_of_shadow_elements = int(max_contact_zone/mesh['fine'])
+    shadow_line_length = true_fine_element_length*number_of_shadow_elements
     sketch = model.ConstrainedSketch(name='__rail_profile__', sheetSize=200.0)
     sketch.setPrimaryObject(option=STANDALONE)
-    sketch.rectangle(point1=(-length/2.0, -height), point2=(length/2.0, 0.0))
+    # sketch.rectangle(point1=(-length/2.0, -height), point2=(length/2.0, 0.0))
+    # sketch.rectangle(point1=(-length/2.0, -mesh['fine']), point2=(-length/2.0-shadow_line_length, 0.))
+    dx = length/2.0
+    dy = height
+    dxs = -(dx + shadow_line_length)
+    dys = -mesh['fine']
+    sketch.Line(point1=( dx,  0.), point2=( dx, -dy))
+    sketch.Line(point1=( dx, -dy), point2=(-dx, -dy))
+    sketch.Line(point1=(-dx, -dy), point2=(-dx, dys))
+    sketch.Line(point1=(-dx, dys), point2=(dxs, dys))
+    sketch.Line(point1=(dxs, dys), point2=(dxs,  0.))
+    sketch.Line(point1=(dxs,  0.), point2=( dx, 0.))
+    
     part = model.Part(name=name, dimensionality=TWO_D_PLANAR, type=DEFORMABLE_BODY)
     part.BaseShell(sketch=sketch)
     sketch.unsetPrimaryObject()
     
+    # Partitioning
+    partition_sketch = model.ConstrainedSketch(name='__wheel_partition__', sheetSize=200.0)
+    partition_sketch.setPrimaryObject(option=SUPERIMPOSE)
+    partition_sketch.Line(point1=(-length/2.0-shadow_line_length-1., -mesh['fine']), point2=(length/2.0+1., -mesh['fine']))
+    partition_sketch.Line(point1=(-length/2.0, 0.), point2=(-length/2.0, -mesh['fine']))
+    part.PartitionFaceBySketch(faces=part.faces.findAt(((0.0, -1.0, 0.0),)), sketch=partition_sketch)
+    
     # Rail mesh
+    part.seedEdgeByNumber(edges=part.edges.findAt(((0.0, 0.0, 0.0),)), 
+                          number=number_of_top_elements, constraint=FIXED)
+    part.seedEdgeByNumber(edges=part.edges.findAt(((-length/2.0-shadow_line_length/2.0, 0.0, 0.0),)), 
+                          number=number_of_shadow_elements, constraint=FIXED)
     part.seedEdgeByBias(biasMethod=SINGLE, 
                      end2Edges=part.edges.findAt(((-length/2.0, -height/2.0, 0.0),)),
                      end1Edges=part.edges.findAt(((+length/2.0, -height/2.0, 0.0),)), 
                      minSize=mesh['fine'], maxSize=mesh['coarse'], constraint=FIXED) # Need FIXED to ensure compatible meshes
     part.generateMesh()
     
-    # Assign section
-    f = part.faces
-    faces = f.getSequenceFromMask(mask=('[#1 ]', ), )
-    region = part.Set(faces=f, name='rail')
+    # Assign sections
+    faces = part.faces.findAt(((0., -mesh['fine']/2.0, 0.),),((0., -1.5*mesh['fine'], 0.),))
+    region = part.Set(faces=faces, name='rail')
     part.SectionAssignment(region=region, sectionName=section_name, offset=0.0, 
         offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
+        
+    shadow_face = part.faces.findAt(((-length/2.0-shadow_line_length/2.0, -mesh['fine']/2.0, 0.),))
+    shadow_region = part.Set(faces=shadow_face, name='shadow_rail')
+    part.SectionAssignment(region=shadow_region, sectionName=shadow_section, offset=0.0, 
+        offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
+    
     
     return part
     
@@ -86,7 +124,7 @@ def setup_wheel(model, geometry, mesh, section_name):
     refine_thickness = mesh['refine_thickness']
     rolling_angle = geometry['rolling_angle']/2.0
     
-    part = model.Part(name='Wheel', dimensionality=TWO_D_PLANAR, type=DEFORMABLE_BODY)
+    part = model.Part(name='WHEEL', dimensionality=TWO_D_PLANAR, type=DEFORMABLE_BODY)
     sketch = model.ConstrainedSketch(name='__wheel_profile__', sheetSize=200.0)
     sketch.setPrimaryObject(option=STANDALONE)
     sketch.CircleByCenterPerimeter(center=(0.0, diameter/2.0), point1=(0.0, 0.0))
@@ -197,3 +235,51 @@ def connect_nodes(model, assy, rail, geometry):
         model.Equation(name='NodeConnectConstraintY-'+str(set_nr), terms=((1.0, 
         'RAIL.'+names[0], 2), (-1.0, 'RAIL.'+names[1], 2)))
         # For 3D link also z-degree of freedom (not implemented)
+        
+def setup_control_point_wheel(model, wheel, assy, geometry):
+    wheel_inst = assy.instances['WHEEL']
+    rp = wheel.ReferencePoint(
+        point=wheel.InterestingPoint(edge=wheel.edges.findAt(((0.,0.,0.),))[0], rule=CENTER))
+    rp_key = wheel.referencePoints.keys()[0]
+    assy.regenerate()
+    
+    inner_circle = wheel_inst.edges.findAt(((0.0, (geometry['diameter']-geometry['id'])/2.0, 0.),))
+    wheel_center=assy.Set(edges=inner_circle, name='WheelCenter')
+    print('1')
+    
+    rp_region=regionToolset.Region(referencePoints=(wheel_inst.referencePoints[rp_key],))
+    print('2')
+    model.RigidBody(name='Center', refPointRegion=rp_region, tieRegion=wheel_center)
+    
+    
+def loading(model, assy, rail_geom, wheel_geom, step_name):
+    
+    # Fix bottom of rail
+    bottom_edge = assy.instances['RAIL'].edges.findAt(((0., -rail_geom['height'], 0.),))
+    bottom_region = assy.Set(edges=bottom_edge, name='RailBottom')
+    model.DisplacementBC(name='BC-1', createStepName='Initial', 
+        region=bottom_region, u1=SET, u2=SET, ur3=UNSET, amplitude=UNSET, 
+        distributionType=UNIFORM, fieldName='', localCsys=None)
+    
+    # BC for wheel
+    ## Setup reference point in center
+    id = wheel_geom['id']
+    od = wheel_geom['diameter']
+    
+    wheel_inst = assy.instances['WHEEL']
+    wheel = model.parts['WHEEL']
+    rp = wheel.ReferencePoint(
+        point=wheel.InterestingPoint(edge=wheel.edges.findAt(((0.,0.,0.),))[0], rule=CENTER))
+    rp_key = wheel.referencePoints.keys()[0]
+    assy.regenerate()
+    
+    ## Tie using rigid body reference point to inner diameter of wheel
+    inner_circle = wheel_inst.edges.findAt(((0.0, (od-id)/2.0, 0.),))
+    wheel_center=assy.Set(edges=inner_circle, name='WheelCenter')
+    rp_region=regionToolset.Region(referencePoints=(wheel_inst.referencePoints[rp_key],))
+    model.RigidBody(name='Center', refPointRegion=rp_region, tieRegion=wheel_center)
+    
+    ## Assign boundary conditions to reference point
+    wheel_control = model.DisplacementBC(name='BC-2', createStepName=step_name, 
+        region=rp_region, u1=0.0, u2=-1.0, ur3=0.0, amplitude=UNSET, fixed=OFF, 
+        distributionType=UNIFORM, fieldName='', localCsys=None)
