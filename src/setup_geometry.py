@@ -44,8 +44,11 @@ def RolloverSetup():
     rail = setup_rail(rollover_model, rail_geometry, rail_mesh, 'RailSection')
     wheel = setup_wheel(rollover_model, wheel_geometry, wheel_mesh, 'WheelSection')
     assy = assemble(rollover_model, rail, wheel)
+    assy.translate(instanceList=('WHEEL', ), vector=(-40.0, 0.0, 0.0))
     
     setup_contact(rollover_model, assy, 'Step-1')
+    
+    connect_nodes(rollover_model, assy, rail, rail_geometry)
     
     
 def setup_rail(model, geometry, mesh, section_name):
@@ -64,7 +67,7 @@ def setup_rail(model, geometry, mesh, section_name):
     part.seedEdgeByBias(biasMethod=SINGLE, 
                      end2Edges=part.edges.findAt(((-length/2.0, -height/2.0, 0.0),)),
                      end1Edges=part.edges.findAt(((+length/2.0, -height/2.0, 0.0),)), 
-                     minSize=mesh['fine'], maxSize=mesh['coarse'], constraint=FINER)
+                     minSize=mesh['fine'], maxSize=mesh['coarse'], constraint=FIXED) # Need FIXED to ensure compatible meshes
     part.generateMesh()
     
     # Assign section
@@ -143,3 +146,54 @@ def setup_contact(model, assy, create_step_name):
         createStepName=create_step_name, master=rail_contact_surface, slave=wheel_contact_surface, sliding=FINITE, 
         thickness=ON, interactionProperty='Contact', adjustMethod=NONE, 
         initialClearance=OMIT, datumAxis=None, clearanceRegion=None)
+        
+def find_rail_node_pairs(rail, geometry):
+    edges = rail.edges.findAt(((-geometry['length']/2.0, -1.0, 0.0),),
+                              (( geometry['length']/2.0, -1.0, 0.0),))
+    
+    # Find nodes that are within a tolerance from each other in y-z coordinates
+    yzcoords = []
+    nodes = []
+    for e in edges:
+        nodes.append(e.getNodes())
+        coordmat = np.zeros((len(nodes[-1]), 2))
+        ind = 0
+        for n in nodes[-1]:
+            coord = n.coordinates
+            coordmat[ind, :] = np.array([coord[1], coord[2]])
+            ind = ind + 1
+            
+        yzcoords.append(coordmat)
+    
+    node_pairs = []
+    indl = 0
+    crs = yzcoords[1]
+    for cl in yzcoords[0]:
+        dist = (crs[:,0]-cl[0])**2 + (crs[:,1]-cl[1])**2
+        indr = np.argmin(dist)
+        node_pairs.append([nodes[0][indl], nodes[1][indr]])
+        indl = indl + 1
+    
+    return node_pairs
+    
+def connect_nodes(model, assy, rail, geometry):
+    node_pairs = find_rail_node_pairs(rail, geometry)
+    set_nr = 1
+    for np in node_pairs:
+        names = ['NodeConnectSet' + side + '-' + str(set_nr) for side in ['Left', 'Right']]
+        node_seq_left = rail.nodes.sequenceFromLabels((np[0].label,))
+        node_seq_right = rail.nodes.sequenceFromLabels((np[1].label,))
+        rail.Set(nodes=node_seq_left, name=names[0])
+        rail.Set(nodes=node_seq_right, name=names[1])
+        set_nr = set_nr + 1
+    
+    assy.regenerate()
+    for set_nr in range(len(node_pairs)):
+        names = ['NodeConnectSet' + side + '-' + str(set_nr+1) for side in ['Left', 'Right']]
+        # Link x-degree of freedom
+        model.Equation(name='NodeConnectConstraintX-'+str(set_nr), terms=((1.0, 
+        'RAIL.'+names[0], 1), (-1.0, 'RAIL.'+names[1], 1)))
+        # Link y-degree of freedom
+        model.Equation(name='NodeConnectConstraintY-'+str(set_nr), terms=((1.0, 
+        'RAIL.'+names[0], 2), (-1.0, 'RAIL.'+names[1], 2)))
+        # For 3D link also z-degree of freedom (not implemented)
