@@ -26,54 +26,116 @@ import numpy as np
 def RolloverSetup():
     rollover_model = mdb.models.values()[0]
     
+    rail_geometry = {'length': 100.0, 'height': 30.0}
+    rail_mesh = {'fine': 1.0, 'coarse': 5.0}
+    
+    wheel_geometry = {'diameter': 400.0, 'rolling_angle': 1.5*100.0/(400.0/2.0)}
+    wheel_mesh = {'fine': 1.0, 'coarse': 100.0, 'refine_thickness': 1.0}
+    
+    
+    # Material and sections
+    rollover_model.Material(name='ElasticSteel')
+    rollover_model.materials['ElasticSteel'].Elastic(table=((210000.0, 0.3), ))
+    rollover_model.HomogeneousSolidSection(name='WheelSection', material='ElasticSteel', thickness=None)
+    rollover_model.HomogeneousSolidSection(name='RailSection', material='ElasticSteel', thickness=None)
+    
+    rollover_model.StaticStep(name='Step-1', previous='Initial', nlgeom=ON)
+    
+    rail = setup_rail(rollover_model, rail_geometry, rail_mesh, 'RailSection')
+    wheel = setup_wheel(rollover_model, wheel_geometry, wheel_mesh, 'WheelSection')
+    assy = assemble(rollover_model, rail, wheel)
+    
+    setup_contact(rollover_model, assy, 'Step-1')
+    
+    
+def setup_rail(model, geometry, mesh, section_name):
     # Rail
-    rail_name = 'RAIL'
-    rail_length = 100.0
-    rail_height = 30.0
-    rail_sketch = rollover_model.ConstrainedSketch(name='__rail_profile__', sheetSize=200.0)
-    rail_sketch.setPrimaryObject(option=STANDALONE)
-    rail_sketch.rectangle(point1=(-rail_length/2.0, -rail_height), point2=(rail_length/2.0, 0.0))
-    rail_part = rollover_model.Part(name=rail_name, dimensionality=TWO_D_PLANAR, type=DEFORMABLE_BODY)
-    rail_part.BaseShell(sketch=rail_sketch)
-    rail_sketch.unsetPrimaryObject()
+    name = 'RAIL'
+    length = geometry['length']
+    height = geometry['height']
+    sketch = model.ConstrainedSketch(name='__rail_profile__', sheetSize=200.0)
+    sketch.setPrimaryObject(option=STANDALONE)
+    sketch.rectangle(point1=(-length/2.0, -height), point2=(length/2.0, 0.0))
+    part = model.Part(name=name, dimensionality=TWO_D_PLANAR, type=DEFORMABLE_BODY)
+    part.BaseShell(sketch=sketch)
+    sketch.unsetPrimaryObject()
     
-    # Wheel
-    wheel_diameter = 400.0
-    wheel_refine_thickness = 2.0
-    wheel_sketch = rollover_model.ConstrainedSketch(name='__wheel_profile__', sheetSize=200.0)
-    wheel_sketch.setPrimaryObject(option=STANDALONE)
-    wheel_sketch.CircleByCenterPerimeter(center=(0.0, wheel_diameter/2.0), point1=(0.0, 0.0))
-    wheel_part = rollover_model.Part(name='Wheel', dimensionality=TWO_D_PLANAR, type=DEFORMABLE_BODY)
-    wheel_part.BaseShell(sketch=wheel_sketch)
+    # Rail mesh
+    part.seedEdgeByBias(biasMethod=SINGLE, 
+                     end2Edges=part.edges.findAt(((-length/2.0, -height/2.0, 0.0),)),
+                     end1Edges=part.edges.findAt(((+length/2.0, -height/2.0, 0.0),)), 
+                     minSize=mesh['fine'], maxSize=mesh['coarse'], constraint=FINER)
+    part.generateMesh()
     
-    wheel_partition_sketch = rollover_model.ConstrainedSketch(name='__wheel_partition__', sheetSize=200.0)
-    wheel_partition_sketch.setPrimaryObject(option=SUPERIMPOSE)
-    rotation_angle = 1.5*rail_length/wheel_diameter
-    dx = np.array([wheel_diameter, wheel_diameter - 2*wheel_refine_thickness])*np.sin(rotation_angle)/2.0
-    dy = np.array([wheel_diameter, wheel_diameter - 2*wheel_refine_thickness])*(1.0 - np.cos(rotation_angle))/2.0
-    wheel_partition_sketch.ArcByCenterEnds(center=(0.0, wheel_diameter/2.0), point1=(dx[1], dy[1]), point2=(-dx[1], dy[1]), direction=CLOCKWISE)
-    wheel_partition_sketch.Line(point1=(-dx[0], dy[0]), point2=(-dx[1], dy[1]))
-    wheel_partition_sketch.Line(point1=(dx[0], dy[0]), point2=(dx[1], dy[1]))
-    wheel_part.PartitionFaceBySketch(faces=wheel_part.faces.findAt(((0.0, wheel_diameter/2.0, 0.0),)), sketch=wheel_partition_sketch)
+    # Assign section
+    f = part.faces
+    faces = f.getSequenceFromMask(mask=('[#1 ]', ), )
+    region = part.Set(faces=f, name='rail')
+    part.SectionAssignment(region=region, sectionName=section_name, offset=0.0, 
+        offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
+    
+    return part
+    
+def setup_wheel(model, geometry, mesh, section_name):
+    # Geometry
+    diameter = geometry['diameter']
+    refine_thickness = mesh['refine_thickness']
+    rolling_angle = geometry['rolling_angle']/2.0
+    
+    part = model.Part(name='Wheel', dimensionality=TWO_D_PLANAR, type=DEFORMABLE_BODY)
+    sketch = model.ConstrainedSketch(name='__wheel_profile__', sheetSize=200.0)
+    sketch.setPrimaryObject(option=STANDALONE)
+    sketch.CircleByCenterPerimeter(center=(0.0, diameter/2.0), point1=(0.0, 0.0))
+    part.BaseShell(sketch=sketch)
+    
+    # Partitioning
+    partition_sketch = model.ConstrainedSketch(name='__wheel_partition__', sheetSize=200.0)
+    partition_sketch.setPrimaryObject(option=SUPERIMPOSE)
+    dx = np.array([diameter, diameter - 2*refine_thickness])*np.sin(rolling_angle)/2.0
+    dy = np.array([diameter, diameter - 2*refine_thickness])*(1.0 - np.cos(rolling_angle))/2.0
+    partition_sketch.ArcByCenterEnds(center=(0.0, diameter/2.0), point1=(dx[1], dy[1]), point2=(-dx[1], dy[1]), direction=CLOCKWISE)
+    partition_sketch.Line(point1=(-dx[0], dy[0]), point2=(-dx[1], dy[1]))
+    partition_sketch.Line(point1=(dx[0], dy[0]), point2=(dx[1], dy[1]))
+    part.PartitionFaceBySketch(faces=part.faces.findAt(((0.0, diameter/2.0, 0.0),)), sketch=partition_sketch)
     
     
     # Mesh wheel
-    wheel_part.seedEdgeBySize(edges=wheel_part.edges.findAt(((0.0, 0.0, 0.0),)), size=1.0, deviationFactor=0.1, constraint=FINER)
-    wheel_part.seedEdgeByBias(biasMethod=DOUBLE, endEdges=wheel_part.edges.findAt(((0.0, wheel_diameter, 0.0),)), minSize=1.0, maxSize=100.0, constraint=FINER)
-    wheel_part.generateMesh()
+    part.seedEdgeBySize(edges=part.edges.findAt(((0.0, 0.0, 0.0),)), size=mesh['fine'], deviationFactor=0.1, constraint=FINER)
+    part.seedEdgeByBias(biasMethod=DOUBLE, endEdges=part.edges.findAt(((0.0, diameter, 0.0),)), minSize=mesh['fine'], maxSize=mesh['coarse'], constraint=FINER)
+    part.generateMesh()
+    
+    # Section assignment
+    f = part.faces
+    faces = f.getSequenceFromMask(mask=('[#3 ]', ), )
+    region = part.Set(faces=faces, name='wheel')
+    part.SectionAssignment(region=region, sectionName=section_name, offset=0.0, 
+        offsetType=MIDDLE_SURFACE, offsetField='', 
+        thicknessAssignment=FROM_SECTION)
+    
+    return part
     
     
-    # Rail mesh
-    rail_part.seedEdgeByBias(biasMethod=SINGLE, 
-                     end2Edges=rail_part.edges.findAt(((-rail_length/2.0, -rail_height/2.0, 0.0),)),
-                     end1Edges=rail_part.edges.findAt(((+rail_length/2.0, -rail_height/2.0, 0.0),)), 
-                     minSize=1.0, maxSize=5.0, constraint=FINER)
-    rail_part.generateMesh()
+def assemble(model, rail, wheel):
+    assy = model.rootAssembly
+    assy.DatumCsysByDefault(CARTESIAN)
+    assy.Instance(name='RAIL', part=rail, dependent=ON)
+    assy.Instance(name='WHEEL', part=wheel, dependent=ON)
     
-    # Material
-    rollover_model.Material(name='ElasticSteel')
-    rollover_model.materials['ElasticSteel'].Elastic(table=((210000.0, 0.3), 
-        ))
+    return assy
+    
+    
+def setup_contact(model, assy, create_step_name):
+    model.ContactProperty('Contact')
+    model.interactionProperties['Contact'].NormalBehavior(pressureOverclosure=HARD, allowSeparation=ON, constraintEnforcementMethod=DEFAULT)
+    model.interactionProperties['Contact'].TangentialBehavior(formulation=FRICTIONLESS)
+    
+    rail_inst = assy.instances['RAIL']
+    wheel_inst = assy.instances['WHEEL']
 
+    rail_contact_surface = assy.Surface(side1Edges=rail_inst.edges.findAt(((0.,0.,0.),)), name='railhead')
+    wheel_contact_surface = assy.Surface(side1Edges=wheel_inst.edges.findAt(((-1.0e-3, 0., 0.),),((1.0e-3, 0., 0.),)), name='wheel_contact')
 
-RolloverSetup()
+    model.SurfaceToSurfaceContactStd(name='Contact', 
+        createStepName=create_step_name, master=rail_contact_surface, slave=wheel_contact_surface, sliding=FINITE, 
+        thickness=ON, interactionProperty='Contact', adjustMethod=NONE, 
+        initialClearance=OMIT, datumAxis=None, clearanceRegion=None)
