@@ -1,5 +1,6 @@
 # -*- coding: mbcs -*-
 # Do not delete the following import lines
+import sys
 from abaqus import *
 from abaqusConstants import *
 import section
@@ -54,7 +55,7 @@ def RolloverSetup():
     
     bc = loading(rollover_model, assy, rail_geometry, wheel_geometry, 'Step-1')
     
-    # assy.translate(instanceList=('WHEEL', ), vector=(-60.0, 0.0, 0.0))
+    assy.translate(instanceList=('WHEEL', ), vector=(-60.0, 0.0, 0.0))
     
 def process_geometry_and_mesh(rail_geometry, rail_mesh, wheel_geometry, wheel_mesh):
     # Determine length of shadow mesh line
@@ -340,3 +341,6 @@ def loading(model, assy, rail_geom, wheel_geom, step_name):
     wheel_control = model.DisplacementBC(name='BC-2', createStepName=step_name, 
         region=rp_region, u1=0.0, u2=-1.0, ur3=0.0, amplitude=UNSET, fixed=OFF, 
         distributionType=UNIFORM, fieldName='', localCsys=None)
+        
+if __name__ == '__main__':
+    RolloverSetup()
