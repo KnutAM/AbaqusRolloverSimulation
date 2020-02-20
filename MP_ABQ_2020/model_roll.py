@@ -5,7 +5,7 @@ from abaqusConstants import *
 from caeModules import *
 import numpy as np
 from pac_abq_tools import *
-import Pickler
+import Pickler, os
 
 TOL = 1.e-5
 DIR0 = os.path.abspath('')
@@ -80,12 +80,12 @@ def make_mat_sec(model, input_d):
                 if 'Schiene-F' in i[0]:
                     i[1].setElementType(elemTypes=(mesh.ElemType(elemCode=C3D8, elemLibrary=STANDARD,
                                         kinematicSplit=AVERAGE_STRAIN, secondOrderAccuracy=OFF,
-                                        hourglassControl=DEFAULT),), regions=i[1].sets['alles'])
+                                        hourglassControl=DEFAULT),), regions=i[1].sets['ALL'])
                 else:
                     i[1].setElementType(elemTypes=(mesh.ElemType(elemCode=C3D8R, elemLibrary=STANDARD,
                                                             kinematicSplit=AVERAGE_STRAIN, secondOrderAccuracy=OFF,
                                                             hourglassControl=DEFAULT),),
-                                        regions=i[1].sets['alles'])
+                                        regions=i[1].sets['ALL'])
 
             else:
                 if 'charmec' in matName:
@@ -94,7 +94,7 @@ def make_mat_sec(model, input_d):
                     str_elem = 'CPE4R'
                 #
                 i[1].setElementType(elemTypes=(mesh.ElemType(elemCode=str_elem, elemLibrary=STANDARD),
-                                               mesh.ElemType(elemCode=CPE3, elemLibrary=STANDARD)), regions=i[1].sets['alles'])
+                                               mesh.ElemType(elemCode=CPE3, elemLibrary=STANDARD)), regions=i[1].sets['ALL'])
             if (('Rad' in i[0] and 'plastic' not in wheel_rigid) or
                 ('Rad' not in i[0] and 'plastic' in wheel_rigid)):
                 #print_cmd(str(i[0])+': elastisch')
@@ -109,8 +109,9 @@ def make_mat_sec(model, input_d):
                     #print_cmd(str(i[0])+': el/pl')
                     matT = 'steel'
             #
+            print_cmd('Zuweisung von Section: '+str(i[0]))
             i[1].SectionAssignment(offset=0.0, offsetField='', offsetType=MIDDLE_SURFACE,
-                                   region=i[1].sets['alles'], sectionName=matT, thicknessAssignment=FROM_SECTION)
+                                   region=i[1].sets['ALL'], sectionName=matT, thicknessAssignment=FROM_SECTION)
     return
 
 def make_assembly(model, parts, input_d):
@@ -586,8 +587,8 @@ def make_rail_2d(model, input_d):
     sketch1c.Line(point1=(0, -hG), point2=(0, -hF)) # ?
     schieneG.PartitionFaceBySketch(faces=schieneG.faces[:], sketch=sketch1c)
     # Sets erstellen
-    schieneF.Set(faces=schieneF.faces[:], name='alles')
-    schieneG.Set(faces=schieneG.faces[:], name='alles')
+    schieneF.Set(faces=schieneF.faces[:], name='ALL')
+    schieneG.Set(faces=schieneG.faces[:], name='ALL')
     # Schiene Sets: Listen
     tieSF = selectFull(schieneF.edges, [-bF], [], []) + selectFull(schieneF.edges, [bF], [], []) + \
             selectFull(schieneF.edges, [], [-hF], [])
@@ -650,6 +651,56 @@ def make_rail_2d(model, input_d):
                 hourglassControl=DEFAULT, distortionControl=DEFAULT), mesh.ElemType(
                 elemCode=CPE3, elemLibrary=STANDARD)), regions=(part.faces[:],))
     return [schieneF, schieneG, lCont]
+
+def make_rail_map_2d(model, input_d):
+    """ Schienenparts- und Sets erstellen """
+    #[bFF, bF, bG] = np.array(input_d['Abmessungen']['length'])/2.
+    bFF = input_d['Rolllaenge']/2.
+    b_out = input_d['Rolllaenge out']
+    [hFF, hF, hG] = input_d['Abmessungen']['height']
+    [elFF, elF, elG, biasS] = input_d['Abmessungen']['element length']
+    el_top = elFF/biasS
+    TOL = elFF / 10
+    rSchiene = 0 #input_d['Radius Schiene']
+    elem_type = input_d['Geometrievariante'][3]
+    # feiner Part
+    s = model.ConstrainedSketch(name='sketchF', sheetSize=20.0)
+    s.Line(point1=(-bFF,0),point2=(bFF+b_out,0))
+    s.Line(point1=(-bFF,-hFF),point2=(-bFF,0))
+    s.Line(point1=(-bFF,-hFF),point2=(bFF,-hFF))
+    s.Line(point1=(bFF,-hFF),point2=(bFF,-el_top))
+    s.Line(point1=(bFF,-el_top),point2=(bFF+b_out,-el_top))
+    s.Line(point1=(bFF+b_out,-el_top),point2=(bFF+b_out,0))
+    schieneF = model.Part(dimensionality=TWO_D_PLANAR, name='Schiene-Fein', type=DEFORMABLE_BODY)
+    schieneF.BaseShell(sketch=s)
+    # Partitionieren
+    sketch0c = model.ConstrainedSketch(name='partitionen0', sheetSize=20.0)
+    sketch0c.Line(point1=(-bFF*2, -el_top), point2=(bFF*2, -el_top))
+    sketch0c.Line(point1=(bFF, -el_top*2), point2=(bFF, 0))
+    schieneF.PartitionFaceBySketch(faces=schieneF.faces[:], sketch=sketch0c)
+    # Sets erstellen
+    schieneF.Set(faces=schieneF.faces[:], name='ALL')
+    # Sets und surfaces der Schiene
+    schieneF.Surface(name='CONTACT', side1Edges=schieneF.edges.getByBoundingBox(yMin=-TOL))
+    schieneF.Set(name='CONTACT', edges=schieneF.edges.getByBoundingBox(yMin=-TOL))
+    schieneF.Set(name='LINKS', edges=schieneF.edges.getByBoundingBox(xMax=-bFF+TOL))
+    schieneF.Set(name='RECHTS', edges=schieneF.edges.getByBoundingBox(xMin=bFF-TOL, xMax=bFF+TOL))
+    schieneF.Set(name='UNTEN', edges=schieneF.edges.getByBoundingBox(yMax=-hFF+TOL))
+    # Vernetzen der Schienenparts
+    schieneF.seedPart(size=elFF)
+    edgeBiasedList(schieneF, schieneF.sets['LINKS'].edges.getByBoundingBox(yMax=-el_top+TOL), 
+                   2, 1, [], elFF, elFF/biasS)
+    edgeBiasedList(schieneF, schieneF.sets['RECHTS'].edges.getByBoundingBox(yMax=-el_top+TOL), 
+                2, 1, [], elFF, elFF/biasS)
+    schieneF.generateMesh()
+    # ob plane strain ('PE')
+    if elem_type == 'PE':
+        for part in [schieneF]:
+            part.setElementType(elemTypes=(
+                mesh.ElemType(elemCode=CPE4R, elemLibrary=STANDARD, secondOrderAccuracy=OFF,
+                hourglassControl=DEFAULT, distortionControl=DEFAULT), mesh.ElemType(
+                elemCode=CPE3, elemLibrary=STANDARD)), regions=(part.faces[:],))
+    return [schieneF, elFF]
 
 def make_wheel_2d(model, input_d):
     """ Rad aufbauen und vernetzen """
@@ -743,8 +794,8 @@ def make_wheel_2d(model, input_d):
         sketchRGp.Line(point1=(0.0, rRad), point2=(x1[0], x1[1]))
         radG.PartitionFaceBySketch(faces=radG.faces[:], sketch=sketchRGp)
         # Sets definieren
-        radF.Set(faces=radF.faces[:], name='alles')
-        radG.Set(faces=radG.faces[:], name='alles')
+        radF.Set(faces=radF.faces[:], name='ALL')
+        radG.Set(faces=radG.faces[:], name='ALL')
         axis = [[0, rRad, 0], [0, rRad, 1]]
         contR = selectFullC(radF.edges, [rRad], [], [], axis)
         tieF = (selectFullC(radF.edges, [rRad - hF], [], [], axis) +
@@ -796,6 +847,62 @@ def make_wheel_2d(model, input_d):
                     hourglassControl=DEFAULT, distortionControl=DEFAULT), mesh.ElemType(
                     elemCode=CPE3, elemLibrary=STANDARD)), regions=(part.faces[:],))
         return [radF, radG, angFein, angGrob]
+
+def make_wheel_map_2d(model, input_d):
+    """ Rad aufbauen und vernetzen """
+    [bFF, bF, bG] = np.array(input_d['Abmessungen']['length'])/2.
+    [hFF, hF, hG] = input_d['Abmessungen']['height']
+    [elFF, elF, elG, biasS] = input_d['Abmessungen']['element length']
+    rRad = input_d['Radius Rad']
+    wheel_rigid = input_d['ob Rad starr']
+    elem_type = input_d['Geometrievariante'][3]
+    TOL = elFF / 8
+
+    def getXY(rGes, phi, y0):
+        # Input: RadRadius r, Winkel phi, Radius Kurve: rGes-y0, in Hoehe y0
+        # Output: [x,y] Koordinaten des Punktes
+        return [(rGes - y0) * sin(phi), (rGes - y0) - cos(phi) * (rGes - y0) + y0]
+
+    # feiner Radteil
+    sketchRF = model.ConstrainedSketch(name='radFein', sheetSize=200.0)
+    x1 = getXY(rRad, 2. * bFF / rRad, 0)
+    x2 = getXY(rRad, 2. * bFF / rRad, hFF)
+    sketchRF.ArcByCenterEnds(center=(0, rRad), direction=COUNTERCLOCKWISE,
+                                point1=(0.0, 0.0), point2=(x1[0], x1[1]))
+    sketchRF.ArcByCenterEnds(center=(0, rRad), direction=COUNTERCLOCKWISE,
+                                point1=(0.0, hFF), point2=(x2[0], x2[1]))
+    sketchRF.Line(point1=(0.0, 0.), point2=(0.0, hFF))
+    sketchRF.Line(point1=(x1[0], x1[1]), point2=(x2[0], x2[1]))
+    radF = model.Part(dimensionality=TWO_D_PLANAR, name='Rad-Fein', type=DEFORMABLE_BODY)
+    radF.BaseShell(sketch=sketchRF)
+    angFein = 2. * bFF / rRad
+    # Sets definieren
+    radF.Set(faces=radF.faces[:], name='ALL')
+    axis = [[0, rRad, 0], [0, rRad, 1]]
+    contR = selectFullC(radF.edges, [rRad], [], [], axis)
+    tieF = (selectFullC(radF.edges, [rRad - hFF], [], [], axis) +
+            selectFullC(radF.edges, [], [0], [], axis) +
+            selectFullC(radF.edges, [], [angFein], [], axis))
+    #
+    radF.Set(name='COUPLING', edges=tieF)
+    radF.Surface(name='CONTACT', side1Edges=contR)
+    refP = radF.ReferencePoint(point=(0.0, rRad, 0.0))
+    radF.Set(name='RP', referencePoints=(radF.referencePoints[refP.id],))
+    # Rad vernetzen
+    radF.seedPart(size=elFF)
+    linesF1 = selectFullC(radF.edges, [rRad - hFF + 2 * TOL, rRad - 2 * TOL], [], [], axis)
+    edgeBiasedList(radF, linesF1, 1, 1, axis, elFF, elFF/biasS)
+    radF.generateMesh()
+    assembly = model.rootAssembly
+    instRF = assembly.Instance(dependent=ON, name='Rad-Fein-1', part=radF)
+    # ob plane strain ('PE')
+    if elem_type == 'PE':
+        for part in [radF]:
+            part.setElementType(elemTypes=(
+                mesh.ElemType(elemCode=CPE4R, elemLibrary=STANDARD, secondOrderAccuracy=OFF,
+                hourglassControl=DEFAULT, distortionControl=DEFAULT), mesh.ElemType(
+                elemCode=CPE3, elemLibrary=STANDARD)), regions=(part.faces[:],))
+    return [radF, angFein]
 
 # Funktionen beim 3D Rollmodell ------------------------------------------------
 def make_rail_3d(model, input_d, splineLG=[], splineLF=[]):
@@ -895,8 +1002,8 @@ def make_rail_3d(model, input_d, splineLG=[], splineLF=[]):
     partSG.PartitionCellByDatumPlane(cells=partSG.cells[:], datumPlane=partSG.datums[cut3.id])
     partSG.PartitionCellByDatumPlane(cells=partSG.cells[:], datumPlane=partSG.datums[cut4.id])
     # Sets und surfaces der Schiene
-    partSF.Set(cells=partSF.cells[:], name='alles')
-    partSG.Set(cells=partSG.cells[:], name='alles')
+    partSF.Set(cells=partSF.cells[:], name='ALL')
+    partSG.Set(cells=partSG.cells[:], name='ALL')
     # SF contact
     fCont = partSF.faces.getByBoundingBox(xMin=-tFF - TOL, xMax=+TOL,
                                           zMin=(bF - bFF) / 2 - TOL, zMax=(bF + bFF) / 2 + TOL, yMin=-hFF / 2 - TOL,
@@ -1111,8 +1218,8 @@ def make_wheel_3d(model, input_d):
                           sketchOrientation=RIGHT, sketchPlane=partRG.faces.findAt((hF / 4, hF / 2, 0.), ),
                           sketchPlaneSide=SIDE1, sketchUpEdge=partRG.edges.findAt((0.0, hF / 2, 0.0), ))
         # Sets fuer die Rad-Parts
-        partRF.Set(cells=partRF.cells[:], name='alles')
-        partRG.Set(cells=partRG.cells[:], name='alles')
+        partRF.Set(cells=partRF.cells[:], name='ALL')
+        partRG.Set(cells=partRG.cells[:], name='ALL')
         #
         # Alle Sets erstellen mit den Funktionen
         axis = [[0, rRad, 0], [0, -1, 0]]
@@ -1175,19 +1282,28 @@ def make_rolling_model(calc_dir, model_name='roll-test', uy00=0.05):
     # x0 in Geometrie hinein!!!
     #x0 = (b[0] - load[0])/2.
     model = reset_model(model_name)
-    if input_d['Geometrievariante'][0] == '2D':
+    if '2D' in input_d['Geometrievariante'][0]:
         # lCont: Laenge der Flaeche der Knoten
-        [schieneF, schieneG, lCont] = make_rail_2d(model, input_d)
-        mdb.saveAs(pathName=model_name + '.cae')
-        [radF, radG, angFein, angGrob] = make_wheel_2d(model, input_d)
-        mdb.saveAs(pathName=model_name + '.cae')
+        if input_d['Geometrievariante'][0] == '2D':
+            [schieneF, schieneG, lCont] = make_rail_2d(model, input_d)
+            mdb.saveAs(pathName=model_name + '.cae')
+            [radF, radG, angFein, angGrob] = make_wheel_2d(model, input_d)
+            mdb.saveAs(pathName=model_name + '.cae')
+        else:
+            [schieneF, lCont] = make_rail_map_2d(model, input_d)
+            mdb.saveAs(pathName=model_name + '.cae')
+            [radF, angFein] = make_wheel_map_2d(model, input_d)
+            mdb.saveAs(pathName=model_name + '.cae')
+            schieneG, radG = None,None
     else:
         [schieneF, schieneG] = make_rail_3d(model,input_d)
         mdb.saveAs(pathName=model_name + '.cae')
         [radF, radG] = make_wheel_3d(model, input_d)
         mdb.saveAs(pathName=model_name + '.cae')
-    #
+    # for fast model: load and evaluate function separate!
     make_mat_sec(model, input_d)
+    mdb.saveAs(pathName=model_name + '.cae')
+    raise ValueError('soweit gut?')
     (instSG, instSF, instRG) = make_assembly(model, [schieneF, schieneG, radF, radG], input_d)
     #
     make_load(model, instSG, instRG, input_d, uy00=uy00)

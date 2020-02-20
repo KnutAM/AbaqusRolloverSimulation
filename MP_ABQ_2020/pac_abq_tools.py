@@ -145,6 +145,64 @@ def load_odb(model_name):
     viewport1.setValues(displayedObject=odb)
     return odb
 
+# Sets und Surfaces erstellen --------------------------------------------------
+
+def make_elem_face_surface(ass,inst,set_str='CONTACT',surf_str='surf_schiene'):
+    # for orphan mesh part: make element-face based surface from set
+    # fuer Rollmodell mappen erstellt
+    def get_n_face(ass,inst,el_dict,node_set):
+        elem_face_list = [inst_rail.elements[0:0]]*4
+        for i_el,n_list in el_dict.items():
+            if n_list[0] in node_set and n_list[1] in node_set:
+                elem_face_list[0] += inst.elements[i_el-1:i_el]
+            elif n_list[1] in node_set and n_list[2] in node_set:
+                elem_face_list[1] += inst.elements[i_el-1:i_el]
+            elif n_list[2] in node_set and n_list[3] in node_set:
+                elem_face_list[2] += inst.elements[i_el-1:i_el]
+            else:
+                elem_face_list[3] += inst.elements[i_el-1:i_el]
+        ass.Surface(name=surf_str,
+                    face1Elements=elem_face_list[0],
+                    face2Elements=elem_face_list[1],
+                    face3Elements=elem_face_list[2],
+                    face4Elements=elem_face_list[3])
+        return
+    #
+    n_contact = set(i.label for i in inst_rail.sets[set_str].nodes)
+    #
+    el_dict = {el.label:[i.label for i in el.getNodes()] for el in
+               inst_rail.sets[set_str].elements}
+    get_n_face(ass,inst,el_dict,n_contact)
+    return
+
+def make_elem_face_surface(ass,inst,set_str='CONTACT',surf_str='surf_schiene'):
+    # for orphan mesh part: make element-face based surface from set
+    # fuer Rollmodell mappen erstellt, MP 2020-02-20
+    def get_n_face(ass,inst,el_dict,node_set):
+        elem_face_list = [inst.elements[0:0]]*4
+        for i_el,n_list in el_dict.items():
+            if n_list[0] in node_set and n_list[1] in node_set:
+                elem_face_list[0] += inst.elements[i_el-1:i_el]
+            elif n_list[1] in node_set and n_list[2] in node_set:
+                elem_face_list[1] += inst.elements[i_el-1:i_el]
+            elif n_list[2] in node_set and n_list[3] in node_set:
+                elem_face_list[2] += inst.elements[i_el-1:i_el]
+            else:
+                elem_face_list[3] += inst.elements[i_el-1:i_el]
+        ass.Surface(name=surf_str,
+                    face1Elements=elem_face_list[0],
+                    face2Elements=elem_face_list[1],
+                    face3Elements=elem_face_list[2],
+                    face4Elements=elem_face_list[3])
+        return
+    #
+    n_contact = set(i.label for i in inst.sets[set_str].nodes)
+    #
+    el_dict = {el.label:[i.label for i in el.getNodes()] for el in
+               inst.sets[set_str].elements}
+    get_n_face(ass,inst,el_dict,n_contact)
+    return
+
 # Auswahl-Funktionen -----------------------------------------------------------
 
 def getCoord(object):
