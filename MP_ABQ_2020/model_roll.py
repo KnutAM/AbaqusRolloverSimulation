@@ -5,14 +5,17 @@ from abaqusConstants import *
 from caeModules import *
 import numpy as np
 from pac_abq_tools import *
+import Pickler
 
 TOL = 1.e-5
 DIR0 = os.path.abspath('')
 
 # general functions for both 2D and 3D models ----------------------------------
-
-def make_mat_sec(model, matName, if3D=0, ob_rad_starr='no'):
+def make_mat_sec(model, input_d):
     """ Materialien und Sections erstellen (Rad immer el, Schiene: ifPl plastisch) """
+    matName = input_d['Material variant']
+    if3D = input_d['Geometrievariante'][0]
+    wheel_rigid = input_d['ob Rad starr']
     # Materialien und Sections
     #
     matR260 = model.Material(name='R260')
@@ -73,7 +76,7 @@ def make_mat_sec(model, matName, if3D=0, ob_rad_starr='no'):
     #
     for i in model.parts.items():
         if 'Starr' not in i[0]:
-            if if3D == 1:
+            if if3D == '3D':
                 if 'Schiene-F' in i[0]:
                     i[1].setElementType(elemTypes=(mesh.ElemType(elemCode=C3D8, elemLibrary=STANDARD,
                                         kinematicSplit=AVERAGE_STRAIN, secondOrderAccuracy=OFF,
@@ -92,8 +95,8 @@ def make_mat_sec(model, matName, if3D=0, ob_rad_starr='no'):
                 #
                 i[1].setElementType(elemTypes=(mesh.ElemType(elemCode=str_elem, elemLibrary=STANDARD),
                                                mesh.ElemType(elemCode=CPE3, elemLibrary=STANDARD)), regions=i[1].sets['alles'])
-            if (('Rad' in i[0] and 'plastic' not in ob_rad_starr) or
-                ('Rad' not in i[0] and 'plastic' in ob_rad_starr)):
+            if (('Rad' in i[0] and 'plastic' not in wheel_rigid) or
+                ('Rad' not in i[0] and 'plastic' in wheel_rigid)):
                 #print_cmd(str(i[0])+': elastisch')
                 matT = 'steel-el'
             else:
@@ -110,22 +113,37 @@ def make_mat_sec(model, matName, if3D=0, ob_rad_starr='no'):
                                    region=i[1].sets['alles'], sectionName=matT, thicknessAssignment=FROM_SECTION)
     return
 
-def make_assembly(model, parts, ang0, x0, b, rRad, mu=0.5, if3D=0):
+def make_assembly(model, parts, input_d):
     """ Assembly und Interactions """
-    [bFF, bF, bG] = b
+    if3D = input_d['Geometrievariante'][0]
+    [bFF, bF, bG] = np.array(input_d['Abmessungen']['length'])
+    if if3D == '2D':
+        [bFF, bF, bG] = [bFF/2., bF/2., bG/2.]
+    lRoll = input_d['Rolllaenge']
+    rRad = input_d['Radius Rad']
+    wheel_rigid = input_d['ob Rad starr']
+    mu = input_d['Friction coefficient']
     [schieneF, schieneG, radF, radG] = parts
+    # noch machen
+    x0 = (bFF - lRoll)/2.
+    #
+    if wheel_rigid != 'Yes':
+        ang0 = (bF - bFF) / rRad / 2
+    else:
+        ang0 = 0
+
     assembly = model.rootAssembly
     assembly.DatumCsysByDefault(CARTESIAN)
     instSF = assembly.Instance(dependent=ON, name='Schiene-Fein-1', part=schieneF)
     instSG = assembly.Instance(dependent=ON, name='Schiene-Grob-1', part=schieneG)
     if 'Rad-Starr-1' not in assembly.instances.keys():
         instRF = assembly.Instance(dependent=ON, name='Rad-Fein-1', part=radF)
-        if if3D != 1:
+        if if3D != '3D':
             instRG = assembly.instances['Rad-Grob-1']
         else:
             instRG = assembly.Instance(dependent=ON, name='Rad-Grob-1', part=radG)
         # Rad drehen
-        if if3D != 1:
+        if if3D != '3D': ###################
             model.rootAssembly.rotate(angle=-(ang0 + x0 / rRad) * 180 / pi, axisDirection=(0.0, 0.0, 1.0),
                                       axisPoint=(0.0, rRad, 0.0), instanceList=('Rad-Fein-1', 'Rad-Grob-1'))
             model.rootAssembly.translate(instanceList=('Rad-Fein-1', 'Rad-Grob-1'),
@@ -150,7 +168,7 @@ def make_assembly(model, parts, ang0, x0, b, rRad, mu=0.5, if3D=0):
     else:
         instRF = assembly.instances['Rad-Starr-1']
         # Rad bewegen
-        if if3D != 1:
+        if if3D != '3D':
             model.rootAssembly.translate(instanceList=('Rad-Starr-1',),
                                          vector=(-bFF / 2 + x0, 0.005, 0.0))
         else:
@@ -166,7 +184,7 @@ def make_assembly(model, parts, ang0, x0, b, rRad, mu=0.5, if3D=0):
               positionToleranceMethod=COMPUTED, slave=instSF.sets['tie']
               , thickness=ON, tieRotations=ON)
     if 'Rad-Starr-1' not in assembly.instances.keys():
-        if if3D != 1:
+        if if3D != '3D':
             model.RigidBody(name='rad-cent', tieRegion=assembly.instances['Rad-Grob-1'].sets['rigid_cent'], refPointRegion=
                             assembly.sets['RP-Rad'])
             """
@@ -179,7 +197,7 @@ def make_assembly(model, parts, ang0, x0, b, rRad, mu=0.5, if3D=0):
             model.ZsymmBC(name='zSym-RF', createStepName='Initial', region=instRF.sets['zSym'])
             model.ZsymmBC(name='zSym-RG', createStepName='Initial', region=instRG.sets['zSym'])
         #
-        if if3D ==1:
+        if if3D == '3D':
             model.ZsymmBC(name='zSym-SF', createStepName='Initial', region=instSF.sets['zSym'])
             model.ZsymmBC(name='zSym-SG', createStepName='Initial', region=instSG.sets['zSym'])
     # Kontaktdefinition
@@ -232,12 +250,24 @@ def make_assembly(model, parts, ang0, x0, b, rRad, mu=0.5, if3D=0):
         instRG = []
     return (instSG, instSF, instRG)
 
-def make_load(model, rRad, instSG, instRG, load, elMesh, nCycles=1,
-             uy0=0.18, if_full_out='No', uy00=0.05):
+def make_load(model, instSG, instRG, input_d, uy00=0.05):
     print('funktion aufgerufen')
     """ Rad rollen: etliche Varianten """
-    [lRoll, f2D, lVar, creep, trac] = load
+    #[lRoll, f2D, lVar, creep, trac] = load
+    lRoll = input_d['Rolllaenge']
+    rRad = input_d['Radius Rad']
+    f2D = input_d['Normal load'] * 1000 / 2
+    lVar = input_d['Belastung'][1]
+
+    creep = input_d['Belastung'][1]
+    traction = creep
     creep = -creep
+    #
+    nCycles = input_d['Number Cycles']
+    uy0 = input_d['uy0']
+    if_full_out = input_d['ob full Output']
+    #
+    el_mesh = input_d['Abmessungen']['element length']
     assembly = model.rootAssembly
     #
     model.StaticStep(initialInc=0.5, maxNumInc=1000, name='Kontakt-UY001', nlgeom=ON, previous='Initial')
@@ -246,9 +276,9 @@ def make_load(model, rRad, instSG, instRG, load, elMesh, nCycles=1,
     if lRoll == 0:
         incSize = 1.
     else:
-        incSize = 1 / (lRoll / elMesh[0]) * 0.7
+        incSize = 1 / (lRoll / el_mesh[0]) * 0.7
     print(incSize)
-    if lVar != "a":
+    if lVar == "traction":
         model.StaticStep(initialInc=0.1, maxNumInc=1000, name='Kontakt-Moment001', nlgeom=ON, previous='Kontakt-F001')
         model.StaticStep(initialInc=incSize, maxInc=incSize, minInc=incSize / 1000, noStop=OFF, maxNumInc=5000,
                          name='Rollen001', nlgeom=ON, previous='Kontakt-Moment001')
@@ -272,7 +302,7 @@ def make_load(model, rRad, instSG, instRG, load, elMesh, nCycles=1,
     bcURad = model.DisplacementBC(amplitude=UNSET, createStepName=
                                   'Initial', distributionType=UNIFORM, fieldName='', localCsys=None, name=
                                   'Rad-UX-ROTZ', region=assembly.sets['RP-Rad'], u1=SET, u2=UNSET, ur3=SET, ur1=0, ur2=0, u3=0)
-    if lVar == "b":
+    if lVar == "traction":
         mom = trac * f2D * rRad
         if mom != 0:
             momentRad = model.Moment(cm3=mom, createStepName='Kontakt-Moment001',
@@ -329,7 +359,7 @@ def make_load(model, rRad, instSG, instRG, load, elMesh, nCycles=1,
         if lRoll == 0:
             incSize = 1.
         else:
-            incSize = 1 / (lRoll / elMesh[0]) * 0.7
+            incSize = 1 / (lRoll / el_mesh[0]) * 0.7
         #
         cycList = range(2, nCycles + 1)
         # jetzt durchgehen
@@ -347,7 +377,7 @@ def make_load(model, rRad, instSG, instRG, load, elMesh, nCycles=1,
                                            name='Rad-UY' + str(cyc).zfill(3), region=assembly.sets['RP-Rad'],
                                            u1=UNSET, u2=-uy0, ur3=UNSET)
             bcU0Rad.deactivate('Kontakt-F' + str(cyc).zfill(3))
-            if lVar != "a":
+            if lVar == "traction":
                 model.StaticStep(initialInc=0.1, maxNumInc=1000, name='Kontakt-Moment' + str(cyc).zfill(3), nlgeom=ON,
                                  previous='Kontakt-F' + str(cyc).zfill(3))
                 model.StaticStep(initialInc=incSize, maxInc=incSize, minInc=incSize / 1000, noStop=OFF, maxNumInc=5000,
@@ -358,7 +388,7 @@ def make_load(model, rRad, instSG, instRG, load, elMesh, nCycles=1,
                                  name='Rollen' + str(cyc).zfill(3), nlgeom=ON, previous='Kontakt-F' + str(cyc).zfill(3))
             model.StaticStep(initialInc=0.04, maxNumInc=1000, name='Abheben' + str(cyc).zfill(3), nlgeom=ON,
                              previous='Rollen' + str(cyc).zfill(3))
-            if lVar == "b":
+            if lVar == "traction":
                 mom = trac * f2D * rRad
                 if mom != 0:
                     momentRad.setValuesInStep(stepName='Kontakt-Moment'+str(cyc).zfill(3),cm3=mom)
@@ -516,13 +546,14 @@ def evaluate_odb(odb_name,b_pfad=150,ob_rad_starr='no'):
     return del_h
 
 # Funktionen beim 2D Rollmodell, ifRoll: ob Symmetrie in x-Richtung ------------
-
-def make_rail_2d(model, b, h, t, elMesh, rSchiene=0, biasS=1., elem_type='PS'):
+def make_rail_2d(model, input_d):
     """ Schienenparts- und Sets erstellen """
-    [bFF, bF, bG] = [b[0] / 2, b[1] / 2, b[2] / 2]
-    [hFF, hF, hG] = h
-    [elFF, elF, elG] = elMesh
+    [bFF, bF, bG] = np.array(input_d['Abmessungen']['length'])/2.
+    [hFF, hF, hG] = input_d['Abmessungen']['height']
+    [elFF, elF, elG, biasS] = input_d['Abmessungen']['element length']
     TOL = elFF / 10
+    rSchiene = 0 #input_d['Radius Schiene']
+    elem_type = input_d['Geometrievariante'][3]
     # feiner Part
     sketch0 = model.ConstrainedSketch(name='sketchF', sheetSize=20.0)
     sketch0.rectangle(point1=(-bF, -hF), point2=(bF, 0))
@@ -620,14 +651,17 @@ def make_rail_2d(model, b, h, t, elMesh, rSchiene=0, biasS=1., elem_type='PS'):
                 elemCode=CPE3, elemLibrary=STANDARD)), regions=(part.faces[:],))
     return [schieneF, schieneG, lCont]
 
-def make_wheel_2d(model, rRad, b, h, t, elMesh, if_rigid=0, elem_type='PS'):
+def make_wheel_2d(model, input_d):
     """ Rad aufbauen und vernetzen """
-    [bFF, bF, bG] = [b[0] / 2, b[1] / 2, b[2] / 2]
-    [hFF, hF, hG] = h
-    [elFF, elF, elG] = elMesh
+    [bFF, bF, bG] = np.array(input_d['Abmessungen']['length'])/2.
+    [hFF, hF, hG] = input_d['Abmessungen']['height']
+    [elFF, elF, elG, biasS] = input_d['Abmessungen']['element length']
+    rRad = input_d['Radius Rad']
+    wheel_rigid = input_d['ob Rad starr']
+    elem_type = input_d['Geometrievariante'][3]
     TOL = elFF / 8
 
-    if if_rigid == 'Yes':
+    if wheel_rigid == 'yes':
         # Starres "Rad" aufbauen
         sketchRF = model.ConstrainedSketch(name='radFein', sheetSize=200.0)
         sketchRF.ArcByCenterEnds(center=(0, rRad), direction=COUNTERCLOCKWISE, point1=(-rRad, rRad), point2=(rRad,rRad))
@@ -763,52 +797,18 @@ def make_wheel_2d(model, rRad, b, h, t, elMesh, if_rigid=0, elem_type='PS'):
                     elemCode=CPE3, elemLibrary=STANDARD)), regions=(part.faces[:],))
         return [radF, radG, angFein, angGrob]
 
-def makeModel2D(folderN, modelN, rRad, rSchiene, b, h, t, elMesh, load,
-                nCycles=1, matName='R260', nPr=4, biasS=1.,
-                rad_rigid=0, mu=0.5,fullOut='No', ob_rad_starr='no',
-                elem_type='PS'):
-    # Modell meherere Male zwischen Kontakt- und Patchbelastung hin und her transferieren
-    x0 = (b[0] - load[0])/2.
-    #dir0 = changeDir(folderN)
-    #
-    #copyfile('..//_Angaben_Modell.xlsx', '_Angaben_' + folderN + '.xlsx')
-    model = reset_model(modelN + '001c')
-    modelL = [model]
-    # lCont: Laenge der Flaeche der Knoten
-    [schieneF, schieneG, lCont] = make_rail_2d(model, b, h, t, elMesh, rSchiene, biasS, elem_type)
-    mdb.saveAs(pathName=modelN + '.cae')
-    [radF, radG, angFein, angGrob] = make_wheel_2d(model, rRad, b, h, t, elMesh, rad_rigid, elem_type)
-    mdb.saveAs(pathName=modelN + '.cae')
-
-    make_mat_sec(model, matName, ob_rad_starr=ob_rad_starr)
-    if rad_rigid != 'Yes':
-        ang0 = (b[1] - b[0]) / rRad / 2
-    else:
-        ang0 = 0
-    #
-    print(ang0)
-    (instSG, instSF, instRG) = make_assembly(model, [schieneF, schieneG, radF, radG], ang0, x0, b, rRad, mu)
-    #
-    make_load(model, rRad, instSG, instRG, load, elMesh, nCycles, if_full_out=fullOut)
-    jobN = modelL[0].name
-    run_model(model, jobN, nPr, 1)
-    #
-    del_h = evaluate_odb(jobN,ob_rad_starr=ob_rad_starr)
-    print(del_h)
-    #os.chdir(dir0)
-    remove_files(DIR0)
-    return
-
 # Funktionen beim 3D Rollmodell ------------------------------------------------
-
-def make_rail_3d(model, rSchiene, b, h, t, elMesh, splineLG=[], splineLF=[],
-                  facDepth=4.):
-    # facDepth: Faktor fuer biased seeds in Tiefe
-    [bFF, bF, bG] = b
-    [hFF, hF, hG] = h
-    [tFF, tF, tG] = t
-    [elFF, elF, elG] = elMesh
+def make_rail_3d(model, input_d, splineLG=[], splineLF=[]):
+    # biasS: Faktor fuer biased seeds in Tiefe
+    [bFF, bF, bG] = np.array(input_d['Abmessungen']['length'])
+    [hFF, hF, hG] = input_d['Abmessungen']['height']
+    [tFF, tF, tG] = input_d['Abmessungen']['depth']
+    [elFF, elF, elG, biasS] = input_d['Abmessungen']['element length']
     TOL = tFF / 50
+    #
+    rSchiene = input_d['Radius Schiene']
+    elem_type = input_d['Geometrievariante'][3]
+    #
     sketchSF = model.ConstrainedSketch(name='sketch-SF', sheetSize=20.0)
     # wenn einfache Rundung mit Radius
     if splineLF == []:
@@ -942,7 +942,7 @@ def make_rail_3d(model, rSchiene, b, h, t, elMesh, splineLG=[], splineLF=[],
     edgF3 = selectFull(partSF.edges, [-tF + TOL, -tFF - TOL], [], [])
     # Zusatz: oben biased
     edgF4 = selectFull(partSF.edges, [], [-hFF * 0.9 + TOL, -hFF * 0.1 - TOL], [])
-    edgeBiasedList(partSF, edgF4, 2, 1, [], elFF, elFF / facDepth)
+    edgeBiasedList(partSF, edgF4, 2, 1, [], elFF, elFF / biasS)
     #
     edgeBiasedList(partSF, edgF1a, 3, 1, [], elF, elFF)
     edgeBiasedList(partSF, edgF1b, 3, -1, [], elF, elFF)
@@ -961,15 +961,16 @@ def make_rail_3d(model, rSchiene, b, h, t, elMesh, splineLG=[], splineLF=[],
     partSG.generateMesh()
     return [partSF, partSG]
 
-def make_wheel_3d(model, rRad, b, h, t, elMesh, rad_rigid=0):
-    [bFF, bF, bG] = b
-    [hFF, hF, hG] = h
-    [tFF, tF, tG] = t
-    [elFF, elF, elG] = elMesh
-    #
+def make_wheel_3d(model, input_d):
+    [bFF, bF, bG] = np.array(input_d['Abmessungen']['length'])
+    [hFF, hF, hG] = input_d['Abmessungen']['height']
+    [tFF, tF, tG] = input_d['Abmessungen']['depth']
+    [elFF, elF, elG, biasS] = input_d['Abmessungen']['element length']
+    rRad = input_d['Radius Rad']
+    wheel_rigid = input_d['ob Rad starr']
     TOL = elFF / 50.
     #
-    if rad_rigid == 'Yes':
+    if wheel_rigid == 'yes':
         # starres "Rad": Halbkugel an Kegelspitze aufbauen
         x0,y0 = (rRad*sin(pi/4),rRad*(1-sin(pi/4)))
         sketchRF = model.ConstrainedSketch(name='sketch-RF', sheetSize=200.0)
@@ -1163,114 +1164,41 @@ def make_wheel_3d(model, rRad, b, h, t, elMesh, rad_rigid=0):
         partRG.generateMesh()
         return [partRF, partRG]
 
-def makeModel3D(folderN, modelN, rRad, rSchiene, b, h, t, elMesh, load,
-                   nCycles=1, matName='R260', nPr=4, rad_rigid=0, mu=0.5,
-                   uy00=0.05,fullOut='No', ob_rad_starr='no'):
-
-    # einmal das 3D Modell erstellen
-    def _makeModel3D(folderN, modelN, rRad, rSchiene, b, h, t, elMesh, load, x0, nCycles,
-                     matName, nPr, uy00,fullOut,ob_rad_starr='no'):
-        #dir0 = changeDir(folderN)
-        #copyfile('..//_Angaben_Modell.xlsx', '_Angaben_' + folderN + '.xlsx')
-        model = reset_model(modelN)
-        [schieneF, schieneG] = make_rail_3d(model, rSchiene, b, h, t, elMesh[:3], facDepth=elMesh[-1])
-        [radF, radG] = make_wheel_3d(model, rRad, b, h, t, elMesh[:3], rad_rigid)
-        make_mat_sec(model, matName, if3D=1, ob_rad_starr=ob_rad_starr)
-        ang0 = (b[1] - b[0]) / rRad / 2
-        print(ang0)
-        [instSG, instSF, instRG] = make_assembly(model, [schieneF, schieneG, radF, radG], ang0, x0, b, rRad, mu, if3D=1)
-        #
-        make_load(model, rRad, instSG, instRG, load, elMesh[:3], nCycles, uy00=uy00, if_full_out=fullOut)
-        jobN = modelN
-        run_model(model, jobN, nPr, 1)
-        evaluate_odb(jobN,ob_rad_starr=ob_rad_starr)
-        # Ausgabe des Schienenprofils
-        #_getOProfile3d(jobN)
-        #os.chdir(dir0)
-        return  # out
-
-    x0 = (b[0]-load[0])/2
-    # ersten Durchgang rechnen
-    _makeModel3D(folderN, modelN + '001', rRad, rSchiene, b, h, t, elMesh, load, x0, nCycles,
-                 matName, nPr, uy00, fullOut,ob_rad_starr=ob_rad_starr)
-    return
-
-# general function for creating rolling model ----------------------------------
-
-def make_rolling_model(folderN, modelN, rRad, rSchiene, b, h, t, elMesh, load,
-                       model_dim='2Dget_', nCycles=1, matName='R260', nPr=4,
-                       rad_rigid=0, mu=0.5, uy00=0.05,fullOut='No', ob_rad_starr='no'):
+# one function for creating rolling model ----------------------------------
+def make_rolling_model(calc_dir, model_name='roll-test', uy00=0.05):
     #
-    dir_name = ''
-    # Modell modell_erstellen
-    abmess = input_d['Abmessungen']
-    #
-    # Reibwert
-    mu = input_d['Friction coefficient']
-    #
-    if input_d['Geometrievariante'][0] == '3D':
-        # Belastung
-        if input_d['Belastung'][0] == 'slip':
-            load = (input_d['Rolllaenge'], input_d['Normal load'] * 1000 / 2, 'a',
-                    input_d['Belastung'][1], 0)
-        else:
-            load = (input_d['Rolllaenge'], input_d['Normal load'] * 1000 / 2, 'b',
-                    0, input_d['Belastung'][1])
-        #
-        makeModel3D(dir_name,'run-cycle',input_d['Radius Rad'],input_d['Radius Schiene'],
-                       abmess['length'],abmess['height'],abmess['depth'],
-                       abmess['element length'],load,nCycles=int(input_d['Number Cycles']),
-                       matName=input_d['Material variant'],
-                       nPr=int(input_d['Anzahl Prozessoren']),
-                       rad_rigid=input_d['ob Rad starr'],
-                       mu=input_d['Friction coefficient'],
-                       uy00=input_d['uy0'],
-                       fullOut=input_d['ob full Output'],
-                       ob_rad_starr=input_d['ob Rad starr'])
-    else:
-        # Belastung
-        if input_d['Belastung'][0] == 'slip':
-            load = (input_d['Rolllaenge'], input_d['Geometrievariante'][2], 'a',
-                    input_d['Belastung'][1], 0)
-        else:
-            load = (input_d['Rolllaenge'], input_d['Geometrievariante'][2], 'b',
-                    0, input_d['Belastung'][1])
-        #
-        makeModel2D(dir_name, 'run-cycle', input_d['Geometrievariante'][1], 0,
-                   abmess['length'], abmess['height'], 0, abmess['element length'][:3],
-                   load, nCycles=int(input_d['Number Cycles']), matName=input_d['Material variant'],
-                   nPr=int(input_d['Anzahl Prozessoren']),biasS=abmess['element length'][-1],
-                   rad_rigid=input_d['ob Rad starr'],
-                   mu=input_d['Friction coefficient'],
-                   fullOut=input_d['ob full Output'],
-                   ob_rad_starr=input_d['ob Rad starr'],
-                   elem_type=input_d['Geometrievariante'][3])
-    os.chdir(dir0)
-    return
-
-def modell_erstellen(calc_dir):
     dir0 = make_dir(calc_dir, if_change=1)
     Mdb()
-    input_d = Pickler.load('input_model.dat')
     #
-    make_rolling_model(dir_name, 'run-cycle', input_d['Geometrievariante'][1], 0,
-               abmess['length'], abmess['height'], 0, abmess['element length'][:3],
-               load, nCycles=int(input_d['Number Cycles']), matName=input_d['Material variant'],
-               nPr=int(input_d['Anzahl Prozessoren']),biasS=abmess['element length'][-1],
-               rad_rigid=input_d['ob Rad starr'],
-               mu=input_d['Friction coefficient'],
-               fullOut=input_d['ob full Output'],
-               ob_rad_starr=input_d['ob Rad starr'],
-               elem_type=input_d['Geometrievariante'][3])
+    input_d = Pickler.load('input_model.dat')
+    # Modell erstellen
+    # x0 in Geometrie hinein!!!
+    #x0 = (b[0] - load[0])/2.
+    model = reset_model(model_name)
+    if input_d['Geometrievariante'][0] == '2D':
+        # lCont: Laenge der Flaeche der Knoten
+        [schieneF, schieneG, lCont] = make_rail_2d(model, input_d)
+        mdb.saveAs(pathName=model_name + '.cae')
+        [radF, radG, angFein, angGrob] = make_wheel_2d(model, input_d)
+        mdb.saveAs(pathName=model_name + '.cae')
+    else:
+        [schieneF, schieneG] = make_rail_3d(model,input_d)
+        mdb.saveAs(pathName=model_name + '.cae')
+        [radF, radG] = make_wheel_3d(model, input_d)
+        mdb.saveAs(pathName=model_name + '.cae')
+    #
+    make_mat_sec(model, input_d)
+    (instSG, instSF, instRG) = make_assembly(model, [schieneF, schieneG, radF, radG], input_d)
+    #
+    make_load(model, instSG, instRG, input_d, uy00=uy00)
+    run_model(model, model_name, int(input_d['Anzahl Prozessoren']), 1)
+    #
+    del_h = evaluate_odb(model_name,ob_rad_starr=input_d['ob Rad starr'])
+    os.chdir(DIR0)
+    remove_files(DIR0)
+    return
 
-#calc_dir = str(sys.argv[-1])
-
+calc_dir = str(sys.argv[-1])
 # run in directory calc_dir
-#run_model_dir(calc_dir)
-
-
-
-#
-#
-#
+make_rolling_model(calc_dir)
 #

@@ -6,7 +6,7 @@ import math
 from abaqus import *
 from abaqusConstants import *
 from caeModules import *
-import time
+import time,shutil
 import numpy as np
 
 DIR0 = os.path.abspath('')
@@ -17,16 +17,19 @@ session.journalOptions.setValues(replayGeometry=COORDINATE,
 
 # allgemeine Funktionen --------------------------------------------------------
 
-def changeDir(folderN):
-    """ in Unterordner wechseln """
-    import os
-    dir0 = os.path.abspath('')
-    if (os.path.exists(folderN) == 0):
-        os.mkdir(folderN)
-    dir1 = dir0 + "//" + folderN
-    # dir1=dir0+"\\"+folderN
-    os.chdir(dir1)
-    return dir0
+def make_dir(dir_name, if_change=0, if_clear=0):
+    # wechselt in einen Unterordner
+    dir_abs = os.path.abspath('')
+    if os.path.exists(dir_name) == 0:
+        os.mkdir(dir_name)
+    else:
+        if if_clear:
+            shutil.rmtree(dir_name)
+            os.mkdir(dir_name)
+    dir1 = dir_abs + "/" + dir_name
+    if if_change:
+        os.chdir(dir1)
+    return dir_abs
 
 def print_cmd(string):
     print >> sys.__stdout__,string
