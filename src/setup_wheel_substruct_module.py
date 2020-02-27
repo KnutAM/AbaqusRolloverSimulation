@@ -19,7 +19,21 @@ import regionToolset
 sys.path.append(r'C:\Box Sync\PhD\MyArticles\RolloverSimulationMethodology\AbaqusRolloverSimulation\src')
 from material_and_section_module import setup_sections
 
+def test_script_import():
+    # Settings
+    wheel_geometry = {'outer_diameter': 400., 'inner_diameter': 50., 'max_contact_length': 25., 'rolling_angle': 100./(400./2.)}
+    wheel_mesh = {'fine': 40.0, 'coarse': 50.0, 'refine_thickness': 50.0}
+    wheel_naming = {'part': 'WHEEL', 'section': 'WHEEL_SECTION', 'rp': 'WHEEL_CENTER'}
+    rail_naming = {'part': 'RAIL', 'section': 'RAIL_SECTION', 'shadow_section': 'RAIL_SHADOW_SECTION'}
 
+    
+    the_model = mdb.models['rollover']
+    assy = the_model.rootAssembly
+    substructureFile='c:/work/Abaqus/2017/Temp/Job-1_Z1.sim'
+    odbFile='c:/work/Abaqus/2017/Temp/Job-1.odb'
+    import_wheel_substructure(the_model, assy, wheel_naming, substructureFile, odbFile, wheel_geometry, wheel_mesh)
+    
+    
 def test_script():
     # Settings
     wheel_geometry = {'outer_diameter': 400., 'inner_diameter': 50., 'max_contact_length': 25., 'rolling_angle': 100./(400./2.)}
@@ -27,20 +41,15 @@ def test_script():
     wheel_naming = {'part': 'WHEEL', 'section': 'WHEEL_SECTION', 'rp': 'WHEEL_CENTER'}
     rail_naming = {'part': 'RAIL', 'section': 'RAIL_SECTION', 'shadow_section': 'RAIL_SHADOW_SECTION'}
     
-    # Setup model
-    the_model = mdb.models.values()[0]
-    assy = the_model.rootAssembly
-    assy.DatumCsysByDefault(CARTESIAN)
-    
-    # Setup sections
-    setup_sections(the_model, naming={'wheel': wheel_naming['section'], 
-                                  'rail': rail_naming['section'], 
-                                  'shadow': rail_naming['shadow_section']})
-    
-    wheel_part, wheel_contact_surf, ctrl_pt_reg = setup_wheel(the_model, assy, wheel_geometry, wheel_mesh, wheel_naming)
+    substructureFile, odbFile = create_wheel_substructure(wheel_geometry, wheel_mesh, wheel_naming, 'wheel_substr1')
     
     
-def setup_wheel(the_model, assy, geometry, the_mesh, naming):
+    
+def setup_wheel():
+    pass
+    
+
+def import_wheel_substructure(the_model, assy, wheel_naming, substructureFile, odbFile, geometry, the_mesh):
     # Input
     #   the_model   The full abaqus model section_name
     #   assy        The full assembly (for all parts)
@@ -52,14 +61,141 @@ def setup_wheel(the_model, assy, geometry, the_mesh, naming):
     #    req.        'part', 'section', 'shadow_section'
     #   
     # Output
-    #   the_part                The rail part
+    #   the_part            The wheel part
     #   contact_surface     Surface
     #   control_point_reg   Control point (reference point region) to apply boundary conditions for controlling wheel
     #   
     # Modified
-    #   the_model       The rail parts, sketches etc. will be added
-    #   assy        adding surfaces, the rail part, etc. 
+    #   the_model       The wheel parts, sketches etc. will be added
+    #   assy            Adding surfaces, the wheel part, etc. 
     # -------------------------------------------------------------------------
+    
+    the_part = the_model.PartFromSubstructure(name=wheel_naming['part']+'_substr', substructureFile=substructureFile, 
+                                              odbFile=odbFile)
+    the_inst = assy.Instance(name=wheel_naming['part']+'_substr', part=the_part, dependent=ON)
+    
+    contact_nodes, contact_nodes_set_name = define_contact_nodes(the_part, geometry, the_mesh)
+    
+    contact_part, contact_inst, contact_surface = define_contact_surface_mesh_part(the_model, assy, geometry, the_mesh, contact_nodes, wheel_naming)
+    
+    # TIE contact surface to nodes!
+    
+    rp_node_set = get_rp_node_set(the_part, the_inst, geometry)
+    
+    return the_part, contact_surface, rp_node_set
+
+
+def define_contact_surface_mesh_part(the_model, assy, geometry, the_mesh, contact_node_set, wheel_naming):
+    x0 = 0.0
+    y0 = geometry['outer_diameter']/2.0
+    radius = geometry['outer_diameter']/2.0
+    
+    xrel = np.array([n.coordinates[0] - x0 for n in contact_node_set.nodes])
+    yrel = np.array([n.coordinates[1] - y0 for n in contact_node_set.nodes])
+    
+    # radius = np.sqrt(xrel**2 + yrel**2)
+    angles = np.arctan2(xrel,-yrel)
+    minang = np.min(angles)
+    maxang = np.max(angles)
+    num_nodes =len(angles)
+    
+    # Create part and add instance to assembly
+    contact_part = the_model.Part(name='contact_part', dimensionality=TWO_D_PLANAR, type=DEFORMABLE_BODY)
+    contact_inst = assy.Instance(name='contact_part', part=contact_part, dependent=ON)
+    
+    the_sketch = the_model.ConstrainedSketch(name='__contact_surface__', sheetSize=200.0)
+    the_sketch.setPrimaryObject(option=STANDALONE)
+    the_sketch.ArcByCenterEnds(center=(0.0, y0), direction=COUNTERCLOCKWISE,
+                               point1=(x0 + radius*np.sin(minang), y0 - radius * np.cos(minang)), 
+                               point2=(x0 + radius*np.sin(maxang), y0 - radius * np.cos(maxang)))
+    contact_part.BaseWire(sketch=the_sketch)
+    
+    edge = contact_part.edges.findAt(((0.0, 0.0, 0.0),))
+    contact_part.seedEdgeByNumber(edges=edge, number=num_nodes-1, constraint=FIXED)
+    contact_part.generateMesh()
+    
+    region = regionToolset.Region(edges=edge)
+    contact_part.SectionAssignment(region=region, sectionName=wheel_naming['contact_section'], offset=0.0, 
+        offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
+    
+    contact_surface = assy.Surface(side1Edges=contact_inst.edges.findAt((( 0., 0., 0.),),),
+                                   name='wheel_substr_contact_surface')
+    
+    return contact_part, contact_inst, contact_surface
+    
+
+def get_contact_nodes(geometry, the_mesh, nodes):
+    x0 = 0.0
+    y0 = geometry['outer_diameter']/2.0
+    min_radius = geometry['outer_diameter']/2.0 - the_mesh['fine']/100
+    max_angle = geometry['rolling_angle']/2.0
+    
+    node_list = []
+    for n in nodes:
+        # Coordinates relative wheel center
+        xrel = n.coordinates[0] - x0
+        yrel = n.coordinates[1] - y0
+        radius = np.sqrt(xrel**2 + yrel**2)
+        if radius > min_radius:
+            angle = np.arccos(-yrel/radius)
+            if  angle < max_angle:
+                node_list.append(n)
+    
+    return mesh.MeshNodeArray(node_list)
+    
+    
+def get_rp_node_set(the_part, the_inst, geometry):
+    x0 = 0.0
+    y0 = geometry['outer_diameter']/2.0
+    all_nodes = the_part.nodes
+    rp_node = None
+    for n in all_nodes:
+        xrel = n.coordinates[0] - x0
+        yrel = n.coordinates[1] - y0
+        radius = np.sqrt(xrel**2 + yrel**2)
+        if radius < 1.e-6:
+            rp_node = n
+            break
+    
+    rp_nodes = mesh.MeshNodeArray([rp_node])
+    rp_node_set_name = 'rp_node'
+    rp_node_set = the_part.Set(name=rp_node_set_name, nodes=rp_nodes)
+    
+    rp_node_inst_set = the_inst.sets[rp_node_set_name]
+    
+    return rp_node_inst_set
+    
+    
+def create_wheel_substructure(geometry, the_mesh, naming, substructure_name, wait_for_completion=False):
+    # Input
+    #   the_model   The full abaqus model section_name
+    #   assy        The full assembly (for all parts)
+    #   geometry    Dictionary describing the geometry
+    #    req.        'outer_diameter', 'inner_diameter', 'max_contact_length'
+    #   the_mesh    Dictionary describing the mesh parameters
+    #    req.        'fine'
+    #   naming      Dictionary containing the names for part, section etc.
+    #    req.        'part', 'section', 'shadow_section'
+    #   
+    # Output
+    #   the_part            The wheel part
+    #   contact_surface     Surface
+    #   control_point_reg   Control point (reference point region) to apply boundary conditions for controlling wheel
+    #   
+    # Modified
+    #   the_model       The wheel parts, sketches etc. will be added
+    #   assy            Adding surfaces, the wheel part, etc. 
+    # -------------------------------------------------------------------------
+    
+    # Setup model
+    the_model = mdb.Model(name=substructure_name, modelType=STANDARD_EXPLICIT)
+    assy = the_model.rootAssembly
+    assy.DatumCsysByDefault(CARTESIAN)
+    
+    # Setup sections
+    setup_sections(the_model, naming={'wheel': naming['section'], 
+                                  'rail': 'rail_section',       # Not used in current analysis
+                                  'shadow': 'shadow_section'})  # Not used in current analysis
     
     # Create part and add instance to assembly
     the_part = the_model.Part(name=naming['part'], dimensionality=TWO_D_PLANAR, type=DEFORMABLE_BODY)
@@ -83,14 +219,22 @@ def setup_wheel(the_model, assy, geometry, the_mesh, naming):
     control_point_reg = setup_control_point(the_model, assy, inst, the_part, geometry)
     
     # Define contact surface
-    contact_nodes = define_contact_nodes(the_part, geometry, the_mesh)
+    contact_nodes, contact_nodes_set_name = define_contact_nodes(the_part, geometry, the_mesh)
     # contact_surf = define_contact_surface(assy, inst, geometry, the_mesh)
     
-    create_submodel(the_model, contact_nodes, control_point_reg)
+    substr_id = 1
+    create_submodel(the_model, inst, contact_nodes_set_name, control_point_reg, substr_id)
     
+    the_job = mdb.Job(name=substructure_name, model=substructure_name, type=ANALYSIS, resultsFormat=ODB)
+    mdb.jobs[substructure_name].submit()
+    if wait_for_completion:
+        the_job.waitForCompletion()
     
-    # return the_part, contact_surf, control_point_reg
-    return the_part, None, None
+    cwd = os.getcwd().replace('\\', '/') # Use unix path as this is simpler (and abaqus seem to use this)
+    substructureFile = cwd + '/' + substructure_name + '_Z' + str(substr_id) + '.sim'
+    odbFile = cwd + '/' + substructure_name + '.odb'
+    
+    return substructureFile, odbFile
     
             
 def sketch_wheel(the_model, geometry, the_mesh):
@@ -160,29 +304,12 @@ def define_contact_surface(assy, inst, geometry, the_mesh):
     return contact_surface
         
         
-def define_contact_nodes(the_part, geometry, the_mesh):
-    x0 = 0.0
-    y0 = geometry['outer_diameter']/2.0
-    min_radius = geometry['outer_diameter']/2.0 - the_mesh['fine']/100
-    max_angle = geometry['rolling_angle']/2.0
+def define_contact_nodes(the_part, geometry, the_mesh):    
+    nodes = get_contact_nodes(geometry, the_mesh, the_part.nodes)
+    contact_nodes_set_name = 'contact_nodes'
+    contact_nodes = the_part.Set(name=contact_nodes_set_name, nodes=nodes)
     
-    node_list = []
-    all_nodes = the_part.nodes
-    
-    for n in all_nodes:
-        # Coordinates relative wheel center
-        xrel = n.coordinates[0] - x0
-        yrel = n.coordinates[1] - y0
-        radius = np.sqrt(xrel**2 + yrel**2)
-        if radius > min_radius:
-            angle = np.arccos(-yrel/radius)
-            if  angle < max_angle:
-                node_list.append(n)
-    
-    nodes = mesh.MeshNodeArray(node_list)
-    contact_nodes = the_part.Set(name='contact_nodes', nodes=nodes)
-    
-    return contact_nodes
+    return contact_nodes, contact_nodes_set_name
     
         
 def setup_control_point(the_model, assy, inst, the_part, geometry):
@@ -215,16 +342,17 @@ def get_split_angles(geometry, the_mesh):
     return split_angles
 
 
-def create_submodel(the_model, contact_node_set, rp_ctrl_region):
+def create_submodel(the_model, inst, contact_node_set_name, rp_ctrl_region, substr_id):
     the_model.SubstructureGenerateStep(name='Step-1', 
-        previous='Initial', description='Wheel', substructureIdentifier=1)
+        previous='Initial', description='Wheel', substructureIdentifier=substr_id)
     
     the_model.RetainedNodalDofsBC(name='BC-1', createStepName='Step-1', 
-        region=contact_node_set, u1=ON, u2=ON, u3=OFF, ur1=OFF, ur2=OFF, ur3=OFF)
+        region=inst.sets[contact_node_set_name], u1=ON, u2=ON, u3=OFF, ur1=OFF, ur2=OFF, ur3=OFF)
     
     the_model.RetainedNodalDofsBC(name='BC-2', createStepName='Step-1', 
         region=rp_ctrl_region, u1=ON, u2=ON, u3=OFF, ur1=OFF, ur2=OFF, ur3=ON)
         
 
 if __name__ == '__main__':
-    test_script()
+    test_script_import()
+    #test_script()
