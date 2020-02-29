@@ -84,7 +84,6 @@ def setup_wheel(model, assy, geometry, mesh, naming):
     
     # Setup control point
     control_point_reg = setup_control_point(model, assy, inst, part, geometry)
-    print('TEST')
         
     return part, contact_surf, control_point_reg
     
