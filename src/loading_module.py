@@ -2,10 +2,18 @@
 import sys
 import os
 import numpy as np
+import inspect
 
 # Abaqus imports 
 from abaqusConstants import *
 import load
+
+# Custom imports (need to append project path to python path)
+# __file__ not found when calling from abaqus, 
+# used solution from "https://stackoverflow.com/a/53293924":
+src_file_path = inspect.getfile(lambda: None)
+sys.path.append(os.path.dirname(src_file_path))
+import user_settings
 
 
 def loading(model, assy, wheel_refpoint, rail_bottom):

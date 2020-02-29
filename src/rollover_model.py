@@ -22,6 +22,7 @@ import wheel_substructure_create as wheel_ssc_mod
 import wheel_substructure_import as wheel_ssi_mod
 import loading_module as loadmod
 import contact_module as contactmod
+import user_settings
 
 # Reload to account for script updates when running from inside abaqus CAE
 reload(matmod)
@@ -31,26 +32,28 @@ reload(wheel_ssc_mod)
 reload(wheel_ssi_mod)
 reload(loadmod)
 reload(contactmod)
+reload(user_settings)
 
 
 def main():
     # Settings
-    simulation_name = 'rollover'
+    ## Overall settings
+    simulation_name = user_settings.simulation_name
     
-    use_substructure = True
-    new_substructure = True
-    # Names used unless new substructure created
-    substructureFile='c:/work/Abaqus/2017/Temp/Job-1_Z1.sim'
-    odbFile='c:/work/Abaqus/2017/Temp/Job-1.odb'
+    ## Rail settings
+    rail_geometry = user_settings.rail_geometry
+    rail_mesh = user_settings.rail_mesh
+    rail_naming = user_settings.rail_naming 
     
-    rail_geometry = {'length': 100.0, 'height': 30.0, 'max_contact_length': 25.}
-    rail_mesh = {'fine': 1.0, 'coarse': 5.0}
-    rail_naming = {'part': 'RAIL', 'section': 'RAIL_SECTION', 'shadow_section': 'RAIL_SHADOW_SECTION'}
+    ## Wheel settings
+    use_substructure = user_settings.use_substructure
+    new_substructure = user_settings.new_substructure
+    substructureFile=user_settings.substructureFile
+    odbFile=user_settings.odbFile
     
-    wheel_geometry = {'outer_diameter': 400., 'inner_diameter': 50., 'max_contact_length': 25., 'rolling_angle': 100./(400./2.)}
-    wheel_mesh = {'fine': 2.0, 'coarse': 20.0, 'refine_thickness': 10.0}
-    wheel_naming = {'part': 'WHEEL', 'section': 'WHEEL_SECTION', 'rp': 'WHEEL_CENTER', 
-                    'contact_section': 'WHEEL_CONTACT_SECTION'}
+    wheel_geometry = user_settings.wheel_geometry
+    wheel_mesh = user_settings.wheel_mesh
+    wheel_naming = user_settings.wheel_naming    
     
     # Create wheel substructure model
     if new_substructure:
@@ -66,10 +69,10 @@ def main():
     assy.DatumCsysByDefault(CARTESIAN)
     
     # Setup sections
-    matmod.setup_sections(the_model, naming={'wheel': wheel_naming['section'], 
-                                             'rail': rail_naming['section'], 
-                                             'shadow': rail_naming['shadow_section'],
-                                             'contact': wheel_naming['contact_section']})
+    matmod.setup_sections(the_model, section_names={'wheel': wheel_naming['section'],
+                                                    'rail': rail_naming['section'], 
+                                                    'shadow': rail_naming['shadow_section'],
+                                                    'contact': wheel_naming['contact_section']})
     
     # Setup rail
     rail_part, rail_contact_surf, bottom_reg = railmod.setup_rail(the_model, assy, rail_geometry, rail_mesh, rail_naming)

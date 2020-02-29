@@ -19,14 +19,13 @@ src_file_path = inspect.getfile(lambda: None)
 sys.path.append(os.path.dirname(src_file_path))
 
 from material_and_section_module import setup_sections
-
+import user_settings
 
 def test_script():
     # Settings
-    rail_geometry = {'length': 100.0, 'height': 30.0, 'max_contact_length': 25.}
-    rail_mesh = {'fine': 1.0, 'coarse': 5.0}
-    rail_naming = {'part': 'RAIL', 'section': 'RAIL_SECTION', 'shadow_section': 'RAIL_SHADOW_SECTION'}
-    wheel_naming = {'part': 'WHEEL', 'section': 'WHEEL_SECTION', 'rp': 'WHEEL_CENTER'}
+    rail_geometry = user_settings.rail_geometry
+    rail_mesh = user_settings.rail_mesh
+    rail_naming = user_settings.rail_naming  
     
     # Setup model
     model = mdb.models.values()[0]
@@ -34,8 +33,7 @@ def test_script():
     assy.DatumCsysByDefault(CARTESIAN)
     
     # Setup sections
-    setup_sections(model, naming={'wheel': wheel_naming['section'], 
-                                  'rail': rail_naming['section'], 
+    setup_sections(model, naming={'rail': rail_naming['section'], 
                                   'shadow': rail_naming['shadow_section']})
     
     rail_part, rail_contact_surf = setup_rail(model, assy, rail_geometry, rail_mesh, rail_naming)
