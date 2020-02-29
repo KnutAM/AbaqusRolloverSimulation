@@ -78,7 +78,8 @@ def import_wheel_substructure(the_model, assy, wheel_naming, substructureFile, o
     
     contact_part, contact_inst, contact_surface = define_contact_surface_mesh_part(the_model, assy, geometry, the_mesh, contact_nodes, wheel_naming)
     
-    # TIE contact surface to nodes!
+    the_model.Tie(name='substr_to_contact_surf', master=contact_surface, slave=the_inst.sets[contact_nodes_set_name], 
+                  positionToleranceMethod=COMPUTED, adjust=ON, tieRotations=ON, thickness=ON)
     
     rp_node_set = get_rp_node_set(the_part, the_inst, geometry)
     
@@ -105,20 +106,27 @@ def define_contact_surface_mesh_part(the_model, assy, geometry, the_mesh, contac
     
     the_sketch = the_model.ConstrainedSketch(name='__contact_surface__', sheetSize=200.0)
     the_sketch.setPrimaryObject(option=STANDALONE)
+    
+    # Note: If this direction is changed, the contact_surface definition must be updated accordingly
     the_sketch.ArcByCenterEnds(center=(0.0, y0), direction=COUNTERCLOCKWISE,
                                point1=(x0 + radius*np.sin(minang), y0 - radius * np.cos(minang)), 
                                point2=(x0 + radius*np.sin(maxang), y0 - radius * np.cos(maxang)))
     contact_part.BaseWire(sketch=the_sketch)
     
+    # Generate mesh
     edge = contact_part.edges.findAt(((0.0, 0.0, 0.0),))
     contact_part.seedEdgeByNumber(edges=edge, number=num_nodes-1, constraint=FIXED)
+    truss_element = mesh.ElemType(elemCode=T2D2, elemLibrary=STANDARD)
+    contact_part.setElementType(regions=(edge,), elemTypes=(truss_element, ))
     contact_part.generateMesh()
     
     region = regionToolset.Region(edges=edge)
     contact_part.SectionAssignment(region=region, sectionName=wheel_naming['contact_section'], offset=0.0, 
         offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
     
-    contact_surface = assy.Surface(side1Edges=contact_inst.edges.findAt((( 0., 0., 0.),),),
+    # Note: side2Edges should be used as direction in definition in sketch is COUNTERCLOCKWISE
+    #       This ensures that the normal is pointing towards the wheel.
+    contact_surface = assy.Surface(side2Edges=contact_inst.edges.findAt((( 0., 0., 0.),),),
                                    name='wheel_substr_contact_surface')
     
     return contact_part, contact_inst, contact_surface

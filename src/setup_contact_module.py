@@ -15,6 +15,6 @@ def setup_contact(model, assy, rail_contact_surface, wheel_contact_surface):
     model.interactionProperties['Contact'].TangentialBehavior(formulation=FRICTIONLESS)
 
     model.SurfaceToSurfaceContactStd(name='Contact', 
-        createStepName=create_step_name, master=rail_contact_surface, slave=wheel_contact_surface, sliding=FINITE, 
+        createStepName=create_step_name, slave=rail_contact_surface, master=wheel_contact_surface, sliding=FINITE, 
         thickness=ON, interactionProperty='Contact', adjustMethod=NONE, 
         initialClearance=OMIT, datumAxis=None, clearanceRegion=None)
