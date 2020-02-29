@@ -1,4 +1,4 @@
 *.pyc
 
 # Project specific ignores
-user_settings.py	# User settable settings should not part of commits
+src/user_settings.py	# User settable settings should not part of commits
