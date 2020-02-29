@@ -1,0 +1,10 @@
+Contact using substructure:
+
+Master/slave
+* The stiffest surface should be the master
+* The most densily meshed should be the slave
+
+
+2D
+Add truss element with very small stiffness on separate part, tie to substructure nodes. Use the same mesh discretization to ensure same node positions.
+Ensure that normal is pointing towards contact, otherwise no contact will be detected. This is dependent on using side1Edges or side2Edges in .Surface()
