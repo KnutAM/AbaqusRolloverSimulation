@@ -29,37 +29,26 @@ def test_script():
     wheel_mesh = user_settings.wheel_mesh
     wheel_naming = user_settings.wheel_naming
     
-    substructureFile, odbFile = create_wheel_substructure(wheel_geometry, wheel_mesh, wheel_naming, 'wheel_substr1')
+    create_wheel_substructure(wheel_geometry, wheel_mesh, wheel_naming)
     
     
-def create_wheel_substructure(geometry, the_mesh, naming, substructure_name, wait_for_completion=False):
+def create_wheel_substructure(geometry, the_mesh, naming):
     # Input
-    #   the_model   The full abaqus model section_name
-    #   assy        The full assembly (for all parts)
     #   geometry    Dictionary describing the geometry
     #    req.        'outer_diameter', 'inner_diameter', 'max_contact_length'
     #   the_mesh    Dictionary describing the mesh parameters
     #    req.        'fine'
     #   naming      Dictionary containing the names for part, section etc.
-    #    req.        'part', 'section', 'shadow_section'
-    #   
-    # Output
-    #   the_part            The wheel part
-    #   contact_surface     Surface
-    #   control_point_reg   Control point (reference point region) to apply boundary conditions for controlling wheel
-    #   
-    # Modified
-    #   the_model       The wheel parts, sketches etc. will be added
-    #   assy            Adding surfaces, the wheel part, etc. 
+    #    req.        'part', 'section'
     # -------------------------------------------------------------------------
     
     # Setup model
-    the_model = mdb.Model(name=substructure_name, modelType=STANDARD_EXPLICIT)
+    the_model = mdb.Model(name=user_settings.substructure_name, modelType=STANDARD_EXPLICIT)
     assy = the_model.rootAssembly
     assy.DatumCsysByDefault(CARTESIAN)
     
     # Setup sections
-    setup_sections(the_model, naming={'wheel': naming['section']})
+    setup_sections(the_model, section_names={'wheel': naming['section']})
     
     # Create part and add instance to assembly
     the_part = the_model.Part(name=naming['part'], dimensionality=TWO_D_PLANAR, type=DEFORMABLE_BODY)
@@ -88,18 +77,33 @@ def create_wheel_substructure(geometry, the_mesh, naming, substructure_name, wai
     substr_id = 1
     create_submodel(the_model, inst, contact_nodes_set_name, control_point_reg, substr_id)
     
-    the_job = mdb.Job(name=substructure_name, model=substructure_name, type=ANALYSIS, resultsFormat=ODB)
-    mdb.jobs[substructure_name].submit()
-    if wait_for_completion:
-        the_job.waitForCompletion()
+    substr_name = user_settings.substructure_name
+    substr_path = user_settings.substructure_path
     
-    cwd = os.getcwd().replace('\\', '/') # Use unix path as this is simpler (and abaqus seem to use this)
-    substructureFile = cwd + '/' + substructure_name + '_Z' + str(substr_id) + '.sim'
-    odbFile = cwd + '/' + substructure_name + '.odb'
+    the_job = mdb.Job(name=substr_name, model=substr_name, type=ANALYSIS, resultsFormat=ODB)
+    mdb.jobs[substr_name].submit()
+    the_job.waitForCompletion()
     
-    return substructureFile, odbFile
+    # Copy file to specified directory
+    if not os.path.exists(substr_path):
+        os.mkdir(substr_path)
     
-            
+    for suffix in ['.odb', '.sup']:
+        move_file_to_folder(substr_name + suffix, substr_path)
+    
+    for suffix in ['.sim', '.prt', '.stt', '.mdl']:
+        move_file_to_folder(substr_name + '_Z' + str(substr_id) + suffix, substr_path)
+    
+    
+def move_file_to_folder(file, folder):
+    # Check if destination file already exists, if so delete the file
+    if os.path.exists(folder + '/' + file):
+        os.remove(folder + '/' + file)
+        
+    # Move original file to its destination
+    os.rename(file, folder + '/' + file)
+    
+    
 def sketch_wheel(the_model, geometry, the_mesh):
     sketch = the_model.ConstrainedSketch(name='__wheel_profile__', sheetSize=200.0)
     sketch.setPrimaryObject(option=STANDALONE)

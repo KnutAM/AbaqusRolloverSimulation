@@ -3,6 +3,7 @@ import sys
 import os
 import numpy as np
 import inspect
+from shutil import copyfile
 
 # Abaqus imports 
 from abaqusConstants import *
@@ -36,7 +37,7 @@ def test_script():
     import_wheel_substructure(the_model, assy, wheel_naming, substructureFile, odbFile, wheel_geometry, wheel_mesh)
     
 
-def import_wheel_substructure(the_model, assy, wheel_naming, substructureFile, odbFile, geometry, the_mesh):
+def import_wheel_substructure(the_model, assy, wheel_naming, geometry, the_mesh):
     # Input
     #   the_model   The full abaqus model section_name
     #   assy        The full assembly (for all parts)
@@ -57,6 +58,10 @@ def import_wheel_substructure(the_model, assy, wheel_naming, substructureFile, o
     #   assy            Adding surfaces, the wheel part, etc. 
     # -------------------------------------------------------------------------
     
+    move_substructure_to_cwd()
+    substructureFile = user_settings.substructure_name + '_Z1.sim'
+    odbFile = user_settings.substructure_name + '.odb'
+    
     the_part = the_model.PartFromSubstructure(name=wheel_naming['part']+'_substr', substructureFile=substructureFile, 
                                               odbFile=odbFile)
     the_inst = assy.Instance(name=wheel_naming['part']+'_substr', part=the_part, dependent=ON)
@@ -72,6 +77,20 @@ def import_wheel_substructure(the_model, assy, wheel_naming, substructureFile, o
     
     return the_part, contact_surface, rp_node_set
 
+
+def move_substructure_to_cwd():
+    substr_id = 1
+    ss_name = user_settings.substructure_name
+    ss_path = user_settings.substructure_path
+    
+    for suffix in ['.odb', '.sup']:
+        filename = ss_name + suffix
+        copyfile(ss_path + '/' + filename, os.getcwd() + '/' + filename)
+    
+    for suffix in ['.sim', '.prt', '.stt', '.mdl']:
+        filename = ss_name + '_Z' + str(substr_id) + suffix
+        copyfile(ss_path + '/' + filename, os.getcwd() + '/' + filename)
+    
 
 def define_contact_surface_mesh_part(the_model, assy, geometry, the_mesh, contact_node_set, wheel_naming):
     x0 = 0.0

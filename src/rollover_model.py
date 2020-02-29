@@ -48,17 +48,15 @@ def main():
     ## Wheel settings
     use_substructure = user_settings.use_substructure
     new_substructure = user_settings.new_substructure
-    substructureFile=user_settings.substructureFile
-    odbFile=user_settings.odbFile
+    substructureFile = user_settings.substructureFile
     
     wheel_geometry = user_settings.wheel_geometry
     wheel_mesh = user_settings.wheel_mesh
-    wheel_naming = user_settings.wheel_naming    
+    wheel_naming = user_settings.wheel_naming
     
     # Create wheel substructure model
     if new_substructure:
-        substructureFile, odbFile = wheel_ssc_mod.create_wheel_substructure(wheel_geometry, wheel_mesh, wheel_naming, 
-                                                                            'wheel_substr1', wait_for_completion=True)
+        wheel_ssc_mod.create_wheel_substructure(wheel_geometry, wheel_mesh, wheel_naming)
     
     # Setup model
     if simulation_name in mdb.models:    # Delete old model if exists
@@ -80,7 +78,6 @@ def main():
     # Setup wheel
     if use_substructure:
         wheel_part, wheel_contact_surf, ctrl_pt_reg = wheel_ssi_mod.import_wheel_substructure(the_model, assy, wheel_naming, 
-                                                                                              substructureFile, odbFile,
                                                                                               wheel_geometry, wheel_mesh)
     else:
         wheel_part, wheel_contact_surf, ctrl_pt_reg = wheelmod.setup_wheel(the_model, assy, wheel_geometry, wheel_mesh, wheel_naming)

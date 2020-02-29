@@ -18,8 +18,6 @@ import user_settings
 
 def loading(model, assy, wheel_refpoint, rail_bottom):
     
-    assy.translate(instanceList=('WHEEL', ), vector=(-60.0, 0.0, 0.0))
-    
     model.StaticStep(name='Step-1', previous='Initial', nlgeom=ON)
     
     # BC for rail (bottom)

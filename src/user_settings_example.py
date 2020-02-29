@@ -3,6 +3,7 @@
 
 # Overall simulation settings
 simulation_name = 'rollover'
+substructure_path = 'C:/Box Sync/PhD/MyArticles/RolloverSimulationMethodology/substructures'
     
 # Rail settings
 rail_geometry = {'length': 100.0, 'height': 30.0, 'max_contact_length': 25.}
@@ -12,14 +13,13 @@ rail_naming = {'part': 'RAIL', 'section': 'RAIL_SECTION', 'shadow_section': 'RAI
 # Wheel settings
 use_substructure = True
 new_substructure = False
-substructureFile='c:/work/Abaqus/2017/Temp/wheel_substr1_Z1.sim'
-odbFile='c:/work/Abaqus/2017/Temp/wheel_substr1.odb'
 
 wheel_geometry = {'outer_diameter': 400., 'inner_diameter': 50., 'max_contact_length': 25., 'rolling_angle': 100./(400./2.)}
 wheel_mesh = {'fine': 2.0, 'coarse': 20.0, 'refine_thickness': 10.0}
 wheel_naming = {'part': 'WHEEL', 'section': 'WHEEL_SECTION', 'rp': 'WHEEL_CENTER', 
 				'contact_section': 'WHEEL_CONTACT_SECTION'}
-
+                
+substructure_name = 'substr_' + str(int(wheel_mesh['fine'])).zfill(2) + '_' + str(int(100*(wheel_mesh['fine']-int(wheel_mesh['fine']))))
 
 # Material settings 
 # Only dictionary "materials" required, the remaining are only support variables

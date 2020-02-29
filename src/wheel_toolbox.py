@@ -17,7 +17,7 @@ def get_contact_nodes(geometry, the_mesh, nodes):
     x0 = 0.0
     y0 = geometry['outer_diameter']/2.0
     min_radius = geometry['outer_diameter']/2.0 - the_mesh['fine']/100
-    max_angle = geometry['rolling_angle']/2.0
+    max_angle = geometry['rolling_angle']/2.0 + geometry['max_contact_length']/geometry['outer_diameter']
     
     node_list = []
     for n in nodes:

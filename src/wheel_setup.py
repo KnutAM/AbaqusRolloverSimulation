@@ -91,8 +91,9 @@ def partition_wheel(model, geometry, mesh):
     partition_sketch = model.ConstrainedSketch(name='__wheel_partition__', sheetSize=200.0)
     partition_sketch.setPrimaryObject(option=SUPERIMPOSE)
     dias = np.array([geometry['outer_diameter'], geometry['outer_diameter'] - 2*mesh['refine_thickness']])
-    dx = dias*np.sin(geometry['rolling_angle']/2.0)/2.0
-    dy = dias*(1.0 - np.cos(geometry['rolling_angle']/2.0))/2.0
+    refine_angle = geometry['rolling_angle']/2.0 + geometry['max_contact_length']/geometry['outer_diameter']
+    dx = dias*np.sin(refine_angle)/2.0
+    dy = dias*(1.0 - np.cos(refine_angle))/2.0
     dy[1] = dy[1] + mesh['refine_thickness']
     partition_sketch.ArcByCenterEnds(center=(0.0, geometry['outer_diameter']/2.0), point1=(dx[1], dy[1]), point2=(-dx[1], dy[1]), direction=CLOCKWISE)
     partition_sketch.Line(point1=(-dx[0], dy[0]), point2=(-dx[1], dy[1]))
