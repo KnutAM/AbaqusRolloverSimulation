@@ -2,11 +2,10 @@
 import sys
 import os
 import numpy as np
+import inspect
 
 # Abaqus imports 
-# import abaqusConstants as abaconst
 from abaqusConstants import *
-#from abaqus import *
 import assembly
 import part
 import sketch
@@ -14,9 +13,12 @@ import mesh
 import section
 import regionToolset
 
-# Custom imports (from present project)
-# Should find better way of including by automating the path, however, __file__ doesn't seem to work...
-sys.path.append(r'C:\Box Sync\PhD\MyArticles\RolloverSimulationMethodology\AbaqusRolloverSimulation\src')
+# Custom imports (need to append project path to python path)
+# __file__ not found when calling from abaqus, 
+# used solution from "https://stackoverflow.com/a/53293924":
+src_file_path = inspect.getfile(lambda: None)
+sys.path.append(os.path.dirname(src_file_path))
+
 from material_and_section_module import setup_sections
 
 

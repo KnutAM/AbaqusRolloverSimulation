@@ -2,45 +2,60 @@
 import sys
 import os
 import numpy as np
+import inspect
 
 # Abaqus imports 
+from abaqus import mdb
 import assembly
 from abaqusConstants import *
 
-# Custom imports (from present project)
-# Should find better way of including by automating the path, however, __file__ doesn't seem to work...
-sys.path.append(r'C:\Box Sync\PhD\MyArticles\RolloverSimulationMethodology\AbaqusRolloverSimulation\src')
-import material_and_section_module as material_module
-import setup_rail_module as rail_module
-import setup_wheel_substruct_module as wheel_module
-#import setup_wheel_module as wheel_module
-import setup_loading_module as loading_module
-import setup_contact_module as contact_module
+# Custom imports (need to append project path to python path)
+# __file__ not found when calling from abaqus, 
+# used solution from "https://stackoverflow.com/a/53293924":
+src_file_path = inspect.getfile(lambda: None)
+sys.path.append(os.path.dirname(src_file_path))
 
-#Reload to allow multiple runs from abaqus (not neccessary for cluster runs)
-if sys.platform.startswith('win'):
-    reload(material_module)
-    reload(rail_module)
-    reload(wheel_module)
-    reload(loading_module)
-    reload(contact_module)
+import material_and_section_module as matmod
+import rail_setup as railmod
+import wheel_setup as wheelmod
+import wheel_substructure_create as wheel_ssc_mod
+import wheel_substructure_import as wheel_ssi_mod
+import loading_module as loadmod
+import contact_module as contactmod
+
+# Reload to account for script updates when running from inside abaqus CAE
+reload(matmod)
+reload(railmod)
+reload(wheelmod)
+reload(wheel_ssc_mod)
+reload(wheel_ssi_mod)
+reload(loadmod)
+reload(contactmod)
 
 
 def main():
     # Settings
     simulation_name = 'rollover'
     
+    use_substructure = True
+    new_substructure = True
+    # Names used unless new substructure created
+    substructureFile='c:/work/Abaqus/2017/Temp/Job-1_Z1.sim'
+    odbFile='c:/work/Abaqus/2017/Temp/Job-1.odb'
+    
     rail_geometry = {'length': 100.0, 'height': 30.0, 'max_contact_length': 25.}
     rail_mesh = {'fine': 1.0, 'coarse': 5.0}
     rail_naming = {'part': 'RAIL', 'section': 'RAIL_SECTION', 'shadow_section': 'RAIL_SHADOW_SECTION'}
     
     wheel_geometry = {'outer_diameter': 400., 'inner_diameter': 50., 'max_contact_length': 25., 'rolling_angle': 100./(400./2.)}
-    wheel_mesh = {'fine': 5.0, 'coarse': 20.0, 'refine_thickness': 10.0}
+    wheel_mesh = {'fine': 2.0, 'coarse': 20.0, 'refine_thickness': 10.0}
     wheel_naming = {'part': 'WHEEL', 'section': 'WHEEL_SECTION', 'rp': 'WHEEL_CENTER', 
                     'contact_section': 'WHEEL_CONTACT_SECTION'}
     
     # Create wheel substructure model
-    # substructureFile, odbFile = wheel_module.create_wheel_substructure(wheel_geometry, wheel_mesh, wheel_naming, 'wheel_substr1')
+    if new_substructure:
+        substructureFile, odbFile = wheel_ssc_mod.create_wheel_substructure(wheel_geometry, wheel_mesh, wheel_naming, 
+                                                                            'wheel_substr1', wait_for_completion=True)
     
     # Setup model
     if simulation_name in mdb.models:    # Delete old model if exists
@@ -51,27 +66,28 @@ def main():
     assy.DatumCsysByDefault(CARTESIAN)
     
     # Setup sections
-    material_module.setup_sections(the_model, naming={'wheel': wheel_naming['section'], 
-                                                  'rail': rail_naming['section'], 
-                                                  'shadow': rail_naming['shadow_section'],
-                                                  'contact': wheel_naming['contact_section']})
+    matmod.setup_sections(the_model, naming={'wheel': wheel_naming['section'], 
+                                             'rail': rail_naming['section'], 
+                                             'shadow': rail_naming['shadow_section'],
+                                             'contact': wheel_naming['contact_section']})
     
     # Setup rail
-    rail_part, rail_contact_surf, bottom_reg = rail_module.setup_rail(the_model, assy, rail_geometry, rail_mesh, rail_naming)
+    rail_part, rail_contact_surf, bottom_reg = railmod.setup_rail(the_model, assy, rail_geometry, rail_mesh, rail_naming)
     
     # Setup wheel
-    #wheel_part, wheel_contact_surf, ctrl_pt_reg = wheel_module.setup_wheel(the_model, assy, wheel_geometry, wheel_mesh, wheel_naming)
-    substructureFile='c:/work/Abaqus/2017/Temp/Job-1_Z1.sim'
-    odbFile='c:/work/Abaqus/2017/Temp/Job-1.odb'
-    wheel_part, wheel_contact_surf, ctrl_pt_reg = wheel_module.import_wheel_substructure(the_model, assy, wheel_naming, 
-                                                                                         substructureFile, odbFile, 
-                                                                                         wheel_geometry, wheel_mesh)
-    
+    if use_substructure:
+        wheel_part, wheel_contact_surf, ctrl_pt_reg = wheel_ssi_mod.import_wheel_substructure(the_model, assy, wheel_naming, 
+                                                                                              substructureFile, odbFile,
+                                                                                              wheel_geometry, wheel_mesh)
+    else:
+        wheel_part, wheel_contact_surf, ctrl_pt_reg = wheelmod.setup_wheel(the_model, assy, wheel_geometry, wheel_mesh, wheel_naming)
+
+
     # Setup loading
-    loading_module.loading(the_model, assy, ctrl_pt_reg, bottom_reg)
+    loadmod.loading(the_model, assy, ctrl_pt_reg, bottom_reg)
     
     # Setup contact conditions
-    contact_module.setup_contact(the_model, assy, rail_contact_surf, wheel_contact_surf)
+    contactmod.setup_contact(the_model, assy, rail_contact_surf, wheel_contact_surf)
 
     if simulation_name in mdb.jobs:
         del(mdb.jobs[simulation_name])
