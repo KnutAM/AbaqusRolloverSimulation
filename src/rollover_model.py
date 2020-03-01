@@ -48,7 +48,6 @@ def main():
     ## Wheel settings
     use_substructure = user_settings.use_substructure
     new_substructure = user_settings.new_substructure
-    substructureFile = user_settings.substructureFile
     
     wheel_geometry = user_settings.wheel_geometry
     wheel_mesh = user_settings.wheel_mesh
@@ -82,13 +81,16 @@ def main():
     else:
         wheel_part, wheel_contact_surf, ctrl_pt_reg = wheelmod.setup_wheel(the_model, assy, wheel_geometry, wheel_mesh, wheel_naming)
 
+    # Position wheel
+    loadmod.preposition(assy)
 
     # Setup loading
-    loadmod.loading(the_model, assy, ctrl_pt_reg, bottom_reg)
+    loadmod.initial_bc(the_model, assy, ctrl_pt_reg, bottom_reg)
+    
     
     # Setup contact conditions
     contactmod.setup_contact(the_model, assy, rail_contact_surf, wheel_contact_surf)
-
+    
     if simulation_name in mdb.jobs:
         del(mdb.jobs[simulation_name])
         

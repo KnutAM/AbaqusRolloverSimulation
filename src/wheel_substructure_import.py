@@ -62,9 +62,9 @@ def import_wheel_substructure(the_model, assy, wheel_naming, geometry, the_mesh)
     substructureFile = user_settings.substructure_name + '_Z1.sim'
     odbFile = user_settings.substructure_name + '.odb'
     
-    the_part = the_model.PartFromSubstructure(name=wheel_naming['part']+'_substr', substructureFile=substructureFile, 
+    the_part = the_model.PartFromSubstructure(name=wheel_naming['part'], substructureFile=substructureFile, 
                                               odbFile=odbFile)
-    the_inst = assy.Instance(name=wheel_naming['part']+'_substr', part=the_part, dependent=ON)
+    the_inst = assy.Instance(name=wheel_naming['part'], part=the_part, dependent=ON)
     
     contact_nodes, contact_nodes_set_name = wtb.define_contact_nodes(the_part, geometry, the_mesh)
     
@@ -107,8 +107,8 @@ def define_contact_surface_mesh_part(the_model, assy, geometry, the_mesh, contac
     num_nodes =len(angles)
     
     # Create part and add instance to assembly
-    contact_part = the_model.Part(name='contact_part', dimensionality=TWO_D_PLANAR, type=DEFORMABLE_BODY)
-    contact_inst = assy.Instance(name='contact_part', part=contact_part, dependent=ON)
+    contact_part = the_model.Part(name=user_settings.wheel_naming['contact_part'], dimensionality=TWO_D_PLANAR, type=DEFORMABLE_BODY)
+    contact_inst = assy.Instance(name=user_settings.wheel_naming['contact_part'], part=contact_part, dependent=ON)
     
     the_sketch = the_model.ConstrainedSketch(name='__contact_surface__', sheetSize=200.0)
     the_sketch.setPrimaryObject(option=STANDALONE)
