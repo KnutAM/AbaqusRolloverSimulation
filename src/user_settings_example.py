@@ -1,4 +1,4 @@
-# This example file must be renamed to user_settings.py
+# This example file must be copied to a file called user_settings.py
 # That file is ignored by git and can thus be used to change settings without 
 # being registered as change in code
 
