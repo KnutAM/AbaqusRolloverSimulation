@@ -12,8 +12,12 @@ from abaqusConstants import *
 # Custom imports (need to append project path to python path)
 # __file__ not found when calling from abaqus, 
 # used solution from "https://stackoverflow.com/a/53293924":
+print(sys.path)
+
 src_file_path = inspect.getfile(lambda: None)
-sys.path.append(os.path.dirname(src_file_path))
+if not src_file_path in sys.path:
+    sys.path.append(os.path.dirname(src_file_path))
+
 
 import material_and_section_module as matmod
 import rail_setup as railmod

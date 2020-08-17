@@ -12,7 +12,8 @@ import load
 # __file__ not found when calling from abaqus, 
 # used solution from "https://stackoverflow.com/a/53293924":
 src_file_path = inspect.getfile(lambda: None)
-sys.path.append(os.path.dirname(src_file_path))
+if not src_file_path in sys.path:
+    sys.path.append(os.path.dirname(src_file_path))
 import user_settings
 
 def preposition(assy):
