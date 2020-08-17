@@ -3,6 +3,7 @@ import sys
 import os
 import numpy as np
 import inspect
+import time
 
 # Abaqus imports 
 from abaqus import mdb
@@ -12,7 +13,6 @@ from abaqusConstants import *
 # Custom imports (need to append project path to python path)
 # __file__ not found when calling from abaqus, 
 # used solution from "https://stackoverflow.com/a/53293924":
-print(sys.path)
 
 src_file_path = inspect.getfile(lambda: None)
 if not src_file_path in sys.path:
@@ -27,6 +27,7 @@ import wheel_substructure_import as wheel_ssi_mod
 import loading_module as loadmod
 import contact_module as contactmod
 import user_settings
+import abaqus_python_tools as apt
 
 # Reload to account for script updates when running from inside abaqus CAE
 reload(matmod)
@@ -37,9 +38,61 @@ reload(wheel_ssi_mod)
 reload(loadmod)
 reload(contactmod)
 reload(user_settings)
-
+reload(apt)
 
 def main():
+    t0 = time.time()
+    the_model = setup_initial_model()
+    setup_time = time.time() - t0
+    job_name, run_time = apt.run_model(the_model, cycle_nr=1)
+    t0 = time.time()
+    save_results(the_model, cycle_nr=1)
+    result_time = time.time() - t0
+    apt.print_message('Setup time:  ' + str(setup_time) + 's \n' + 
+                      'Run time:    ' + str(run_time) + ' s \n' + 
+                      'Result time: ' + str(result_time) + ' s')
+    
+    t0 = time.time()
+    setup_next_rollover(the_model, old_job_name=job_name, cycle_nr=2)
+    setup_time = time.time() - t0
+    job_name, run_time = apt.run_model(the_model, cycle_nr=2)
+    apt.print_message('Setup time: ' + str(setup_time) + 's \n' + 'Run time:   ' + str(run_time) + ' s')
+    
+    
+def get_job_name(model, cycle_nr):
+    return model.name + '_' + str(cycle_nr)
+    
+    
+def run_step(model,
+             cycle_nr,
+             n_proc=1,
+             ):
+    
+    # mdb.saveAs(pathName=job_name + '.cae')
+    
+    # Checks written by Martin Pletz, unsure what these does, but should read up about these
+    # __get_model_nodes_elem(model)
+    # __make_ip_out(model)
+    #
+    job_name = get_job_name(model, cycle_nr)
+    job_type = ANALYSIS if cycle_nr == 1 else RESTART
+    
+    if job_name in mdb.jobs:
+        del(mdb.jobs[job_name])
+        
+    job = mdb.Job(getMemoryFromAnalysis=True, memory=90, memoryUnits=PERCENTAGE,
+                  model=model.name, name=job_name, nodalOutputPrecision=SINGLE,
+                  multiprocessingMode=THREADS, numCpus=n_proc, numDomains=n_proc,
+                  type=job_type)
+    
+    time_before = time.time()
+    job.submit(consistencyChecking=OFF)
+    job.waitForCompletion()
+    time_run = time.time() - time_before
+    
+    return time_run
+
+def setup_initial_model():
     # Settings
     ## Overall settings
     simulation_name = user_settings.simulation_name
@@ -95,10 +148,14 @@ def main():
     # Setup contact conditions
     contactmod.setup_contact(the_model, assy, rail_contact_surf, wheel_contact_surf)
     
-    if simulation_name in mdb.jobs:
-        del(mdb.jobs[simulation_name])
-        
-    the_job = mdb.Job(name=simulation_name, model=simulation_name)
+       
+    return the_model
+    
+def save_results(the_model, cycle_nr):
+    # Save the results required for continued simulation
+    # Save the results asked for for post-processing
+    
+    
     
 
 if __name__ == '__main__':
