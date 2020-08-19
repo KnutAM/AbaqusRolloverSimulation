@@ -1,3 +1,5 @@
+import os
+
 def print_message(message, log_file='abaqus_python.log'):
     if os.path.exists(log_file):
         f = open(log_file,'a')

@@ -88,10 +88,12 @@ def setup_rail(model, assy, geometry, mesh, naming):
     
     # Define contact surface
     rail_contact_surface = define_contact_surface(assy, inst, geometry, mesh)
+    top_edge = part.edges.findAt(((0., 0., 0.),))
+    part.Set(edges=top_edge, name='CONTACT_NODES') # Only contact nodes not in shadow set
     
     # Define bottom region (where boundary conditions will be applied)
-    bottom_edge = inst.edges.findAt(((0., -geometry['height'], 0.),))
-    bottom_region = assy.Set(edges=bottom_edge, name='RailBottom')
+    bottom_edge = part.edges.findAt(((0., -geometry['height'], 0.),))
+    bottom_region = part.Set(edges=bottom_edge, name='BOTTOM_NODES')
     
     return part, rail_contact_surface, bottom_region
 
@@ -292,7 +294,7 @@ def define_contact_surface(assy, inst, geometry, mesh):
     (shadow_line_length, number_of_shadow_elements) = get_shadow_rail_length_and_nel(geometry, mesh)
     rail_contact_surface = assy.Surface(side1Edges=inst.edges.findAt(((0.,0.,0.),), 
         (((-geometry['length']-shadow_line_length)/2.0, 0.0, 0.0),)), 
-        name='rail_contact_surface')
+        name='RAIL_CONTACT_SURFACE')
         
     return rail_contact_surface
         

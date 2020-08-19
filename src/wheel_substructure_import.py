@@ -153,7 +153,7 @@ def get_rp_node_set(the_part, the_inst, geometry):
             break
     
     rp_nodes = mesh.MeshNodeArray([rp_node])
-    rp_node_set_name = 'rp_node'
+    rp_node_set_name = 'RP_NODE'
     rp_node_set = the_part.Set(name=rp_node_set_name, nodes=rp_nodes)
     
     rp_node_inst_set = the_inst.sets[rp_node_set_name]

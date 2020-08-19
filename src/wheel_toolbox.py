@@ -7,7 +7,7 @@ import mesh
 
 def define_contact_nodes(the_part, geometry, the_mesh):    
     nodes = get_contact_nodes(geometry, the_mesh, the_part.nodes)
-    contact_nodes_set_name = 'contact_nodes'
+    contact_nodes_set_name = 'CONTACT_NODES'
     contact_nodes = the_part.Set(name=contact_nodes_set_name, nodes=nodes)
     
     return contact_nodes, contact_nodes_set_name
