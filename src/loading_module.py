@@ -32,7 +32,7 @@ def setup_outputs(the_model, ctrl_pt_reg, is_3d=False):
     # WHEEL CONTROL POINT
     the_model.HistoryOutputRequest(name='RP', createStepName=step_name, 
                                     region=ctrl_pt_reg, variables=vars_rp,
-                                    frequency=LAST_INCREMENT)
+                                    frequency=100)
     
     # WHEEL CONTACT AREA
     wheel_inst = the_model.rootAssembly.instances['WHEEL']
