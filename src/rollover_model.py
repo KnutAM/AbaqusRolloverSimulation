@@ -4,6 +4,7 @@ import os
 import numpy as np
 import inspect
 import time
+import subprocess
 
 # Abaqus imports 
 from abaqus import mdb
@@ -54,14 +55,27 @@ def main():
                       'Run time:    ' + str(run_time) + ' s \n' + 
                       'Result time: ' + str(result_time) + ' s')
     
-    t0 = time.time()
-    the_model=setup_next_rollover(old_model=the_model, old_job_name=job_name, new_cycle_nr=2)
-    setup_time = time.time() - t0
-    job_name, run_time = run_cycle(the_model, cycle_nr=2)
-    apt.print_message('Setup time:  ' + str(setup_time) + 's \n' + 
-                      'Run time:    ' + str(run_time) + ' s \n' + 
-                      'Result time: ' + str(result_time) + ' s')
+    num_cycles = 2
+    for nr in range(2, num_cycles+1):
+        t0 = time.time()
+        the_model=setup_next_rollover(old_model=the_model, old_job_name=job_name, new_cycle_nr=2)
+        setup_time = time.time() - t0
+        job_name, run_time = run_cycle(the_model, cycle_nr=2)
+        apt.print_message('Setup time:  ' + str(setup_time) + 's \n' + 
+                          'Run time:    ' + str(run_time) + ' s \n' + 
+                          'Result time: ' + str(result_time) + ' s')
     
+    
+    join_odb_files([get_cycle_name(i+1) for i in range(num_cycles)])
+    
+    
+def join_odb_files(odb_file_list):
+    try:
+        for odb_i in odb_file_list[1:]:
+            subprocess.call('abaqus restartjoin originalodb=' + odb_file_list[0] + ' restartodb='+odb_i, shell=True)
+    except:
+        for odb_i in odb_file_list[1:]:
+            subprocess.call('abq2017 restartjoin originalodb=' + odb_file_list[0] + ' restartodb='+odb_i, shell=True)
     
 def get_cycle_name(cycle_nr):
     return 'rollover_' + str(cycle_nr).zfill(6)
