@@ -30,6 +30,7 @@ import contact_module as contactmod
 import user_settings
 import abaqus_python_tools as apt
 import wheel_toolbox
+import naming_mod as names
 
 # Reload to account for script updates when running from inside abaqus CAE
 reload(matmod)
@@ -42,31 +43,32 @@ reload(contactmod)
 reload(user_settings)
 reload(apt)
 reload(wheel_toolbox)
+reload(names)
 
 def main():
     t0 = time.time()
-    the_model = setup_initial_model()
+    setup_initial_model()
     setup_time = time.time() - t0
-    job_name, run_time = run_cycle(the_model, cycle_nr=1)
+    run_time = run_cycle(cycle_nr=1)
     t0 = time.time()
-    save_results(the_model, cycle_nr=1)
+    save_results(cycle_nr=1)
     result_time = time.time() - t0
     apt.print_message('Setup time:  ' + str(setup_time) + 's \n' + 
                       'Run time:    ' + str(run_time) + ' s \n' + 
                       'Result time: ' + str(result_time) + ' s')
     
-    num_cycles = 2
+    num_cycles = 10
     for nr in range(2, num_cycles+1):
         t0 = time.time()
-        the_model=setup_next_rollover(old_model=the_model, old_job_name=job_name, new_cycle_nr=2)
+        setup_next_rollover(new_cycle_nr=nr)
         setup_time = time.time() - t0
-        job_name, run_time = run_cycle(the_model, cycle_nr=2)
+        run_time = run_cycle(cycle_nr=nr)
         apt.print_message('Setup time:  ' + str(setup_time) + 's \n' + 
                           'Run time:    ' + str(run_time) + ' s \n' + 
                           'Result time: ' + str(result_time) + ' s')
+        save_results(cycle_nr=nr)
     
-    
-    join_odb_files([get_cycle_name(i+1) for i in range(num_cycles)])
+    join_odb_files([names.get_odb(cycle_nr=i+1) for i in range(num_cycles)])
     
     
 def join_odb_files(odb_file_list):
@@ -81,34 +83,36 @@ def get_cycle_name(cycle_nr):
     return 'rollover_' + str(cycle_nr).zfill(6)
     
     
-def run_cycle(model,
-             cycle_nr,
-             n_proc=1,
-             ):
-    
-    job_name = get_cycle_name(cycle_nr)
+def run_cycle(cycle_nr, n_proc=1):
+    job_name = names.get_job(cycle_nr)
+    model_name = names.get_model(cycle_nr)
     job_type = ANALYSIS if cycle_nr == 1 else RESTART
     
+    if user_settings.materials['rail']['material_model']=='user':
+        usub = user_settings.materials['rail']['mpar']['umat']
+    else:
+        usub = ''
+    usub=''
     if job_name in mdb.jobs:
         del(mdb.jobs[job_name])
     
     job = mdb.Job(getMemoryFromAnalysis=True, memory=90, memoryUnits=PERCENTAGE,
-                  model=model.name, name=job_name, nodalOutputPrecision=SINGLE,
+                  model=model_name, name=job_name, nodalOutputPrecision=SINGLE,
                   multiprocessingMode=THREADS, numCpus=n_proc, numDomains=n_proc,
-                  type=job_type)
+                  type=job_type,userSubroutine=usub)
     
     time_before = time.time()
     job.submit(consistencyChecking=OFF)
     job.waitForCompletion()
     run_time = time.time() - time_before
     
-    return job_name, run_time
+    return run_time
 
 
 def setup_initial_model():
     # Settings
     ## Overall settings
-    model_name = get_cycle_name(cycle_nr=1)
+    model_name = names.get_model(cycle_nr=1)
     
     ## Rail settings
     rail_geometry = user_settings.rail_geometry
@@ -158,19 +162,20 @@ def setup_initial_model():
     loadmod.initial_bc(the_model, assy, ctrl_pt_reg, bottom_reg)
     
     # Setup contact conditions
-    contactmod.setup_contact(the_model, assy, rail_contact_surf, wheel_contact_surf)
+    contactmod.setup_contact(rail_contact_surf, wheel_contact_surf)
     
     # Setup output requests
     loadmod.setup_outputs(the_model, ctrl_pt_reg)
        
     return the_model
     
-def save_results(the_model, cycle_nr):
+def save_results(cycle_nr):
     # Save the results required for continued simulation
     # - Wheel contact node displacements (only those in contact required)
     # - Wheel reference node displacements
     # - Rail contact node displacements (only those in contact should be required). 
-    odb_name = get_cycle_name(cycle_nr)
+    the_model = mdb.models[names.get_model(cycle_nr)]
+    odb_name = names.get_odb(cycle_nr)
     odb = session.openOdb(odb_name + '.odb')
     inst_name = odb.rootAssembly.instances.keys()[0]
     inst = odb.rootAssembly.instances[inst_name]
@@ -184,9 +189,12 @@ def save_results(the_model, cycle_nr):
     history_regions = odb.steps[step_name].historyRegions
     node_hr = {int(label.split('.')[-1]):hr for label, hr in history_regions.items() if 'Node' in label}
     
-    save_node_results([rp_node], node_hr, filename=odb_name + '_rp', variable_keys=['U1', 'U2', 'UR3'])
-    save_node_results(wheel_contact_surf_nodes, node_hr, filename=odb_name + '_wheel', variable_keys=['U1', 'U2'])
-    save_node_results(rail_contact_surf_nodes, node_hr, filename=odb_name + '_rail', variable_keys=['U1', 'U2'])
+    save_node_results([rp_node], node_hr, variable_keys=['U1', 'U2', 'UR3'],
+                      filename=names.get_model(cycle_nr) + '_rp', )
+    save_node_results(wheel_contact_surf_nodes, node_hr, variable_keys=['U1', 'U2'], 
+                      filename=names.get_model(cycle_nr) + '_wheel')
+    save_node_results(rail_contact_surf_nodes, node_hr, variable_keys=['U1', 'U2'],
+                      filename=names.get_model(cycle_nr) + '_rail')
     # Save the results asked for for post-processing
     # Results for x in middle of rail:
     # - ux(y,z)
@@ -218,9 +226,11 @@ def save_node_results(nodes, node_hr, filename, variable_keys=[]):
     np.save(filename + '.npy', result_data)
             
     
-def setup_next_rollover(old_model, old_job_name, new_cycle_nr):
+def setup_next_rollover(new_cycle_nr):
+    old_model = mdb.models[names.get_model(new_cycle_nr-1)]
+    old_job_name = names.get_job(new_cycle_nr-1)
     # copy the old model and add new steps. Restart from the previous job
-    new_model_name = get_cycle_name(new_cycle_nr)
+    new_model_name = names.get_model(new_cycle_nr)
     new_model = mdb.Model(name=new_model_name, objectToCopy=old_model)
     
     # Setup restart parameters
@@ -250,7 +260,7 @@ def setup_next_rollover(old_model, old_job_name, new_cycle_nr):
     ctrl_load = new_model.loads['ctrl_load']
     
     # Move wheel to start
-    return_step_name = 'return_' + str(new_cycle_nr)
+    return_step_name = names.get_step_return(new_cycle_nr)
     new_model.StaticStep(name=return_step_name, previous=last_step_in_old_job,
                          timeIncrementationMethod=FIXED, initialInc=1, 
                          maxNumInc=1, amplitude=STEP)
@@ -315,10 +325,15 @@ def setup_next_rollover(old_model, old_job_name, new_cycle_nr):
                                                 createStepName=return_step_name, 
                                                 region=region, u1=unew[0], u2=unew[1]))
         
-    
+    # Lock all rail contact node displacements
+    rail_contact_nodes = new_model.rootAssembly.instances['RAIL'].sets['CONTACT_NODES']
+    lock_rail_bc = new_model.VelocityBC(name=names.get_lock_rail_bc(new_cycle_nr),
+                                        createStepName=return_step_name,
+                                        region=rail_contact_nodes,
+                                        v1=0., v2=0., v3=0.)
     
     # Continue rolling
-    rolling_step_name = 'rolling_' + str(new_cycle_nr)
+    rolling_step_name = names.get_step_rolling(new_cycle_nr)
     new_model.StaticStep(name=rolling_step_name, previous=return_step_name, maxNumInc=1000, 
                          initialInc=0.01, minInc=1e-06, maxInc=0.01)
     
@@ -328,11 +343,14 @@ def setup_next_rollover(old_model, old_job_name, new_cycle_nr):
     ctrl_load.setValuesInStep(stepName=rolling_step_name, cf3=-wheel_load)
     
     for bc in node_bc:
-        bc.setValuesInStep(stepName=rolling_step_name, u1=FREED, u2=FREED)
+        # bc.setValuesInStep(stepName=rolling_step_name, u1=FREED, u2=FREED)
+        bc.deactivate(stepName=rolling_step_name)
+        
+    lock_rail_bc.deactivate(stepName=rolling_step_name)
     
     new_model.steps[rolling_step_name].Restart(numberIntervals=1)
     
-    return new_model
+    # contactmod.renew_contact(new_cycle_nr)
     
     
 def get_contact_nodes(wheel_node_info, rp_info):

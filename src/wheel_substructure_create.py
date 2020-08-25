@@ -94,7 +94,10 @@ def create_wheel_substructure(geometry, the_mesh, naming):
         move_file_to_folder(substr_name + suffix, substr_path)
     
     for suffix in ['.sim', '.prt', '.stt', '.mdl']:
-        move_file_to_folder(substr_name + '_Z' + str(substr_id) + suffix, substr_path)
+        try:
+            move_file_to_folder(substr_name + '_Z' + str(substr_id) + suffix, substr_path)
+        except:
+            print 'Could not move ' + substr_name + '_Z' + str(substr_id) + suffix + 'to ' + substr_path
     
     
 def move_file_to_folder(file, folder):
@@ -179,7 +182,7 @@ def setup_control_point(the_model, assy, inst, the_part, geometry):
     r = geometry['inner_diameter']/2.0 + 0.01 * (geometry['outer_diameter']-geometry['inner_diameter'])/2.0
     
     inner_circle = inst.edges.getByBoundingBox(x0-r,y0-r,0,x0+r,y0+r,0)
-    
+    inner_circle = inst.edges.getByBoundingCylinder(center1=(x0,y0,0), center2=(x0,y0,1), radius=r)
     wheel_center=assy.Set(edges=inner_circle, name='WheelCenter')
     rp_region=regionToolset.Region(referencePoints=(inst.referencePoints[rp_key],))
     the_model.RigidBody(name='Center', refPointRegion=rp_region, tieRegion=wheel_center)
@@ -195,7 +198,7 @@ def get_split_angles(geometry, the_mesh):
 
 
 def create_submodel(the_model, inst, contact_node_set_name, rp_ctrl_region, substr_id):
-    the_model.SubstructureGenerateStep(name='Step-1', 
+    the_model.SubstructureGenerateStep(name='Step-1', recoveryMatrix=NONE,
         previous='Initial', description='Wheel', substructureIdentifier=substr_id)
     
     the_model.RetainedNodalDofsBC(name='BC-1', createStepName='Step-1', 

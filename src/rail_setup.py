@@ -75,6 +75,9 @@ def setup_rail(model, assy, geometry, mesh, naming):
     partition_sketch = partition_rail(model, geometry, mesh)
     part.PartitionFaceBySketch(faces=part.faces.findAt(((0.0, -1.0, 0.0),)), sketch=partition_sketch)
     
+    # Assign sections
+    define_sections(part, geometry, mesh, naming)
+    
     # Mesh rail part
     mesh_rail(part, geometry, mesh)
     
@@ -82,9 +85,6 @@ def setup_rail(model, assy, geometry, mesh, naming):
     lr_pairs = find_rail_node_pairs_left_right(part, geometry, mesh)
     shadow_pairs = find_shadow_nodes(part, geometry, mesh)
     connect_nodes(model, assy, part, geometry, mesh, (lr_pairs, shadow_pairs))
-    
-    # Assign sections
-    define_sections(part, geometry, mesh, naming)
     
     # Define contact surface
     rail_contact_surface = define_contact_surface(assy, inst, geometry, mesh)
@@ -140,10 +140,10 @@ def partition_rail(model, geometry, mesh):
     return partition_sketch
     
     
-def mesh_rail(part, geometry, mesh):
+def mesh_rail(part, geometry, the_mesh):
 
-    (shadow_line_length, number_of_shadow_elements) = get_shadow_rail_length_and_nel(geometry, mesh)
-    number_of_top_elements = int(geometry['length']/mesh['fine'])
+    (shadow_line_length, number_of_shadow_elements) = get_shadow_rail_length_and_nel(geometry, the_mesh)
+    number_of_top_elements = int(geometry['length']/the_mesh['fine'])
     
     part.seedEdgeByNumber(edges=part.edges.findAt(((0.0, 0.0, 0.0),)), 
                           number=number_of_top_elements, constraint=FIXED)
@@ -152,7 +152,9 @@ def mesh_rail(part, geometry, mesh):
     part.seedEdgeByBias(biasMethod=SINGLE, 
                         end2Edges=part.edges.findAt(((-geometry['length']/2.0, -geometry['height']/2.0, 0.0),)),
                         end1Edges=part.edges.findAt(((+geometry['length']/2.0, -geometry['height']/2.0, 0.0),)), 
-                        minSize=mesh['fine'], maxSize=mesh['coarse'], constraint=FIXED)  # FIXED ensures compat. meshes
+                        minSize=the_mesh['fine'], maxSize=the_mesh['coarse'], constraint=FIXED)  # FIXED ensures compat. meshes
+                        
+    part.setElementType(regions=part.sets['rail_set'], elemTypes=(mesh.ElemType(elemCode=CPE4),))
     part.generateMesh()
     
     

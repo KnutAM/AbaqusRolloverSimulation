@@ -90,7 +90,10 @@ def move_substructure_to_cwd():
     
     for suffix in ['.sim', '.prt', '.stt', '.mdl']:
         filename = ss_name + '_Z' + str(substr_id) + suffix
-        copyfile(ss_path + '/' + filename, os.getcwd() + '/' + filename)
+        try:
+            copyfile(ss_path + '/' + filename, os.getcwd() + '/' + filename)
+        except:
+            print 'Could not locate ' + ss_path + '/' + filename
     
 
 def define_contact_surface_mesh_part(the_model, assy, geometry, the_mesh, contact_node_set, wheel_naming):

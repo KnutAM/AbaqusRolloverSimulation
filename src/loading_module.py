@@ -7,6 +7,7 @@ import inspect
 # Abaqus imports 
 from abaqusConstants import *
 import load
+import regionToolset
 
 # Custom imports (need to append project path to python path)
 # __file__ not found when calling from abaqus, 
@@ -15,6 +16,7 @@ src_file_path = inspect.getfile(lambda: None)
 if not src_file_path in sys.path:
     sys.path.append(os.path.dirname(src_file_path))
 import user_settings
+import naming_mod as names
 
 
 def setup_outputs(the_model, ctrl_pt_reg, is_3d=False):
@@ -27,22 +29,22 @@ def setup_outputs(the_model, ctrl_pt_reg, is_3d=False):
         vars_rp.append('UR3')
         vars_rp.append('RM3')
         
-    step_name = the_model.steps.keys()[1]   # First step after the initial step
-     
+    step_name = names.step1
+    rail_inst = the_model.rootAssembly.instances['RAIL']
+    wheel_inst = the_model.rootAssembly.instances['WHEEL']
+    
     # WHEEL CONTROL POINT
     the_model.HistoryOutputRequest(name='RP', createStepName=step_name, 
                                     region=ctrl_pt_reg, variables=vars_rp,
                                     frequency=100)
     
     # WHEEL CONTACT AREA
-    wheel_inst = the_model.rootAssembly.instances['WHEEL']
     wheel_contact_region = wheel_inst.sets['CONTACT_NODES']
     the_model.HistoryOutputRequest(name='wheel', createStepName=step_name, 
                                     region=wheel_contact_region, variables=vars_nods,
                                     frequency=LAST_INCREMENT)
                         
     # RAIL CONTACT AREA
-    rail_inst = the_model.rootAssembly.instances['RAIL']
     rail_contact_region = rail_inst.sets['CONTACT_NODES']
     the_model.HistoryOutputRequest(name='rail', createStepName=step_name, 
                                     region=rail_contact_region, variables=vars_nods,
@@ -73,35 +75,34 @@ def preposition(assy):
 
 def initial_bc(the_model, assy, wheel_refpoint, rail_bottom):
     lpar = user_settings.load_parameters
-    preload_step_name = 'preload'
-    the_model.StaticStep(name=preload_step_name, previous='Initial', nlgeom=ON)
+    the_model.StaticStep(name=names.step1, previous=names.step0, nlgeom=ON)
     
     # BC for rail (bottom)
-    the_model.DisplacementBC(name='BC-1', createStepName='Initial', 
+    the_model.DisplacementBC(name='BC-1', createStepName=names.step0, 
         region=rail_bottom, u1=SET, u2=SET, ur3=UNSET)
     
     # BC for wheel
-    ctrl_bc = the_model.DisplacementBC(name='ctrl_bc', createStepName=preload_step_name, 
+    ctrl_bc = the_model.DisplacementBC(name='ctrl_bc', createStepName=names.step1, 
                                        region=wheel_refpoint, u1=0.0, ur3=0.0, 
                                        u2=-lpar['initial_depression'])
     
-    load_step_name = 'load_application'
-    the_model.StaticStep(name=load_step_name, previous=preload_step_name)
-    ctrl_bc.setValuesInStep(stepName=load_step_name, u2=FREED)
-    the_model.ConcentratedForce(name='ctrl_load', createStepName=load_step_name, 
-                                region=wheel_refpoint, cf2=-lpar['normal_load'])
+    #the_model.StaticStep(name=names.step2, previous=names.step1)
+    #ctrl_bc.setValuesInStep(stepName=names.step2, u2=FREED)
+    #the_model.ConcentratedForce(name='ctrl_load', createStepName=names.step2, 
+    #                            region=wheel_refpoint, cf2=-lpar['normal_load'])
                                 
-    rolling_step_name = 'rolling_0'
-    the_model.StaticStep(name=rolling_step_name, previous=load_step_name, maxNumInc=1000, 
-                         initialInc=0.01, minInc=1e-06, maxInc=0.01)
+    rolling_step_name = names.get_step_rolling(1)
+    the_model.StaticStep(name=rolling_step_name, previous=names.step1, maxNumInc=1000, 
+                         initialInc=0.02, minInc=1e-06, maxInc=0.02)
+    
+    the_model.ConcentratedForce(name='ctrl_load', createStepName=rolling_step_name, 
+                                region=wheel_refpoint, cf2=-lpar['normal_load'])
     
     rolling_length = -user_settings.rail_geometry['length']
     nominal_radius = user_settings.wheel_geometry['outer_diameter']/2.0
     rolling_angle = -(1+lpar['slip'])*rolling_length/nominal_radius
     
-    ctrl_bc.setValuesInStep(stepName=rolling_step_name, u1=rolling_length, 
+    ctrl_bc.setValuesInStep(stepName=rolling_step_name, u1=rolling_length, u2=FREED,
                             ur3=rolling_angle)
     
     the_model.steps[rolling_step_name].Restart(numberIntervals=1)
-
-# def add_rolling_step(model, wheel_refpoint

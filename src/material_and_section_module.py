@@ -41,13 +41,16 @@ def setup_sections(the_model, section_names):
     
 
 def material(fe_model, matmod, mpar, name):
-    fe_model.Material(name=name)
+    the_material = fe_model.Material(name=name)
     if matmod=='elastic':
-        fe_model.materials[name].Elastic(table=((mpar['E'], mpar['nu']), ))
+        the_material.Elastic(table=((mpar['E'], mpar['nu']), ))
     elif matmod=='chaboche':
-        fe_model.materials[name].Elastic(table=((mpar['E'], mpar['nu']), ))
-        fe_model.materials[name].Plastic(table=((mpar['Y0'], mpar['Hkin'], mpar['Hkin']/mpar['binf']),), hardening=COMBINED, dataType=PARAMETERS, numBackstresses=1)
-        fe_model.materials[name].plastic.CyclicHardening(table=((mpar['Y0'], mpar['kinf'], mpar['Hiso']/mpar['kinf']),), parameters=ON)
+        the_material.Elastic(table=((mpar['E'], mpar['nu']), ))
+        the_material.Plastic(table=((mpar['Y0'], mpar['Hkin'], mpar['Hkin']/mpar['binf']),), hardening=COMBINED, dataType=PARAMETERS, numBackstresses=1)
+        the_material.plastic.CyclicHardening(table=((mpar['Y0'], mpar['kinf'], mpar['Hiso']/mpar['kinf']),), parameters=ON)
+    elif matmod=='user':
+        the_material.UserMaterial(type=MECHANICAL, unsymm=OFF, mechanicalConstants=mpar['user_mpar_array'])
+        the_material.Depvar(n=mpar['nstatv'])
     else:
         print('Material model ' + matmod + ' is not supported')
     
