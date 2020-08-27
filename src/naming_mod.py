@@ -24,8 +24,17 @@ step0 = 'Initial'   # Abaqus default
 step1 = 'Preload'   # Apply fixed displacement
 step2 = 'Loading'   # Apply the contact normal load
 
+def get_step_roll_start(cycle_nr):
+    return 'rolling_start_' + cycle_str(cycle_nr)
+    
+
 def get_step_rolling(cycle_nr):
     return 'rolling_' + cycle_str(cycle_nr)
+    
+
+def get_step_roll_end(cycle_nr):
+    return 'rolling_end_' + cycle_str(cycle_nr)
+    
     
 def get_step_return(cycle_nr):
     return 'return_' + cycle_str(cycle_nr)

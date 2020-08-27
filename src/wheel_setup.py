@@ -21,6 +21,7 @@ if not src_file_path in sys.path:
     sys.path.append(os.path.dirname(src_file_path))
 
 from material_and_section_module import setup_sections
+import wheel_toolbox as wtools
 import user_settings
 
 def test_script():
@@ -76,11 +77,13 @@ def setup_wheel(model, assy, geometry, mesh, naming):
     
     mesh_wheel(part, geometry, mesh)
     
+    wtools.define_contact_nodes(part, geometry, mesh)
+    
     # Assign sections
     define_sections(part, geometry, mesh, naming)
     
     # Define contact surface
-    contact_surf = define_contact_surface(assy, inst, geometry, mesh)
+    contact_surf = define_contact_surface(assy, inst, part, geometry, mesh)
     
     # Setup control point
     control_point_reg = setup_control_point(model, assy, inst, part, geometry)
@@ -127,7 +130,7 @@ def define_sections(part, geometry, mesh, naming):
         thicknessAssignment=FROM_SECTION)
         
         
-def define_contact_surface(assy, inst, geometry, mesh):
+def define_contact_surface(assy, inst, part, geometry, mesh):
     dx = geometry['max_contact_length']/2.0
     r = geometry['outer_diameter']/2.0
     dy = r - np.sqrt(r**2 - dx**2)
@@ -144,6 +147,7 @@ def setup_control_point(model, assy, inst, part, geometry):
     ## Tie using rigid body reference point to inner diameter of wheel
     inner_circle = inst.edges.findAt(((0.0, (geometry['outer_diameter']-geometry['inner_diameter'])/2.0, 0.),))
     wheel_center=assy.Set(edges=inner_circle, name='WheelCenter')
+    rp_set = part.Set(name='RP_NODE', referencePoints=(part.referencePoints[rp_key],))
     rp_region=regionToolset.Region(referencePoints=(inst.referencePoints[rp_key],))
     model.RigidBody(name='Center', refPointRegion=rp_region, tieRegion=wheel_center)
     

@@ -57,7 +57,7 @@ def main():
                       'Run time:    ' + str(run_time) + ' s \n' + 
                       'Result time: ' + str(result_time) + ' s')
     
-    num_cycles = 10
+    num_cycles = 2
     for nr in range(2, num_cycles+1):
         t0 = time.time()
         setup_next_rollover(new_cycle_nr=nr)
@@ -159,7 +159,7 @@ def setup_initial_model():
     loadmod.preposition(assy)
 
     # Setup loading
-    loadmod.initial_bc(the_model, assy, ctrl_pt_reg, bottom_reg)
+    loadmod.initial_bc(the_model, assy, ctrl_pt_reg)
     
     # Setup contact conditions
     contactmod.setup_contact(rail_contact_surf, wheel_contact_surf)
@@ -174,15 +174,23 @@ def save_results(cycle_nr):
     # - Wheel contact node displacements (only those in contact required)
     # - Wheel reference node displacements
     # - Rail contact node displacements (only those in contact should be required). 
+    
     the_model = mdb.models[names.get_model(cycle_nr)]
     odb_name = names.get_odb(cycle_nr)
     odb = session.openOdb(odb_name + '.odb')
-    inst_name = odb.rootAssembly.instances.keys()[0]
-    inst = odb.rootAssembly.instances[inst_name]
-    
-    rp_node = inst.nodeSets['WHEEL_RP_NODE'].nodes[0]
-    wheel_contact_surf_nodes = inst.nodeSets['WHEEL_CONTACT_NODES'].nodes
-    rail_contact_surf_nodes = inst.nodeSets['RAIL_CONTACT_NODES'].nodes
+    if user_settings.use_substructure:
+        inst_name = odb.rootAssembly.instances.keys()[0]
+        inst = odb.rootAssembly.instances[inst_name]
+        
+        rp_node = inst.nodeSets['WHEEL_RP_NODE'].nodes[0]
+        wheel_contact_surf_nodes = inst.nodeSets['WHEEL_CONTACT_NODES'].nodes
+        rail_contact_surf_nodes = inst.nodeSets['RAIL_CONTACT_NODES'].nodes
+    else:
+        winst = odb.rootAssembly.instances['WHEEL']
+        rinst = odb.rootAssembly.instances['RAIL']
+        rp_node = winst.nodeSets['RP_NODE'].nodes[0]
+        wheel_contact_surf_nodes = winst.nodeSets['CONTACT_NODES'].nodes
+        rail_contact_surf_nodes = rinst.nodeSets['CONTACT_NODES'].nodes
     
     # Make dictionary containing node label as key and history region for that node as data. 
     step_name = odb.steps.keys()[-1]
@@ -210,7 +218,8 @@ def save_node_results(nodes, node_hr, filename, variable_keys=[]):
     # node_hr:       Dictionary with history region with node label as key
     # filename:      Name (excluding suffix) of .npy file to save to
     # variable_keys: List of keys (e.g. 'U1', 'UR2', 'RF1', etc.) that should be saved
-    n_cols = 4 if not variable_keys else 4 + len(variable_keys)
+    #                Also the rate of change of these variables will be saved in the following col.
+    n_cols = 4 if not variable_keys else 4 + 2*len(variable_keys)
     
     result_data = np.zeros((len(nodes), n_cols))
     row = 0
@@ -219,8 +228,12 @@ def save_node_results(nodes, node_hr, filename, variable_keys=[]):
         result_data[row, 1:4] = np.array(node.coordinates)
         col = 4
         for key in variable_keys:
-            result_data[row, col] = node_hr[node.label].historyOutputs[key].data[-1][-1]
-            col = col + 1
+            ndata = node_hr[node.label].historyOutputs[key].data
+            result_data[row, col] = ndata[-1][1]
+            dt = ndata[-1][0] - ndata[-2][0]
+            result_data[row, col+1] = (ndata[-1][1] - ndata[-2][1])/dt
+            col = col + 2
+            
         row = row + 1
     
     np.save(filename + '.npy', result_data)
@@ -240,15 +253,21 @@ def setup_next_rollover(new_cycle_nr):
     # Read in old state
     rp_old = np.load(old_model.name + '_rp.npy')
     wheel_old = np.load(old_model.name + '_wheel.npy')
-    u2_end = rp_old[0, 5]
-    ur3_end = rp_old[0, 6]
+    u2_end = rp_old[0, 6]
+    ur3_end = rp_old[0, 8]
     
     # Load parameters
+    lpar = user_settings.load_parameters
+    ntpar = user_settings.numtrick
+    ipar = user_settings.time_incr_param
+    
     wheel_load = user_settings.load_parameters['normal_load']
     slip_ratio = user_settings.load_parameters['slip']
     rolling_length = -user_settings.rail_geometry['length']
+    rolling_time = abs(rolling_length)/lpar['speed']
     nominal_radius = user_settings.wheel_geometry['outer_diameter']/2.0
     rolling_angle = -(1+slip_ratio)*rolling_length/nominal_radius
+    end_stp_frac = abs(ntpar['extrap_roll_length']/rolling_length)
     
     # Mesh parameters
     wheel_node_angles = wheel_ssc_mod.get_split_angles(user_settings.wheel_geometry, 
@@ -279,7 +298,12 @@ def setup_next_rollover(new_cycle_nr):
     
     # The node labels from above are given from odb. Due to renumbering these may have been changed. 
     # Therefore, we need to get the node labels from the instance and use those instead when setting boundary conditions
-    contact_nodes = new_model.parts['WHEEL_CONTACT'].nodes
+    try:
+        contact_nodes = new_model.parts['WHEEL_CONTACT'].nodes
+    except KeyError:
+        contact_nodes = new_model.parts['WHEEL'].nodes
+     
+    #contact_nodes = new_model.rootAssembly.instances['WHEEL'].sets['CONTACT_NODES'].nodes
     
     new_node_info = np.array([[node.label, node.coordinates[0], node.coordinates[1]] 
                                  for node in contact_nodes])
@@ -296,12 +320,13 @@ def setup_next_rollover(new_cycle_nr):
     
     # Apply the old displacements to the new contact nodes
     disp_rel_rp = np.transpose([sorted_wheel_node_info[old_contact_node_indices, 4+i]    
-                                - rp_old[0, 4+i] for i in range(2)])
+                                - rp_old[0, 4+2*i] for i in range(2)])
     
-    x_rp_old = rp_old[0, 1:3] + rp_old[0, 4:6]
+    x_rp_old = rp_old[0, 1:3] + rp_old[0, 4:7:2]
     x_rp_new = rp_old[0, 1:3] + np.array([0, u2_end])
+    
     node_bc = []
-    wheel_nodes = new_model.rootAssembly.instances['WHEEL_CONTACT'].nodes
+    wheel_nodes = new_model.rootAssembly.instances['WHEEL'].sets['CONTACT_NODES'].nodes
 
     for old_node, new_node in zip(sorted_wheel_node_info[old_contact_node_indices], 
                                   sorted_wheel_node_info[new_contact_node_indices]):
@@ -309,11 +334,11 @@ def setup_next_rollover(new_cycle_nr):
         new_node_id = int(new_node[0])
         
         # Node positions
-        xold = old_node[1:3] + old_node[4:6]    # Deformed old position
+        xold = old_node[1:3] + old_node[4:7:2]  # Deformed old position
         Xnew = new_node[1:3]                    # Undeformed new position
         
-        vold = xold - x_rp_old                  # Old position relative old rp
-        xnew = x_rp_new + vold                  # is same as new position relative new rp
+        # Old position relative old rp is same as new position relative new rp
+        xnew = x_rp_new + (xold - x_rp_old)
         
         unew = xnew - Xnew                      # Displacement is relative undeformed pos
                     
@@ -333,22 +358,43 @@ def setup_next_rollover(new_cycle_nr):
                                         v1=0., v2=0., v3=0.)
     
     # Continue rolling
-    rolling_step_name = names.get_step_rolling(new_cycle_nr)
-    new_model.StaticStep(name=rolling_step_name, previous=return_step_name, maxNumInc=1000, 
-                         initialInc=0.01, minInc=1e-06, maxInc=0.01)
-    
-    ctrl_bc.setValuesInStep(stepName=rolling_step_name, u1=rolling_length, 
-                            ur3=rolling_angle, u2=FREED)
-    
-    ctrl_load.setValuesInStep(stepName=rolling_step_name, cf3=-wheel_load)
+    rolling_start_step_name = names.get_step_roll_start(new_cycle_nr)
+    time = rolling_time*end_stp_frac
+    new_model.StaticStep(name=rolling_start_step_name, previous=return_step_name, timePeriod=time, 
+                         maxNumInc=3, initialInc=time, minInc=time/2.0, maxInc=time)
+    ctrl_load.setValuesInStep(stepName=rolling_start_step_name, cf3=-wheel_load)
+    ctrl_bc.setValuesInStep(stepName=rolling_start_step_name, u1=rolling_length*end_stp_frac, 
+                            ur3=rolling_angle*end_stp_frac, u2=FREED)
     
     for bc in node_bc:
         # bc.setValuesInStep(stepName=rolling_step_name, u1=FREED, u2=FREED)
-        bc.deactivate(stepName=rolling_step_name)
+        bc.deactivate(stepName=rolling_start_step_name)
         
-    lock_rail_bc.deactivate(stepName=rolling_step_name)
+    lock_rail_bc.deactivate(stepName=rolling_start_step_name)
     
-    new_model.steps[rolling_step_name].Restart(numberIntervals=1)
+    rolling_step_name = names.get_step_rolling(new_cycle_nr)
+    time = rolling_time*(1.0 - 2.0*end_stp_frac)
+    dt0 = time/ipar['nom_num_incr_rolling']
+    dtmin = time/(ipar['max_num_incr_rolling']+1)
+    new_model.StaticStep(name=rolling_step_name, previous=rolling_start_step_name, timePeriod=time, 
+                         maxNumInc=ipar['max_num_incr_rolling'], 
+                         initialInc=dt0, minInc=dtmin, maxInc=dt0)
+    
+    ctrl_bc.setValuesInStep(stepName=rolling_step_name, u1=rolling_length*(1.0 - end_stp_frac), 
+                            ur3=rolling_angle*(1.0 - end_stp_frac), u2=FREED)
+    
+    ctrl_load.setValuesInStep(stepName=rolling_step_name, cf3=-wheel_load)
+    
+    rolling_step_end_name = names.get_step_roll_end(new_cycle_nr)
+    time = rolling_time*end_stp_frac
+    new_model.StaticStep(name=rolling_step_end_name, previous=rolling_step_name, timePeriod=time, 
+                         maxNumInc=3, initialInc=time, minInc=time/2.0, maxInc=time)
+    
+    ctrl_bc.setValuesInStep(stepName=rolling_step_end_name, 
+                            u1=rolling_length, u2=FREED,
+                            ur3=rolling_angle)
+    
+    new_model.steps[rolling_step_end_name].Restart(numberIntervals=1)
     
     # contactmod.renew_contact(new_cycle_nr)
     

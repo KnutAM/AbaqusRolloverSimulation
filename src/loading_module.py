@@ -8,6 +8,7 @@ import inspect
 from abaqusConstants import *
 import load
 import regionToolset
+import step
 
 # Custom imports (need to append project path to python path)
 # __file__ not found when calling from abaqus, 
@@ -35,20 +36,20 @@ def setup_outputs(the_model, ctrl_pt_reg, is_3d=False):
     
     # WHEEL CONTROL POINT
     the_model.HistoryOutputRequest(name='RP', createStepName=step_name, 
-                                    region=ctrl_pt_reg, variables=vars_rp,
-                                    frequency=100)
+                                   region=ctrl_pt_reg, variables=vars_rp,
+                                   frequency=100)
     
     # WHEEL CONTACT AREA
     wheel_contact_region = wheel_inst.sets['CONTACT_NODES']
     the_model.HistoryOutputRequest(name='wheel', createStepName=step_name, 
-                                    region=wheel_contact_region, variables=vars_nods,
-                                    frequency=LAST_INCREMENT)
+                                   region=wheel_contact_region, variables=vars_nods,
+                                   frequency=LAST_INCREMENT)
                         
     # RAIL CONTACT AREA
     rail_contact_region = rail_inst.sets['CONTACT_NODES']
     the_model.HistoryOutputRequest(name='rail', createStepName=step_name, 
-                                    region=rail_contact_region, variables=vars_nods,
-                                    frequency=LAST_INCREMENT)
+                                   region=rail_contact_region, variables=vars_nods,
+                                   frequency=LAST_INCREMENT)
     
 
 def preposition(assy):
@@ -73,13 +74,16 @@ def preposition(assy):
                            0.0, 0.0))
     
 
-def initial_bc(the_model, assy, wheel_refpoint, rail_bottom):
+def initial_bc(the_model, assy, wheel_refpoint):
     lpar = user_settings.load_parameters
+    ntpar = user_settings.numtrick
+    ipar = user_settings.time_incr_param
     the_model.StaticStep(name=names.step1, previous=names.step0, nlgeom=ON)
     
     # BC for rail (bottom)
+    rail_contact_nodes = the_model.rootAssembly.instances['RAIL'].sets['CONTACT_NODES']
     the_model.DisplacementBC(name='BC-1', createStepName=names.step0, 
-        region=rail_bottom, u1=SET, u2=SET, ur3=UNSET)
+        region=rail_contact_nodes, u1=SET, u2=SET, ur3=UNSET)
     
     # BC for wheel
     ctrl_bc = the_model.DisplacementBC(name='ctrl_bc', createStepName=names.step1, 
@@ -90,19 +94,37 @@ def initial_bc(the_model, assy, wheel_refpoint, rail_bottom):
     #ctrl_bc.setValuesInStep(stepName=names.step2, u2=FREED)
     #the_model.ConcentratedForce(name='ctrl_load', createStepName=names.step2, 
     #                            region=wheel_refpoint, cf2=-lpar['normal_load'])
-                                
+
+    rolling_length = -user_settings.rail_geometry['length']
+    rolling_time = abs(rolling_length)/lpar['speed']
+    nominal_radius = user_settings.wheel_geometry['outer_diameter']/2.0
+    rolling_angle = -(1+lpar['slip'])*rolling_length/nominal_radius
+    
+    end_stp_frac = abs(ntpar['extrap_roll_length']/rolling_length)
+    
     rolling_step_name = names.get_step_rolling(1)
-    the_model.StaticStep(name=rolling_step_name, previous=names.step1, maxNumInc=1000, 
-                         initialInc=0.02, minInc=1e-06, maxInc=0.02)
+    time = rolling_time*(1.0 - end_stp_frac)
+    dt0 = time/ipar['nom_num_incr_rolling']
+    dtmin = time/(ipar['max_num_incr_rolling']+1)
+    the_model.StaticStep(name=rolling_step_name, previous=names.step1, timePeriod=time,
+                         maxNumInc=ipar['max_num_incr_rolling'], 
+                         initialInc=dt0, minInc=dtmin, maxInc=dt0)
     
     the_model.ConcentratedForce(name='ctrl_load', createStepName=rolling_step_name, 
                                 region=wheel_refpoint, cf2=-lpar['normal_load'])
     
-    rolling_length = -user_settings.rail_geometry['length']
-    nominal_radius = user_settings.wheel_geometry['outer_diameter']/2.0
-    rolling_angle = -(1+lpar['slip'])*rolling_length/nominal_radius
     
-    ctrl_bc.setValuesInStep(stepName=rolling_step_name, u1=rolling_length, u2=FREED,
-                            ur3=rolling_angle)
     
-    the_model.steps[rolling_step_name].Restart(numberIntervals=1)
+    ctrl_bc.setValuesInStep(stepName=rolling_step_name, 
+                            u1=rolling_length*(1.0 - end_stp_frac), u2=FREED,
+                            ur3=rolling_angle*(1.0 - end_stp_frac))
+    
+    rolling_step_end_name = names.get_step_roll_end(1)
+    time = rolling_time*end_stp_frac
+    the_model.StaticStep(name=rolling_step_end_name, previous=rolling_step_name, timePeriod=time,
+                         maxNumInc=3, initialInc=time, minInc=time/2.0, maxInc=time)
+    
+    ctrl_bc.setValuesInStep(stepName=rolling_step_name, 
+                            u1=rolling_length, u2=FREED, ur3=rolling_angle)
+    
+    the_model.steps[rolling_step_end_name].Restart(numberIntervals=1)
