@@ -12,9 +12,9 @@ import interaction
 # Custom imports (need to append project path to python path)
 # __file__ not found when calling from abaqus, 
 # used solution from "https://stackoverflow.com/a/53293924":
-src_file_path = inspect.getfile(lambda: None)
-if not src_file_path in sys.path:
-    sys.path.append(os.path.dirname(src_file_path))
+src_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
+if not src_path in sys.path:
+    sys.path.append(src_path)
     
 import user_settings
 import naming_mod as names

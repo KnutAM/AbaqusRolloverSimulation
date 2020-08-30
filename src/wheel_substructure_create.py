@@ -171,17 +171,11 @@ def setup_control_point(the_model, assy, inst, the_part, geometry):
     rp = the_part.ReferencePoint(point=the_part.InterestingPoint(edge=the_part.edges.findAt(((0.,0.,0.),))[0], rule=CENTER))
     rp_key = the_part.referencePoints.keys()[0]
     assy.regenerate()
-    
-    ## Tie using rigid body reference point to inner diameter of wheel
-    # Determine geometry to select only the the inner point. For this to work, the outer diameter must be large enough:
-    if geometry['outer_diameter'] < np.sqrt(2)*1.01*geometry['inner_diameter']:
-        print('WARNING: Tie constraint for wheel reference point may be wrong.\n' + 
-              '         Too small difference between inner and outer diameter')
+
     x0 = 0.0
     y0 = geometry['outer_diameter']/2.0
     r = geometry['inner_diameter']/2.0 + 0.01 * (geometry['outer_diameter']-geometry['inner_diameter'])/2.0
     
-    inner_circle = inst.edges.getByBoundingBox(x0-r,y0-r,0,x0+r,y0+r,0)
     inner_circle = inst.edges.getByBoundingCylinder(center1=(x0,y0,0), center2=(x0,y0,1), radius=r)
     wheel_center=assy.Set(edges=inner_circle, name='WheelCenter')
     rp_region=regionToolset.Region(referencePoints=(inst.referencePoints[rp_key],))
@@ -198,7 +192,7 @@ def get_split_angles(geometry, the_mesh):
 
 
 def create_submodel(the_model, inst, contact_node_set_name, rp_ctrl_region, substr_id):
-    the_model.SubstructureGenerateStep(name='Step-1', recoveryMatrix=NONE,
+    the_model.SubstructureGenerateStep(name='Step-1', #recoveryMatrix=NONE,
         previous='Initial', description='Wheel', substructureIdentifier=substr_id)
     
     the_model.RetainedNodalDofsBC(name='BC-1', createStepName='Step-1', 

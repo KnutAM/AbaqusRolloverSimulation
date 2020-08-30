@@ -15,9 +15,9 @@ from abaqusConstants import *
 # __file__ not found when calling from abaqus, 
 # used solution from "https://stackoverflow.com/a/53293924":
 
-src_file_path = inspect.getfile(lambda: None)
-if not src_file_path in sys.path:
-    sys.path.append(os.path.dirname(src_file_path))
+src_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
+if not src_path in sys.path:
+    sys.path.append(src_path)
 
 
 import material_and_section_module as matmod
@@ -50,6 +50,7 @@ def main():
     setup_initial_model()
     setup_time = time.time() - t0
     run_time = run_cycle(cycle_nr=1)
+    # run_time = 1
     t0 = time.time()
     save_results(cycle_nr=1)
     result_time = time.time() - t0
@@ -57,11 +58,18 @@ def main():
                       'Run time:    ' + str(run_time) + ' s \n' + 
                       'Result time: ' + str(result_time) + ' s')
     
-    num_cycles = 2
+    num_cycles = user_settings.num_cycles
     for nr in range(2, num_cycles+1):
         t0 = time.time()
         setup_next_rollover(new_cycle_nr=nr)
         setup_time = time.time() - t0
+        # if nr == 2:
+            # FiOpRe = mdb.models['rollover_00002'].FieldOutputRequest(name='F-Output-2', 
+               # createStepName='return_00002', variables=('S', 'U'), substructures=(
+                # 'WHEEL.Entire Substructure', 'WHEEL.WHEEL-REFPT_', 'WHEEL.WHEELCENTER', 
+                # 'WHEEL.WHEEL_CONTACT_NODES', 'WHEEL.WHEEL_WHEEL'), sectionPoints=DEFAULT, 
+                # rebar=EXCLUDE)
+            # FiOpRe.deactivate(stepName='rolling_start_00002')
         run_time = run_cycle(cycle_nr=nr)
         apt.print_message('Setup time:  ' + str(setup_time) + 's \n' + 
                           'Run time:    ' + str(run_time) + ' s \n' + 
@@ -208,6 +216,7 @@ def save_results(cycle_nr):
     # - ux(y,z)
     # - sigma(y,z,t) and epsilon(y,z,t)
     # 
+    odb.close()
     
     
 def save_node_results(nodes, node_hr, filename, variable_keys=[]):
@@ -296,6 +305,10 @@ def setup_next_rollover(new_cycle_nr):
     sorted_wheel_node_info = wheel_old[sort_inds, :]
     node_angles_sort = node_angles[sort_inds]
     
+    print 'angle check'
+    print wheel_node_angle_increment
+    print node_angles_sort[1]-node_angles_sort[0]
+    
     # The node labels from above are given from odb. Due to renumbering these may have been changed. 
     # Therefore, we need to get the node labels from the instance and use those instead when setting boundary conditions
     try:
@@ -327,7 +340,14 @@ def setup_next_rollover(new_cycle_nr):
     
     node_bc = []
     wheel_nodes = new_model.rootAssembly.instances['WHEEL'].sets['CONTACT_NODES'].nodes
-
+    old_node_angles = get_node_angles(sorted_wheel_node_info[old_contact_node_indices], rp_old)
+    new_node_angles = get_node_angles(sorted_wheel_node_info[new_contact_node_indices], rp_old)
+    
+    print 'angles'
+    print new_node_angles - old_node_angles
+    print rot_angle
+    print ur3_end-return_angle
+    
     for old_node, new_node in zip(sorted_wheel_node_info[old_contact_node_indices], 
                                   sorted_wheel_node_info[new_contact_node_indices]):
         

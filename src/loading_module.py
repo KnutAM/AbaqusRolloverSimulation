@@ -13,9 +13,9 @@ import step
 # Custom imports (need to append project path to python path)
 # __file__ not found when calling from abaqus, 
 # used solution from "https://stackoverflow.com/a/53293924":
-src_file_path = inspect.getfile(lambda: None)
-if not src_file_path in sys.path:
-    sys.path.append(os.path.dirname(src_file_path))
+src_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
+if not src_path in sys.path:
+    sys.path.append(src_path)
 import user_settings
 import naming_mod as names
 
@@ -81,7 +81,7 @@ def initial_bc(the_model, assy, wheel_refpoint):
     the_model.StaticStep(name=names.step1, previous=names.step0, nlgeom=ON)
     
     # BC for rail (bottom)
-    rail_contact_nodes = the_model.rootAssembly.instances['RAIL'].sets['CONTACT_NODES']
+    rail_contact_nodes = the_model.rootAssembly.instances['RAIL'].sets['BOTTOM_NODES']
     the_model.DisplacementBC(name='BC-1', createStepName=names.step0, 
         region=rail_contact_nodes, u1=SET, u2=SET, ur3=UNSET)
     
@@ -124,7 +124,7 @@ def initial_bc(the_model, assy, wheel_refpoint):
     the_model.StaticStep(name=rolling_step_end_name, previous=rolling_step_name, timePeriod=time,
                          maxNumInc=3, initialInc=time, minInc=time/2.0, maxInc=time)
     
-    ctrl_bc.setValuesInStep(stepName=rolling_step_name, 
+    ctrl_bc.setValuesInStep(stepName=rolling_step_end_name, 
                             u1=rolling_length, u2=FREED, ur3=rolling_angle)
     
     the_model.steps[rolling_step_end_name].Restart(numberIntervals=1)
