@@ -3,8 +3,6 @@ import sys
 import os
 import numpy as np
 import inspect
-import time
-import subprocess
 
 # Abaqus imports 
 from abaqus import mdb
@@ -25,18 +23,30 @@ if not this_path in sys.path:
     
 import user_settings
 import wheel_simulation
+import get_results
+import stiffness_matrix
 reload(user_settings)
+reload(wheel_simulation)
+reload(get_results)
+reload(stiffness_matrix)
 
 # Steps
 # 1) Simulate unit deformations on wheel
-job_name = wheel_simulation.simulate()
+# job_name = wheel_simulation.simulate()
+job_name = 'SUPER_WHEEL'
 
 # 2) Read the odb file and save the forces, moments and corresponding coordinates required to build 
 #    up the stiffness matrix in the next step
-
+outer_node_coord, outer_node_RF, rp_node_RF = get_results.get_nodal_results(odb_name=job_name)
 
 # 3) Built up the stiffness matrix for the wheel
+Kfull = stiffness_matrix.create_stiffness_matrix(outer_node_coord, outer_node_RF, rp_node_RF)
+
 # 4) Reduce the stiffness matrix to only the kept degrees of freedom.
+angle_to_keep = user_settings.wheel_geometry['rolling_angle']
+angle_to_keep = np.pi/1.9
+Kred, coords = stiffness_matrix.reduce_stiffness_matrix(Kfull, outer_node_coord, angle_to_keep)
+
 # 5) Write a fortran file containing the data to calculate the superelement.
 
 

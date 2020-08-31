@@ -103,8 +103,10 @@ def setup_control_point(the_model, assy, inst, the_part):
     return rp_region
 
 def simulate():
-    model_name = 'super_wheel'
-    job_name = 'super_wheel'
+    model_name = 'SUPER_WHEEL'
+    part_name = model_name
+    inst_name = model_name
+    job_name = model_name
     if model_name in mdb.models:    # Delete old model if exists
         del(mdb.models[model_name])
         
@@ -112,11 +114,12 @@ def simulate():
     assy = the_model.rootAssembly
     assy.DatumCsysByDefault(CARTESIAN)
     
-    the_part = the_model.Part(name='super_wheel', dimensionality=TWO_D_PLANAR, type=DEFORMABLE_BODY)
+    the_part = the_model.Part(name=part_name, dimensionality=TWO_D_PLANAR, type=DEFORMABLE_BODY)
     
     od = user_settings.wheel_geometry['outer_diameter']
     id = user_settings.wheel_geometry['inner_diameter']
     elsize = user_settings.wheel_mesh['coarse']*2 # Should be fine, but use coarse for testing
+    elsize = od*np.pi/16.1   # For debug
     
     # Create mesh describing the geometry
     create_mesh(the_part, id, od, elsize)
@@ -129,7 +132,7 @@ def simulate():
     the_part.SectionAssignment(region=all_elements_set, sectionName='Section')
     
     # Create assembly
-    the_inst = assy.Instance(name='super_wheel', part=the_part, dependent=ON)
+    the_inst = assy.Instance(name=inst_name, part=the_part, dependent=ON)
     
     # Create control point and apply tie condition to inner circle of wheel
     setup_control_point(the_model, assy, the_inst, the_part)
@@ -169,7 +172,7 @@ def simulate():
                                    
     # Run analysis
     if job_name in mdb.jobs:
-        del(mdb.jobs[job_name])
+       del(mdb.jobs[job_name])
         
     the_job = mdb.Job(name=job_name, model=model_name)
     the_job.submit(consistencyChecking=OFF)
