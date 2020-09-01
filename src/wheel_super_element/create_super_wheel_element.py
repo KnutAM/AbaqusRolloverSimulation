@@ -25,10 +25,12 @@ import user_settings
 import wheel_simulation
 import get_results
 import stiffness_matrix
+import uel
 reload(user_settings)
 reload(wheel_simulation)
 reload(get_results)
 reload(stiffness_matrix)
+reload(uel)
 
 # Steps
 # 1) Simulate unit deformations on wheel
@@ -48,7 +50,7 @@ angle_to_keep = np.pi/1.9
 Kred, coords = stiffness_matrix.reduce_stiffness_matrix(Kfull, outer_node_coord, angle_to_keep)
 
 # 5) Write a fortran file containing the data to calculate the superelement.
-
+uel.create_uel(Kred, coords)
 
 
     
