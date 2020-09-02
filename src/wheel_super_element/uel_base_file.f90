@@ -93,6 +93,50 @@ implicit none
     
 end subroutine
 
+subroutine check_analysis_type(lflags)
+implicit none
+    integer, intent(in) :: lflags(:)
+    write(*,*) 'procedure type:', lflags(1)
+    if (lflags(2)==1) then
+        write(*,*) 'small strains used'
+    else
+        write(*,*) 'finite strains used'
+    endif
+    select case (lflags(3))
+        case (1)
+            write(*,*) 'Normal implicit time incrementation procedure'
+        case (2)
+            write(*,*) 'Define current stiffness matrix'
+        case (3)
+            write(*,*) 'Define current damping matrix'
+        case (4)
+            write(*,*) 'Define current mass matrix'
+        case (5)
+            write(*,*) 'Define the current residual or load vector only'
+        case (6)
+            write(*,*) 'Define the current mass matrix and the residual vector for the initial acceleration calculation'
+        case (100)
+            write(*,*) 'Define perturbation quantities for output.'
+        case default
+            write(*,*) 'Uknown lflags(3) = ', lflags(3)
+    end select
+    if (lflags(4)==0) then
+        write(*,*) 'This is a general step'
+    else
+        write(*,*) 'This is a linear pertubation step'
+    endif
+    if (lflags(5)==0) then
+        write(*,*) 'The current approximations to u were based on Newton corrections'
+    else
+        write(*,*) 'The current approximations to u were found by extrapolation from the previous increment'
+    endif
+    if (lflags(7)==1) then
+        write(*,*) 'When the damping matrix flag is set, the viscous damping matrix is defined. '
+    else
+        write(*,*) 'When the damping matrix flag is set, the structural damping matrix is defined.'
+    endif
+end subroutine
+
 end module wheel_super_element_mod
     
 
@@ -113,13 +157,33 @@ subroutine uel(rhs,amatrx,svars,energy,ndofel,nrhs,nsvars,&
       
     double precision, allocatable   :: rotation_matrix(:,:)
     double precision                :: rotation
+    integer                         :: k1, kmax
 !   user coding to define RHS, AMATRX, SVARS, ENERGY, and PNEWDT
     rotation = u(3)
     call get_rotation_matrix(rotation, ndofel, rotation_matrix)
     
     call get_stiffness_matrix(amatrx)
+    amatrx = -amatrx
+    !amatrx = props(1)*matmul(transpose(rotation_matrix), matmul(amatrx, rotation_matrix))
+    rhs(:,1) = -matmul(amatrx, u)
     
-    amatrx = matmul(transpose(rotation_matrix), matmul(amatrx, rotation_matrix))
-    rhs(:,1) = matmul(amatrx, u)
+    kmax = 1
+    do k1=2,ndofel
+        if (abs(u(k1))>abs(u(kmax))) then
+            kmax=k1
+        endif
+    enddo
+    
+    write(*,*) '--- start uel output ---'
+    write(*,*) 'ndofel = ', ndofel
+    write(*,*) 'nnode = ', nnode
+    write(*,*) 'umax = ', u(kmax), '(u(', kmax, '))'
+    call check_analysis_type(lflags)
+    write(*,*) 'kinc = ', kinc
+    write(*,*) 'u:'
+    write(*,*) u
+    write(*,*) 'du:'
+    write(*,*) du
+    write(*,*) '--- end uel output ---'
     
 end subroutine uel

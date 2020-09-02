@@ -8,7 +8,7 @@ import inspect
 from abaqus import mdb
 import assembly, regionToolset
 from abaqusConstants import *
-import mesh
+import mesh, interaction, step
 
 # Custom imports (need to append project path to python path)
 # __file__ not found when calling from abaqus, 
@@ -118,7 +118,7 @@ def simulate():
     
     od = user_settings.wheel_geometry['outer_diameter']
     id = user_settings.wheel_geometry['inner_diameter']
-    elsize = user_settings.wheel_mesh['coarse']*2 # Should be fine, but use coarse for testing
+    elsize = user_settings.wheel_mesh['fine'] # Should be fine, but use coarse for testing
     elsize = od*np.pi/16.1   # For debug
     
     # Create mesh describing the geometry
