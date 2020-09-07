@@ -7,7 +7,6 @@ import inspect
 
 def create_uel(stiffness_matrix, coords):
     this_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
-    print this_path
     
     base_file = this_path + '/uel_base_file.f90'
     with open(base_file, 'r') as fid:

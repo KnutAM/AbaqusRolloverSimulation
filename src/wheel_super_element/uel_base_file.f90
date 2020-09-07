@@ -137,17 +137,16 @@ end module uel_mod
 
 module wheel_super_element_mod
 implicit none
-
-contains
     double precision, parameter :: PI=2.0*asin(1.0)
+contains    
 
-function rot_mat(angle) return(Q)
+function rot_mat(angle) result(Q)
 implicit none
     double precision, intent(in)    :: angle
     double precision                :: Q(2,2)
     
-    Q(1, :) = [cos(rotation_angle), sin(rotation_angle)]
-    Q(2, :) = [-sin(rotation_angle), cos(rotation_angle)]
+    Q(1, :) = [cos(angle), sin(angle)]
+    Q(2, :) = [-sin(angle), cos(angle)]
     
 end function rot_mat
     
@@ -161,10 +160,10 @@ implicit none
     integer                         :: nnods, k1, i1, i2
     
     nnods = (size(u)-3)/2
-    Qt = transpose(rot_mat(rotation))
+    Qt = transpose(rot_mat(u(3)))
     allocate(uprim(2*nnods+1))
     uprim(1:3) = 0.0
-    do k1=2,nnod
+    do k1=2,nnods
         i1 = 2*k1
         i2 = 2*k1 + 1
         x0_minus_xi = coords(1:2, k1) + u(i1:i2) - (coords(1:2, 1) + u(1:2))
@@ -205,8 +204,10 @@ implicit none
     allocate(rotation_matrix(ndof,ndof))
     
     rotation_sub_matrix = rot_mat(rotation_angle)
+    rotation_matrix = 0.0
     
     rotation_matrix(1:2, 1:2) = rotation_sub_matrix
+    rotation_matrix(3,3) = 1.0
     do k1=1,(ndof-3)/2
         k2 = 3 + 2*k1 - 1
         rotation_matrix(k2:(k2+1), k2:(k2+1)) = rotation_sub_matrix
@@ -218,18 +219,20 @@ subroutine get_rotation_matrix_derivative(rotation_angle, ndof, rotation_matrix_
 implicit none
     double precision, intent(in)    :: rotation_angle
     integer, intent(in)             :: ndof
-    double precision, allocatable   :: rotation_matrix(:,:)
+    double precision, allocatable   :: rotation_matrix_diff(:,:)
     
     !sin(a+pi/2)=cos(a)
     !cos(a+pi/2)=-sin(a)
     call get_rotation_matrix(rotation_angle + PI/2.0, ndof, rotation_matrix_diff)
+    rotation_matrix_diff(3,3) = 0.0
     
 end subroutine
 
 subroutine get_u_diff(du0m_du, ndofel)
 implicit none
-    integer, intent(out)    :: du0m_du(:, :)
+    integer, allocatable    :: du0m_du(:, :)
     integer, intent(in)     :: ndofel
+    integer                 :: k1
     
     allocate(du0m_du(ndofel, 2))
     
@@ -273,6 +276,7 @@ implicit none
     
     double precision                :: rotation
     double precision, allocatable   :: QK(:,:), xi_minus_x0(:), xi_init_minus_x0_init(:)
+    double precision, allocatable   :: rotation_matrix(:,:), rotation_matrix_diff(:,:)
     integer, allocatable            :: du0m_du(:,:)
     integer                         :: ndofel, k1
 
@@ -295,6 +299,8 @@ implicit none
                  + matmul(matmul(rotation_matrix_diff, transpose(QK)),xi_minus_x0) &
                  - matmul(matmul(rotation_matrix_diff,Kprim),xi_init_minus_x0_init)
     amatrx(:, 3) = amatrx(:, 3) + matmul(matmul(QK, rotation_matrix_diff), xi_minus_x0)
+    
+    amatrx = -amatrx
     
 end subroutine
 
@@ -325,7 +331,7 @@ subroutine uel(rhs,amatrx,svars,energy,ndofel,nrhs,nsvars,&
     integer, intent(in)             :: ndofel, nrhs, nsvars, nprops, njprop, mcrd, nnode, jtype, kstep, kinc
     integer, intent(in)             :: jelem, ndload, mdload, npredf, jprops(njprop), lflags(7), mlvarx
       
-    double precision, allocatable   :: rotation_matrix(:,:), rotation_matrix_diff(:,:), Kprim(:,:)
+    double precision, allocatable   :: Kprim(:,:)
     double precision, allocatable   :: uprim(:), Fprim(:)
     double precision                :: rotation
     integer                         :: k1, kmax
@@ -336,8 +342,8 @@ subroutine uel(rhs,amatrx,svars,energy,ndofel,nrhs,nsvars,&
     call get_stiffness_matrix(Kprim)    ! Get unrotated stiffness from static condensation
     Kprim = Kprim*props(1)              ! Scale with Elastic modulus
     
-    allocate(uprim(ndofel), Fprim(ndofel))
     call get_uprim(coords, u, uprim)    
+    allocate(Fprim(ndofel))
     Fprim = matmul(Kprim, uprim)
     call get_F_gcs(rotation, Fprim, rhs)
     

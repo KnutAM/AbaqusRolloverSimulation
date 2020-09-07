@@ -128,9 +128,7 @@ def setup_initial_model():
     
     ## Rail settings
     rail_geometry = user_settings.rail_geometry
-    rail_mesh = user_settings.rail_mesh
-    rail_naming = user_settings.rail_naming 
-    
+    rail_mesh = user_settings.rail_mesh    
     
     # Setup model
     if model_name in mdb.models:    # Delete old model if exists
