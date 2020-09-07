@@ -18,10 +18,14 @@ if not src_path in sys.path:
     
 import user_settings
 import naming_mod as names
+import get_utils as get
 
-def setup_contact(rail_contact_surface, wheel_contact_surface):
+def setup_contact(rail_contact_surface):
+    the_model = get.model()
+    assy = get.assy()
+    wheel_contact_surface = assy.surfaces[names.wheel_contact_surf]
+    
     cpar = user_settings.contact_parameters
-    the_model = mdb.models[names.get_model(cycle_nr=1)]
     create_step_name = names.step0
     contact_prop = the_model.ContactProperty('Contact')
     contact_prop.NormalBehavior(pressureOverclosure=LINEAR, 
@@ -37,7 +41,7 @@ def setup_contact(rail_contact_surface, wheel_contact_surface):
                                          createStepName=create_step_name, 
                                          slave=rail_contact_surface, master=wheel_contact_surface, 
                                          sliding=FINITE, thickness=ON, 
-                                         interactionProperty='Contact', adjustMethod=NONE, 
+                                         interactionProperty=contact_prop.name, adjustMethod=NONE, 
                                          initialClearance=OMIT, datumAxis=None, 
                                          clearanceRegion=None)
 

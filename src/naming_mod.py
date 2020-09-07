@@ -18,6 +18,21 @@ def get_job(cycle_nr):
 def get_odb(cycle_nr):
     return get_job(cycle_nr)   # odb and job name should always be the same
     
+# Part, instance and section names
+wheel_part = 'WHEEL'
+rail_part = 'RAIL'
+wheel_inst = wheel_part
+rail_inst = rail_part
+rail_sect = rail_part
+rail_shadow_sect = 'SHADOW_RAIL'
+wheel_dummy_contact_sect = 'WHEEL_DUMMY_CONTACT'
+
+# Sets
+wheel_contact_surf = 'WHEEL_CONTACT_SURFACE'
+wheel_rp_set = 'RP'
+wheel_contact_nodes = 'CONTACT_NODES'
+rail_contact_nodes = 'CONTACT_NODES'
+rail_bottom_nodes = 'BOTTOM_NODES'
 
 # Step naming
 step0 = 'Initial'   # Abaqus default
@@ -41,6 +56,9 @@ def get_step_return(cycle_nr):
     
 
 # BC and interactions
+fix_rail_bc = 'FIX_BOTTOM'
+rp_ctrl_bc = 'RP_CTRL'
+rp_vert_load = 'RP_LOAD'
 def get_contact(cycle_nr):
     return 'Contact_' + cycle_str(cycle_nr)
     

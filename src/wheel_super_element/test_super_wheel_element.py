@@ -21,6 +21,7 @@ import contact_module as contactmod
 import naming_mod as names
 import user_settings
 import rail_setup as railmod
+import get_utils as get
 
 reload(matmod)
 reload(contactmod)

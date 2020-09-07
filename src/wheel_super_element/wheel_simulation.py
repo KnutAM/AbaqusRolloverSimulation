@@ -118,8 +118,8 @@ def simulate():
     
     od = user_settings.wheel_geometry['outer_diameter']
     id = user_settings.wheel_geometry['inner_diameter']
-    elsize = user_settings.wheel_mesh['fine'] # Should be fine, but use coarse for testing
-    elsize = od*np.pi/16.1   # For debug
+    elsize = user_settings.wheel_mesh['fine']
+    #elsize = od*np.pi/16.1   # For debug
     
     # Create mesh describing the geometry
     create_mesh(the_part, id, od, elsize)
@@ -174,7 +174,7 @@ def simulate():
     if job_name in mdb.jobs:
        del(mdb.jobs[job_name])
         
-    the_job = mdb.Job(name=job_name, model=model_name)
+    the_job = mdb.Job(name=job_name, model=model_name, nodalOutputPrecision=FULL)
     the_job.submit(consistencyChecking=OFF)
     the_job.waitForCompletion()
     

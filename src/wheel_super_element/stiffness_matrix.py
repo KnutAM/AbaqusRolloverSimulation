@@ -91,9 +91,8 @@ def create_stiffness_matrix(outer_node_coord, outer_node_RF, rp_node_RF):
     stiffness_matrix[1,:3] = np.array([-rp_node_RF[2,1], rp_node_RF[2,0], rp_node_RF[2,2]]) #dF/duy
     stiffness_matrix[2,:3] = rp_node_RF[3,:]                                                #dF/dur3
     
-    # Check that stiffness matrix is invertible if we lock the reference point
-    print 'Checking stiffness for full matrix:'
-    stiffness_ok = check_stiffness_matrix(stiffness_matrix)
+    print 'Checking full matrix'
+    check_stiffness_matrix(stiffness_matrix)
     
     return stiffness_matrix
     
@@ -151,21 +150,30 @@ def reduce_stiffness_matrix(Kfull, outer_node_coord, angle_to_keep):
     # Calculation:
     Kred = Kkk - Kkr.dot(np.linalg.inv(Krr)).dot(np.transpose(Kkr))
     
-    print 'Checking stiffness for reduced matrix:'
-    stiffness_ok = check_stiffness_matrix(Kred)
+    print 'Checking reduced matrix'
+    check_stiffness_matrix(Kred)
     
     return Kred, coords
     
 def check_stiffness_matrix(kmat):
     kcheck = kmat[3:,3:]
+    check_rbm_x = np.abs(kmat[:, 0] + np.sum(kmat[:, 3::2], axis=1))
+    check_rbm_y = np.abs(kmat[:, 1] + np.sum(kmat[:, 4::2], axis=1))
     cond = np.linalg.cond(kcheck)
-    stiffness_ok = (cond < 2)
-    if not stiffness_ok:
-        print 'stiffness NOT ok'
-    else:
-        print 'stiffness ok'
+    stiffness_ok = (cond < 1.e4)    # Nodal output typically single precision
+    if cond > 1.e12:
+        print 'stiffness NOT OK, check for errors'
+    elif cond > 1.e4:
+        print 'stiffness matrix badly conditioned, consider double precision for nodal output'
     
+    if any(np.array([np.max(check_rbm_x), np.max(check_rbm_y)]) > 1.e-10):
+        print 'stiffness matrix sensitive to rbm'
+        for n, v in enumerate(check_rbm_x):
+            print 'K*u [' + str(n) + '] for ux=1: %10.3e' % v
+        for n, v in enumerate(check_rbm_x):
+            print 'K*u [' + str(n) + '] for uy=1: %10.3e' % v
+        
     print 'determinant  = %10.3e' % np.linalg.det(kcheck)
     print 'condition nr = %10.3e' % cond
-        
-    return stiffness_ok
+    print 'max rbm x effect = %10.3e' % np.max(check_rbm_x)
+    print 'max rbm y effect = %10.3e' % np.max(check_rbm_y)

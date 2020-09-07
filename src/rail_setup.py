@@ -21,26 +21,9 @@ if not src_path in sys.path:
 
 from material_and_section_module import setup_sections
 import user_settings
+import naming_mod as names
 
-def test_script():
-    # Settings
-    rail_geometry = user_settings.rail_geometry
-    rail_mesh = user_settings.rail_mesh
-    rail_naming = user_settings.rail_naming  
-    
-    # Setup model
-    model = mdb.models.values()[0]
-    assy = model.rootAssembly
-    assy.DatumCsysByDefault(CARTESIAN)
-    
-    # Setup sections
-    setup_sections(model, naming={'rail': rail_naming['section'], 
-                                  'shadow': rail_naming['shadow_section']})
-    
-    rail_part, rail_contact_surf = setup_rail(model, assy, rail_geometry, rail_mesh, rail_naming)
-    
-    
-def setup_rail(model, assy, geometry, mesh, naming):
+def setup_rail(model, assy, geometry, mesh):
     # Input
     #   model       The full abaqus model section_name
     #   assy        The full assembly (for all parts)
@@ -61,41 +44,41 @@ def setup_rail(model, assy, geometry, mesh, naming):
     # -------------------------------------------------------------------------
     
     # Create part and add instance to assembly
-    part = model.Part(name=naming['part'], dimensionality=TWO_D_PLANAR, type=DEFORMABLE_BODY)
-    inst = assy.Instance(name=naming['part'], part=part, dependent=ON)
+    the_part = model.Part(name=names.rail_part, dimensionality=TWO_D_PLANAR, type=DEFORMABLE_BODY)
+    the_inst = assy.Instance(name=names.rail_inst, part=the_part, dependent=ON)
     
     # Sketch the rail profile
     sketch = sketch_rail(model, geometry, mesh)
     
     # Make the base shell
-    part.BaseShell(sketch=sketch)
+    the_part.BaseShell(sketch=sketch)
     sketch.unsetPrimaryObject()
     
     # Partitioning
     partition_sketch = partition_rail(model, geometry, mesh)
-    part.PartitionFaceBySketch(faces=part.faces.findAt(((0.0, -1.0, 0.0),)), sketch=partition_sketch)
+    the_part.PartitionFaceBySketch(faces=the_part.faces.findAt(((0.0, -1.0, 0.0),)), sketch=partition_sketch)
     
     # Assign sections
-    define_sections(part, geometry, mesh, naming)
+    define_sections(the_part, geometry, mesh)
     
     # Mesh rail part
-    mesh_rail(part, geometry, mesh)
+    mesh_rail(the_part, geometry, mesh)
     
     # Find and connect node pairs (right and left vertical faces, as well as shadow_pairs)
-    lr_pairs = find_rail_node_pairs_left_right(part, geometry, mesh)
-    shadow_pairs = find_shadow_nodes(part, geometry, mesh)
-    connect_nodes(model, assy, part, geometry, mesh, (lr_pairs, shadow_pairs))
+    lr_pairs = find_rail_node_pairs_left_right(the_part, geometry, mesh)
+    shadow_pairs = find_shadow_nodes(the_part, geometry, mesh)
+    connect_nodes(model, assy, the_part, geometry, mesh, (lr_pairs, shadow_pairs))
     
     # Define contact surface
-    rail_contact_surface = define_contact_surface(assy, inst, geometry, mesh)
-    top_edge = part.edges.findAt(((0., 0., 0.),))
-    part.Set(edges=top_edge, name='CONTACT_NODES') # Only contact nodes not in shadow set
+    rail_contact_surface = define_contact_surface(assy, the_inst, geometry, mesh)
+    top_edge = the_part.edges.findAt(((0., 0., 0.),))
+    the_part.Set(edges=top_edge, name=names.rail_contact_nodes) # Only contact nodes not in shadow set
     
     # Define bottom region (where boundary conditions will be applied)
-    bottom_edge = part.edges.findAt(((0., -geometry['height'], 0.),))
-    bottom_region = part.Set(edges=bottom_edge, name='BOTTOM_NODES')
+    bottom_edge = the_part.edges.findAt(((0., -geometry['height'], 0.),))
+    bottom_region = the_part.Set(edges=bottom_edge, name=names.rail_bottom_nodes)
     
-    return part, rail_contact_surface, bottom_region
+    return the_part, rail_contact_surface, bottom_region
 
     
 def sketch_rail(model, geometry, mesh):
@@ -131,7 +114,7 @@ def sketch_rail(model, geometry, mesh):
 def partition_rail(model, geometry, mesh):
     (shadow_line_length, number_of_shadow_elements) = get_shadow_rail_length_and_nel(geometry, mesh)
     
-    partition_sketch = model.ConstrainedSketch(name='__wheel_partition__', sheetSize=200.0)
+    partition_sketch = model.ConstrainedSketch(name='__rail_partition__', sheetSize=200.0)
     partition_sketch.setPrimaryObject(option=SUPERIMPOSE)
     partition_sketch.Line(point1=(-geometry['length']/2.0-shadow_line_length-1., -mesh['fine']), 
                           point2=(geometry['length']/2.0+1., -mesh['fine']))
@@ -158,20 +141,18 @@ def mesh_rail(part, geometry, the_mesh):
     part.generateMesh()
     
     
-def define_sections(part, geometry, mesh, naming):
-    # Create 2 sections, one for the actual rail and one for the shadow part, named by 
-    # naming['section'] and naming['shadow_section'] respectively
+def define_sections(part, geometry, mesh):
     
-    (shadow_line_length, number_of_shadow_elements) = get_shadow_rail_length_and_nel(geometry, mesh)
+    shadow_line_length, number_of_shadow_elements = get_shadow_rail_length_and_nel(geometry, mesh)
     
     faces = part.faces.findAt(((0., -mesh['fine']/2.0, 0.),),((0., -1.5*mesh['fine'], 0.),))
     region = part.Set(faces=faces, name='rail_set')
-    part.SectionAssignment(region=region, sectionName=naming['section'], offset=0.0, 
+    part.SectionAssignment(region=region, sectionName=names.rail_sect, offset=0.0, 
         offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
         
     shadow_face = part.faces.findAt(((-geometry['length']/2.0-shadow_line_length/2.0, -mesh['fine']/2.0, 0.),))
     shadow_region = part.Set(faces=shadow_face, name='shadow_set')
-    part.SectionAssignment(region=shadow_region, sectionName=naming['shadow_section'], offset=0.0, 
+    part.SectionAssignment(region=shadow_region, sectionName=names.rail_shadow_sect, offset=0.0, 
         offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
     
     

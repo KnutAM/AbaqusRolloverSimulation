@@ -164,5 +164,6 @@ def get_rp_node_set(the_part, the_inst, geometry):
     
     return rp_node_inst_set        
 
+
 if __name__ == '__main__':
     test_script()

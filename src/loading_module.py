@@ -17,10 +17,17 @@ src_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
 if not src_path in sys.path:
     sys.path.append(src_path)
 import user_settings
+import wheel_super_element_import as wsei
 import naming_mod as names
+import get_utils as get
 
 
-def setup_outputs(the_model, ctrl_pt_reg, is_3d=False):
+def setup_outputs(is_3d=False):
+    the_model = get.model()
+    assy = get.assy()
+    wheel_inst = get.inst(names.wheel_inst)
+    rail_inst = get.inst(names.rail_inst)
+    wheel_refpoint = assy.sets[names.wheel_rp_set]
     if is_3d:
         vars_rp = [var + str(i) for i in range(1,4) for var in ['U', 'UR', 'RF', 'RM']]
         vars_nods = [var + str(i) for i in range(1,4) for var in ['U', 'RF']]
@@ -31,62 +38,82 @@ def setup_outputs(the_model, ctrl_pt_reg, is_3d=False):
         vars_rp.append('RM3')
         
     step_name = names.step1
-    rail_inst = the_model.rootAssembly.instances['RAIL']
-    wheel_inst = the_model.rootAssembly.instances['WHEEL']
     
     # WHEEL CONTROL POINT
     the_model.HistoryOutputRequest(name='RP', createStepName=step_name, 
-                                   region=ctrl_pt_reg, variables=vars_rp,
+                                   region=wheel_refpoint, variables=vars_rp,
                                    frequency=100)
     
     # WHEEL CONTACT AREA
-    wheel_contact_region = wheel_inst.sets['CONTACT_NODES']
+    wheel_contact_region = wheel_inst.sets[names.wheel_contact_nodes]
     the_model.HistoryOutputRequest(name='wheel', createStepName=step_name, 
                                    region=wheel_contact_region, variables=vars_nods,
                                    frequency=LAST_INCREMENT)
                         
     # RAIL CONTACT AREA
-    rail_contact_region = rail_inst.sets['CONTACT_NODES']
+    rail_contact_region = rail_inst.sets[names.rail_contact_nodes]
     the_model.HistoryOutputRequest(name='rail', createStepName=step_name, 
                                    region=rail_contact_region, variables=vars_nods,
                                    frequency=LAST_INCREMENT)
     
 
-def preposition(assy):
-    # Find instances to move (if substructure used, two instances for the wheel 
-    # must be moved...
-    names = [user_settings.wheel_naming['part'], 
-             user_settings.wheel_naming['contact_part']]
-    insts = tuple([name for name in names if name in assy.instances])
-    
-    wgeom = user_settings.wheel_geometry
+def preposition():
+    rolling_par = get_rolling_parameters()
+    radius = rolling_par['radius']
+    rolling_angle = rolling_par['angle']
     rgeom = user_settings.rail_geometry
     
+    wheel_inst = get.inst(names.wheel_inst)
+    
     # Rotate wheel to correct starting angle
-    assy.rotate(instanceList=insts, 
-             axisPoint=(0, wgeom['outer_diameter']/2.0, 0.0), 
-             axisDirection=(0.0, 0.0, 1.0), 
-             angle= - 180.0 * wgeom['rolling_angle']/(2 * np.pi))
+    wheel_inst.rotateAboutAxis(axisPoint=(0.0, 0.0, 0.0), 
+                               axisDirection=(0.0, 0.0, 1.0), 
+                               angle= -180.0 * rolling_angle/(2 * np.pi))
     
     # Move wheel to correct starting position
-    assy.translate(instanceList=insts, 
-                   vector=((rgeom['length'] - rgeom['max_contact_length'])/2.0, 
-                           0.0, 0.0))
+    wheel_inst.translate(vector=((rgeom['length'] - rgeom['max_contact_length'])/2.0, 
+                                 radius, 0.0))
     
-
-def initial_bc(the_model, assy, wheel_refpoint):
+    
+def get_rolling_parameters():
+    wheel_info = wsei.get_wheel_info()
+    nominal_radius = wheel_info['r']
+    
+    lpar = user_settings.load_parameters
+    rolling_length = -user_settings.rail_geometry['length']
+    rolling_time = abs(rolling_length)/lpar['speed']
+    rolling_angle = -(1+lpar['slip'])*rolling_length/nominal_radius
+    
+    rpar = {'length': rolling_length,
+            'time': rolling_time,
+            'angle': rolling_angle,
+            'radius': nominal_radius,
+            'load': lpar['normal_load']
+            }
+            
+    return rpar
+    
+    
+def initial_bc():
+    the_model = get.model()
+    assy = get.assy()
+    wheel_inst = get.inst(names.wheel_inst)
+    rail_inst = get.inst(names.rail_inst)
+    wheel_refpoint = assy.sets[names.wheel_rp_set]
+    
     lpar = user_settings.load_parameters
     ntpar = user_settings.numtrick
     ipar = user_settings.time_incr_param
+    
     the_model.StaticStep(name=names.step1, previous=names.step0, nlgeom=ON)
     
     # BC for rail (bottom)
-    rail_contact_nodes = the_model.rootAssembly.instances['RAIL'].sets['BOTTOM_NODES']
-    the_model.DisplacementBC(name='BC-1', createStepName=names.step0, 
+    rail_contact_nodes = rail_inst.sets[names.rail_bottom_nodes]
+    the_model.DisplacementBC(name=names.fix_rail_bc, createStepName=names.step0, 
         region=rail_contact_nodes, u1=SET, u2=SET, ur3=UNSET)
     
     # BC for wheel
-    ctrl_bc = the_model.DisplacementBC(name='ctrl_bc', createStepName=names.step1, 
+    ctrl_bc = the_model.DisplacementBC(name=names.rp_ctrl_bc, createStepName=names.step1, 
                                        region=wheel_refpoint, u1=0.0, ur3=0.0, 
                                        u2=-lpar['initial_depression'])
     
@@ -95,10 +122,10 @@ def initial_bc(the_model, assy, wheel_refpoint):
     #the_model.ConcentratedForce(name='ctrl_load', createStepName=names.step2, 
     #                            region=wheel_refpoint, cf2=-lpar['normal_load'])
 
-    rolling_length = -user_settings.rail_geometry['length']
-    rolling_time = abs(rolling_length)/lpar['speed']
-    nominal_radius = user_settings.wheel_geometry['outer_diameter']/2.0
-    rolling_angle = -(1+lpar['slip'])*rolling_length/nominal_radius
+    rpar = get_rolling_parameters()
+    rolling_length = rpar['length']
+    rolling_time = rpar['time']
+    rolling_angle = rpar['angle']
     
     end_stp_frac = abs(ntpar['extrap_roll_length']/rolling_length)
     
@@ -110,7 +137,7 @@ def initial_bc(the_model, assy, wheel_refpoint):
                          maxNumInc=ipar['max_num_incr_rolling'], 
                          initialInc=dt0, minInc=dtmin, maxInc=dt0)
     
-    the_model.ConcentratedForce(name='ctrl_load', createStepName=rolling_step_name, 
+    the_model.ConcentratedForce(name=names.rp_vert_load, createStepName=rolling_step_name, 
                                 region=wheel_refpoint, cf2=-lpar['normal_load'])
     
     

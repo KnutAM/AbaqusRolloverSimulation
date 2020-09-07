@@ -45,19 +45,7 @@ def main():
     num_cycles = user_settings.num_cycles
     t0 = time.time()
     setup_initial_model()
-    setup_time = time.time() - t0
-    if num_cycles > 0:
-        run_time = run_cycle(cycle_nr=1)
-    else:
-        run_time = run_cycle(cycle_nr=1, n_proc=1, run=False)
-        return
-    
-    t0 = time.time()
-    save_results(cycle_nr=1)
-    result_time = time.time() - t0
-    apt.print_message('Setup time:  ' + str(setup_time) + 's \n' + 
-                      'Run time:    ' + str(run_time) + ' s \n' + 
-                      'Result time: ' + str(result_time) + ' s')
+    run_cycle(cycle_nr=1)
     
     
     for nr in range(2, num_cycles+1):
@@ -146,7 +134,7 @@ def setup_initial_model():
                                                     'contact': names.wheel_dummy_contact_sect})
     
     # Setup rail
-    rail_part, rail_contact_surf, bottom_reg = railmod.setup_rail(the_model, assy, rail_geometry, rail_mesh)
+    # rail_part, rail_contact_surf, bottom_reg = railmod.setup_rail(the_model, assy, rail_geometry, rail_mesh)
     
     # Setup wheel
     wheelmod.setup_wheel()
@@ -155,18 +143,21 @@ def setup_initial_model():
     loadmod.preposition()
 
     # Setup loading
-    loadmod.initial_bc()
+    # loadmod.initial_bc()
     
-    # Setup contact conditions
-    contactmod.setup_contact(rail_contact_surf)
+    wheel_inst = get.inst(names.wheel_inst)
+    wheel_refpoint = assy.sets[names.wheel_rp_set]
     
-    # Setup output requests
-    loadmod.setup_outputs()
+    the_model.StaticStep(name=names.step1, previous=names.step0, nlgeom=ON)
     
+    # BC for wheel
+    ctrl_bc = the_model.DisplacementBC(name=names.rp_ctrl_bc, createStepName=names.step1, 
+                                       region=wheel_refpoint, u1=0.0, ur3=1.0, 
+                                       u2=0)
+                                       
     # Edit input directly to add user element
     wheelmod.add_wheel_super_element_to_inp()
     
-       
     return the_model
     
 def save_results(cycle_nr):
