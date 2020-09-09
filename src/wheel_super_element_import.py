@@ -48,13 +48,13 @@ def add_wheel_super_element_to_inp():
         kwb.insert(line_num, get_inp_str_element_connectivity())
         kwb.insert(line_num, get_inp_str_element_property())
     else:
-        print 'could not find "*part" and "name=' + names.wheel_part + '"'
+        print 'could not find "*Part" and "name=' + names.wheel_part + '"'
     
 
 def get_inp_str_element_definition():
     winfo = get_wheel_info()
     num_nodes = winfo['num_nodes']
-    inp_str = '*USER ELEMENT, TYPE=U1, NODES=%u, COORDINATES=2, PROPERTIES=1\n' % num_nodes
+    inp_str = '*USER ELEMENT, TYPE=U1, NODES=%u, COORDINATES=3, PROPERTIES=1\n' % num_nodes
     inp_str = inp_str + '1, 2, 6\n2, 1, 2'
     return inp_str
     

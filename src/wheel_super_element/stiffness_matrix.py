@@ -1,5 +1,49 @@
 import numpy as np
 
+def get_stiffness_from_substructure_mtx_file(filename):
+    with open(filename + '.mtx', 'r') as mtx:
+        mtx_str = mtx.read()
+
+    mat_str = mtx_str.split('*MATRIX,TYPE=STIFFNESS')[-1].strip(',').strip('\n')
+    mat_vec = []
+    for entry in mat_str.split():
+        ent = entry.strip(',').strip('\n')
+        try:
+            mat_vec.append(float(ent))
+        except ValueError:
+            pass
+
+    mat_vec = np.array(mat_vec)
+    ndof = -0.5+np.sqrt(0.25+mat_vec.size*2)
+    if np.abs(ndof-int(ndof)) < 1.e-10:
+        ndof = int(ndof)
+    else:
+        print 'Error reading matrix from ' + filename + '.mtx'
+        return None
+    
+    kmat = np.zeros((ndof,ndof))
+    k = 0
+    for i in range(ndof):
+        for j in range(i+1):
+            kmat[i,j] = mat_vec[k]
+            kmat[j,i] = kmat[i,j]
+            k = k + 1
+    
+    # Reorder matrix (this is a bit risky, as we don't check with the input file)
+    # A check with the input file could be made later in combination with reading the 
+    # ELEMENT NODES part of the <filename>.mtx file.
+    re_order = [ndof-3,ndof-2,ndof-1]
+    for i in range(ndof-3):
+        re_order.append(i)
+    
+    re_order = np.array(re_order, dtype=np.int)
+    kmat = kmat[np.ix_(re_order, re_order)]
+    coords = np.load('uel_coords_tmp.npy')
+    
+    print 'Checking stiffness matrix:'
+    check_stiffness_matrix(kmat, coords)
+    
+    return kmat, coords
 
 
 def create_stiffness_matrix(outer_node_coord, outer_node_RF, rp_node_RF):
@@ -150,18 +194,18 @@ def reduce_stiffness_matrix(Kfull, outer_node_coord, angle_to_keep):
     # Calculation:
     Kred = Kkk - Kkr.dot(np.linalg.inv(Krr)).dot(np.transpose(Kkr))
     
-    print 'Checking reduced matrix'
-    #check_stiffness_matrix(Kred, coords)
     
     # Remove rbm twice (iterative procedure), unknown how much this affects the overall stiffness?
     # But the fact that this is needed indicates that something is wrong when creating the stiffness matrix
     # Should try first to create the super element directly from Abaqus stiffness matrix, and compare
     # If the problem dissappears, then compare with my built matrices to identify potential errors
     # If the problem remains, then discuss with a senior how this can be and if the removal of rbm is reasonable?
-    Kred = remove_rbm(Kred, coords)
-    Kred = remove_rbm(Kred, coords)
-    print 'Checking reduced compensated matrix 2'
+    #Kred = remove_rbm(Kred, coords)
+    #Kred = remove_rbm(Kred, coords)
+    print 'Checking reduced matrix'
     check_stiffness_matrix(Kred, coords)
+    print 'Checking reduced symmetrized matrix'
+    check_stiffness_matrix(0.5*(Kred+np.transpose(Kred)), coords)
     
     return Kred, coords
     

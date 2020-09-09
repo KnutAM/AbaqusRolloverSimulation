@@ -19,7 +19,16 @@ if not src_path in sys.path:
     sys.path.append(src_path)
     
 import user_settings
+import wheel_super_element_import as wheelmod
 reload(user_settings)
+reload(wheelmod)
+
+
+
+model_name = 'SUPER_WHEEL'
+part_name = model_name
+inst_name = model_name
+job_name = model_name
 
 def get_node_nr(inod_radial, inod_circumf, nel_radial, nel_circumf):
     return inod_radial*nel_circumf + inod_circumf 
@@ -102,11 +111,8 @@ def setup_control_point(the_model, assy, inst, the_part):
     
     return rp_region
 
-def simulate():
-    model_name = 'SUPER_WHEEL'
-    part_name = model_name
-    inst_name = model_name
-    job_name = model_name
+
+def create_wheel():
     if model_name in mdb.models:    # Delete old model if exists
         del(mdb.models[model_name])
         
@@ -136,6 +142,78 @@ def simulate():
     
     # Create control point and apply tie condition to inner circle of wheel
     setup_control_point(the_model, assy, the_inst, the_part)
+    
+    
+def get_angle_to_minus_y(nodes):
+    ang = []
+    for n in nodes:
+        ang.append(np.arctan2(-n.coordinates[0], -n.coordinates[1]))
+    
+    return np.array(ang)
+
+
+def save_node_coords(nodes):
+    coords = np.transpose([n.coordinates for n in nodes])
+    np.save('uel_coords_tmp.npy', coords)
+    
+
+def create_substructure():
+    create_wheel()
+    
+    the_model = mdb.models[model_name]
+    the_part = the_model.parts[part_name]
+    assy = the_model.rootAssembly
+    the_inst = assy.instances[inst_name]
+    
+    outer_nodes = the_part.sets['OUTER_CIRCLE'].nodes
+    angles = get_angle_to_minus_y(outer_nodes)
+    
+    rolling_angle = user_settings.wheel_geometry['rolling_angle']
+    
+    contact_nodes = []
+    for n, a in zip(outer_nodes, angles):
+        if np.abs(a) < np.abs(rolling_angle):
+            contact_nodes.append(n)
+    
+    save_node_coords(contact_nodes)
+    
+    the_part.Set(nodes=mesh.MeshNodeArray(nodes=contact_nodes), name='CONTACT_NODES')
+    
+    the_model.SubstructureGenerateStep(name='Step-1', previous='Initial', 
+                                       description='Wheel', substructureIdentifier=1,
+                                       #recoveryMatrix=NONE,
+                                       )
+    
+    the_model.RetainedNodalDofsBC(name='BC-1', createStepName='Step-1', 
+        region=the_inst.sets['CONTACT_NODES'], u1=ON, u2=ON, u3=OFF, ur1=OFF, ur2=OFF, ur3=OFF)
+    
+    the_model.RetainedNodalDofsBC(name='BC-2', createStepName='Step-1', 
+        region=assy.sets['RP'], u1=ON, u2=ON, u3=OFF, ur1=OFF, ur2=OFF, ur3=ON)
+    
+    if assy.isOutOfDate:
+        assy.regenerate()
+    kwb = the_model.keywordBlock
+    kwb.synchVersions(storeNodesAndElements=False)
+    linenum = wheelmod.find_strings_in_iterable(kwb.sieBlocks, ['*End Step'])
+    if linenum:
+        kwb.insert(linenum-1, '*SUBSTRUCTURE MATRIX OUTPUT, STIFFNESS=YES, ' + 
+                   'OUTPUT FILE=USER DEFINED, FILE NAME=' + job_name)
+    else:
+        print 'could not find "*End Step"'
+        
+    the_job = mdb.Job(name=job_name, model=model_name, type=ANALYSIS, resultsFormat=ODB)
+    mdb.jobs[job_name].submit()
+    the_job.waitForCompletion()
+    
+    return job_name
+    
+    
+def simulate():
+    create_wheel()
+    
+    the_model = mdb.models[model_name]
+    assy = the_model.rootAssembly
+    the_inst = assy.instances[inst_name]
     
     # Setup load steps
     previous = 'Initial'

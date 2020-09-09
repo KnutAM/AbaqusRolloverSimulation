@@ -32,27 +32,29 @@ reload(get_results)
 reload(stiffness_matrix)
 reload(uel)
 
-# Steps
-# 1) Simulate unit deformations on wheel
-# job_name = wheel_simulation.simulate()
-job_name = 'SUPER_WHEEL'
 
-# 2) Read the odb file and save the forces, moments and corresponding coordinates required to build 
-#    up the stiffness matrix in the next step
-outer_node_coord, outer_node_RF, rp_node_RF = get_results.get_nodal_results(odb_name=job_name)
+use_substructure = True
 
-# 3) Built up the stiffness matrix for the wheel
-Kfull = stiffness_matrix.create_stiffness_matrix(outer_node_coord, outer_node_RF, rp_node_RF)
+job_name = wheel_simulation.job_name
 
-# 4) Reduce the stiffness matrix to only the kept degrees of freedom.
-angle_to_keep = 2*user_settings.wheel_geometry['rolling_angle']
-Kred, coords = stiffness_matrix.reduce_stiffness_matrix(Kfull, outer_node_coord, angle_to_keep)
+if use_substructure:
+    # job_name = wheel_simulation.create_substructure()
+    Kred, coords = stiffness_matrix.get_stiffness_from_substructure_mtx_file(job_name)
+else:
+    # 1) Simulate unit deformations on wheel
+    # job_name = wheel_simulation.simulate()
+
+    # 2) Read the odb file and save the forces, moments and corresponding coordinates required to build 
+    #    up the stiffness matrix in the next step
+    outer_node_coord, outer_node_RF, rp_node_RF = get_results.get_nodal_results(odb_name=job_name)
+
+    # 3) Built up the stiffness matrix for the wheel
+    Kfull = stiffness_matrix.create_stiffness_matrix(outer_node_coord, outer_node_RF, rp_node_RF)
+
+    # 4) Reduce the stiffness matrix to only the kept degrees of freedom.
+    angle_to_keep = 2*user_settings.wheel_geometry['rolling_angle']
+    Kred, coords = stiffness_matrix.reduce_stiffness_matrix(Kfull, outer_node_coord, angle_to_keep)
 
 # 5) Write a fortran file containing the data to calculate the superelement.
 uel.create_uel(Kred, coords)
-
-
-    
-    
-    
 

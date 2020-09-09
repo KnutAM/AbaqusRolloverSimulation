@@ -5,7 +5,7 @@
 # proper import is used. 
 
 from abaqus import mdb
-import assembly, regionToolset
+import assembly, regionToolset, odbAccess
 from abaqusConstants import *
 
 import naming_mod as names
@@ -14,15 +14,15 @@ def model(stepnr=1):
 	return mdb.models[names.get_model(stepnr)]
 	
 
-def assy(stepnr=1):
-    return model(stepnr).rootAssembly
+def assy(stepnr=1, odb=None):
+    if odb:
+        return odb.rootAssembly
+    else:
+        return model(stepnr).rootAssembly
     
 
 def inst(inst_name, stepnr=1, odb=None):
-    if odb:
-        return odb.rootAssembly[inst_name]
-    else:
-        return assy(stepnr).instances[inst_name]
+    return assy(stepnr, odb).instances[inst_name]
 
 
 def part(part_name, stepnr=1):

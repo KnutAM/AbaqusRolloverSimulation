@@ -48,7 +48,7 @@ def setup_contact(rail_contact_surface):
 def renew_contact(cycle_nr):
     the_model = mdb.models[names.get_model(cycle_nr)]
     deactivation_step = names.get_step_return(cycle_nr)
-    activation_step = names.get_step_rolling(cycle_nr)
+    activation_step = names.get_step_roll_start(cycle_nr)
     old_interaction = the_model.interactions[the_model.interactions.keys()[-1]]
     the_model.Interaction(name=names.get_contact(cycle_nr), 
                           objectToCopy=old_interaction, toStepName=activation_step)

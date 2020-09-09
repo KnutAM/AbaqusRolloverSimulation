@@ -56,23 +56,30 @@ def setup_outputs(is_3d=False):
                                    region=rail_contact_region, variables=vars_nods,
                                    frequency=LAST_INCREMENT)
     
-
-def preposition():
+    
+def get_preposition_motion():
     rolling_par = get_rolling_parameters()
     radius = rolling_par['radius']
-    rolling_angle = rolling_par['angle']
+    rolling_angle = -0.5*rolling_par['angle']
     rgeom = user_settings.rail_geometry
     
+    vector = ((rgeom['length'] - rgeom['max_contact_length'])/2.0, radius, 0.0)
+    
+    return rolling_angle, vector
+    
+
+def preposition():
     wheel_inst = get.inst(names.wheel_inst)
+    
+    rotation_angle, translation_vector = get_preposition_motion()
     
     # Rotate wheel to correct starting angle
     wheel_inst.rotateAboutAxis(axisPoint=(0.0, 0.0, 0.0), 
                                axisDirection=(0.0, 0.0, 1.0), 
-                               angle= -180.0 * rolling_angle/(2 * np.pi))
+                               angle= 180.0 * rotation_angle/np.pi)
     
     # Move wheel to correct starting position
-    wheel_inst.translate(vector=((rgeom['length'] - rgeom['max_contact_length'])/2.0, 
-                                 radius, 0.0))
+    wheel_inst.translate(vector=translation_vector)
     
     
 def get_rolling_parameters():

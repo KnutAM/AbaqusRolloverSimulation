@@ -66,9 +66,9 @@ implicit none
     
 subroutine check_analysis_type(lflags)
 implicit none
-    integer, intent(in) :: lflags(:)
+    integer, intent(in) :: lflags(*)
     write(*,*) 'procedure type:', lflags(1)
-    if (lflags(2)==1) then
+    if (lflags(2)==0) then
         write(*,*) 'small strains used'
     else
         write(*,*) 'finite strains used'
@@ -108,28 +108,31 @@ implicit none
     endif
 end subroutine
 
-subroutine uel_output(u, ndofel, nnode, lflags, kinc)
+subroutine uel_output(lflags, kinc, kstep, time)
 implicit none
-    double precision, intent(in)    :: u(:)
-    integer, intent(in)             :: ndofel, nnode, lflags(:), kinc
-    integer                         :: k1, kmax
+    integer, intent(in)             :: lflags(*), kinc, kstep
+    double precision, intent(in)    :: time
+    character(len=30)               :: output_request
+    character(len=10)               :: clock_time_str
     
-    kmax = 1
-    do k1=2,ndofel
-        if (abs(u(k1))>abs(u(kmax))) then
-            kmax=k1
-        endif
-    enddo
+    call date_and_time(time=clock_time_str)
     
-    write(*,*) '--- start uel output ---'
-    write(*,*) 'ndofel = ', ndofel
-    write(*,*) 'nnode = ', nnode
-    write(*,*) 'umax = ', u(kmax), '(u(', kmax, '))'
-    call check_analysis_type(lflags)
-    write(*,*) 'kinc = ', kinc
-    write(*,*) 'u:'
-    write(*,*) u
-    write(*,*) '--- end uel output ---'
+    if (lflags(3)==1) then
+        output_request = 'residual and stiffness matrix'
+    elseif (lflags(3)==2) then
+        output_request = 'stiffness matrix'
+    elseif (lflags(3)==4) then
+        output_request = 'mass matrix'
+    elseif (lflags(3)==5) then
+        output_request = 'residual'
+    else
+        write(output_request, "(A,I1)") 'lflags(3)=', lflags(3)
+    endif
+    
+    write(*,*) 'Wheel super element'
+    write(*,"(A10, A10, A10, 5X, A30, 5X, A10)") 'step', 'kinc', 'time', 'req. output', 'clock'
+    write(*,"(I10, I10, F10.4, 5X, A30, 5X, A10)") kstep, kinc, time, output_request, clock_time_str
+    
     
 end subroutine uel_output
     
@@ -140,58 +143,65 @@ implicit none
     double precision, parameter :: PI=2.0*asin(1.0)
 contains    
 
+function norm(m)
+implicit none
+    double precision    :: m(:,:)
+    double precision    :: norm
+        
+    norm = sqrt(sum(m**2))
+end function
+
+subroutine get_F_gcs(rotation, Fprim, Fint)
+! Transform nodal force vector into global coordinate system
+implicit none
+    double precision, intent(in)    :: rotation, Fprim(:)
+    double precision, intent(inout) :: Fint(:)
+    double precision                :: Q(2,2)
+    integer                         :: nnods, k1, i1, i2
+    
+    nnods = (size(Fprim)-1)/2
+    Q = rot_mat(rotation)
+    Fint(1:2) = matmul(Q, Fprim(1:2))
+    Fint(3) = Fprim(3)    ! Torque not affected by rotation
+    do k1=2,nnods
+        i1 = 2*k1
+        i2 = i1 + 1
+        Fint(i1:i2) = matmul(Q, Fprim(i1:i2))
+    enddo
+    
+    
+end subroutine get_F_gcs
+
+subroutine get_uprim(coords, u, uprim)
+! Transform the nodal displacements into local (rotated) coordinate system
+implicit none
+    double precision, intent(in)    :: coords(:,:), u(:)
+    double precision, allocatable   :: uprim(:)
+    double precision                :: Qt(2,2), xi_minus_x0(2)
+    integer                         :: nnods, k1, i1, i2
+    
+    nnods = (size(u)-1)/2
+    Qt = transpose(rot_mat(u(3)))
+    allocate(uprim(size(u)))
+    uprim(1:3) = 0.0
+    do k1=2,nnods
+        i1 = 2*k1
+        i2 = i1 + 1
+        xi_minus_x0 = coords(1:2, k1) + u(i1:i2) - (coords(1:2, 1) + u(1:2))
+        uprim(i1:i2) = matmul(Qt, xi_minus_x0) - (coords(1:2, k1) - coords(1:2, 1))
+    enddo
+    
+end subroutine get_uprim
+
 function rot_mat(angle) result(Q)
 implicit none
     double precision, intent(in)    :: angle
     double precision                :: Q(2,2)
     
-    Q(1, :) = [cos(angle), sin(angle)]
-    Q(2, :) = [-sin(angle), cos(angle)]
+    Q(1, :) = [cos(angle), -sin(angle)]
+    Q(2, :) = [sin(angle), cos(angle)]
     
 end function rot_mat
-    
-
-subroutine get_uprim(coords, u, uprim)    
-! Transform the nodal displacements into local (rotated) coordinate system
-implicit none
-    double precision, intent(in)    :: coords(:,:), u(:)
-    double precision, allocatable   :: uprim(:)
-    double precision                :: Qt(2,2), x0_minus_xi(2)
-    integer                         :: nnods, k1, i1, i2
-    
-    nnods = (size(u)-3)/2
-    Qt = transpose(rot_mat(u(3)))
-    allocate(uprim(2*nnods+1))
-    uprim(1:3) = 0.0
-    do k1=2,nnods
-        i1 = 2*k1
-        i2 = 2*k1 + 1
-        x0_minus_xi = coords(1:2, k1) + u(i1:i2) - (coords(1:2, 1) + u(1:2))
-        uprim(i1:i2) = matmul(Qt, x0_minus_xi) - (coords(1:2, k1) - coords(1:2, 1))
-    enddo
-    
-end subroutine get_uprim
-    
-subroutine get_F_gcs(rotation, Fprim, rhs)
-! Transform nodal force vector into global coordinate system
-implicit none
-    double precision, intent(in)    :: rotation, Fprim(:)
-    double precision, intent(inout) :: rhs(:,:)
-    double precision                :: Q(2,2)
-    integer                         :: nnods, k1, i1, i2
-    
-    nnods = (size(Fprim)-3)/2
-    Q = rot_mat(rotation)
-    rhs(1:2, 1) = matmul(Q, Fprim(1:2))
-    rhs(3, 1) = Fprim(3)    ! Torque not affected by rotation
-    do k1=2,nnods
-        i1 = 2*k1
-        i2 = 2*k1 + 1
-        rhs(i1:i2, 1) = matmul(Q, Fprim(i1:i2))
-    enddo
-    
-    
-end subroutine get_F_gcs
 
 subroutine get_rotation_matrix(rotation_angle, ndof, rotation_matrix)
 implicit none
@@ -208,9 +218,8 @@ implicit none
     
     rotation_matrix(1:2, 1:2) = rotation_sub_matrix
     rotation_matrix(3,3) = 1.0
-    do k1=1,(ndof-3)/2
-        k2 = 3 + 2*k1 - 1
-        rotation_matrix(k2:(k2+1), k2:(k2+1)) = rotation_sub_matrix
+    do k1=4,ndof,2
+        rotation_matrix(k1:(k1+1), k1:(k1+1)) = rotation_sub_matrix
     enddo
     
 end subroutine get_rotation_matrix
@@ -239,9 +248,9 @@ implicit none
     du0m_du = 0
     du0m_du(1,1) = 1
     du0m_du(2,2) = 1
-    do k1=1,((ndofel-3)/2)
-        du0m_du(2*k1+2,1) = 1
-        du0m_du(2*k1+3,2) = 1
+    do k1=4,ndofel,2
+        du0m_du(k1,1) = 1
+        du0m_du(k1+1,2) = 1
     enddo
     
 end subroutine get_u_diff
@@ -293,22 +302,64 @@ implicit none
     
     QK = matmul(rotation_matrix, Kprim)
     amatrx = matmul(QK, transpose(rotation_matrix))
-    amatrx(:, 1:2) = amatrx(:, 1:2) - matmul(amatrx, du0m_du)
-    amatrx(:, 3) = amatrx(:, 3) - matmul(QK, rotation_matrix(:,3))
-    amatrx(:, 3) = amatrx(:, 3) &
-                 + matmul(matmul(rotation_matrix_diff, transpose(QK)),xi_minus_x0) &
-                 - matmul(matmul(rotation_matrix_diff,Kprim),xi_init_minus_x0_init)
-    amatrx(:, 3) = amatrx(:, 3) + matmul(matmul(QK, rotation_matrix_diff), xi_minus_x0)
+    ! write(*,*) '|QKQ^T - K|/|K|:'
+    ! write(*,*) norm(Kprim-amatrx)/norm(Kprim)
+    ! write(*,*) '|QKQ^T - (QKQ^T)^T|/|K|:'
+    ! write(*,*) norm(amatrx-transpose(amatrx))/norm(Kprim)
     
-    amatrx = -amatrx
+    ! amatrx(:, 1:2) = amatrx(:, 1:2) - matmul(amatrx, du0m_du)
+    ! write(*,*) 'after du0_m/du0x and du0_m/du0y added'
+    ! write(*,*) '|amat - K|/|K|:'
+    ! write(*,*) norm(Kprim-amatrx)/norm(Kprim)
+    ! write(*,*) '|amat - amat^T|/|K|:'
+    ! write(*,*) norm(amatrx-transpose(amatrx))/norm(Kprim)
+    
+    ! amatrx(:, 3) = amatrx(:, 3) - matmul(QK, rotation_matrix(:,3))
+    ! amatrx(:, 3) = amatrx(:, 3) &
+                 ! + matmul(matmul(rotation_matrix_diff, transpose(QK)),xi_minus_x0) &
+                 ! - matmul(matmul(rotation_matrix_diff,Kprim),xi_init_minus_x0_init)
+    ! amatrx(:, 3) = amatrx(:, 3) + matmul(matmul(QK, rotation_matrix_diff), xi_minus_x0)
+    
+    ! write(*,*) 'after amat(:,3) modified'
+    ! write(*,*) '|amat - K|/|K|:'
+    ! write(*,*) norm(Kprim-amatrx)/norm(Kprim)
+    ! write(*,*) '|amat - amat^T|/|K|:'
+    ! write(*,*) norm(amatrx-transpose(amatrx))/norm(Kprim)
     
 end subroutine
 
-subroutine get_stiffness_matrix(ke)
+subroutine get_unrotated_stiffness(ke)
 implicit none
     double precision    :: ke(:,:)
     
     !<ke_to_be_defined_by_python_script>
+    
+end subroutine
+
+subroutine get_coords(coords)
+implicit none
+    double precision, allocatable    :: coords(:,:)
+    
+    !<coords_to_be_defined_by_python_script>
+
+end subroutine 
+
+subroutine check_coords(coords)
+implicit none
+    double precision, intent(in)    :: coords(:,:)
+    double precision, allocatable   :: uel_coords_check(:,:)
+    double precision                :: coord_error
+    integer                         :: nnods
+    
+    call get_coords(uel_coords_check)
+    nnods = size(coords,2)
+    coord_error = norm(coords(1:2, 2:size(coords,2)) - uel_coords_check(1:2, :))/nnods
+    
+    if (coord_error > 1.e-5) then
+        write(*,*) 'coordinate error = ', coord_error
+        write(*,*) 'element coordinates do not match, check that uel and setup is in sync'
+        call xit()
+    endif
     
 end subroutine
 
@@ -322,37 +373,52 @@ subroutine uel(rhs,amatrx,svars,energy,ndofel,nrhs,nsvars,&
     use uel_mod
     use wheel_super_element_mod
     implicit none
-    double precision, intent(inout) :: rhs(ndofel,1), amatrx(ndofel,ndofel), svars(nsvars), energy(8), pnewdt
-    double precision, intent(in)    :: props(nprops), coords(mcrd,nnode)
-    double precision, intent(in)    :: u(ndofel), du(ndofel,1), v(ndofel), a(ndofel)
-    double precision, intent(in)    :: time(2), dtime, period, params(:)
-    double precision, intent(in)    :: jdltyp(:,:), adlmag(:,:), ddlmag(:,:)
+    double precision, intent(inout) :: rhs(mlvarx,*), amatrx(ndofel,ndofel), svars(nsvars), energy(8), pnewdt
+    double precision, intent(in)    :: props(*), coords(mcrd,nnode)
+    double precision, intent(in)    :: u(ndofel), du(mlvarx,*), v(ndofel), a(ndofel)
+    double precision, intent(in)    :: time(2), dtime, period, params(3)
+    double precision, intent(in)    :: jdltyp(mdload,*), adlmag(mdload,*), ddlmag(mdload,*)
     double precision, intent(in)    :: predef(2,npredf,nnode)
     integer, intent(in)             :: ndofel, nrhs, nsvars, nprops, njprop, mcrd, nnode, jtype, kstep, kinc
-    integer, intent(in)             :: jelem, ndload, mdload, npredf, jprops(njprop), lflags(7), mlvarx
+    integer, intent(in)             :: jelem, ndload, mdload, npredf, jprops(*), lflags(*), mlvarx
       
     double precision, allocatable   :: Kprim(:,:)
-    double precision, allocatable   :: uprim(:), Fprim(:)
+    double precision, allocatable   :: uprim(:), Fprim(:), Fint(:)
     double precision                :: rotation
     integer                         :: k1, kmax
     
+    
+    allocate(Kprim(ndofel, ndofel), Fprim(ndofel), Fint(ndofel))
+    
+    call check_coords(coords)
     rotation = u(3)
     
-    allocate(Kprim(ndofel, ndofel))
-    call get_stiffness_matrix(Kprim)    ! Get unrotated stiffness from static condensation
+    call get_unrotated_stiffness(Kprim) ! Get unrotated stiffness from static condensation
     Kprim = Kprim*props(1)              ! Scale with Elastic modulus
     
+    ! Calculate right hand side
+    !  Transform dof to wheel coordinate system
     call get_uprim(coords, u, uprim)    
-    allocate(Fprim(ndofel))
+    !  Calculate forces in wheel coordinate system
     Fprim = matmul(Kprim, uprim)
-    call get_F_gcs(rotation, Fprim, rhs)
+    !  Convert forces to global coordinate system
+    call get_F_gcs(rotation, Fprim, Fint)
+    !  Save forces to residual
+    rhs(1:ndofel,1) = -Fint
     
-    
+    ! Calculate stiffness
     call get_stiffness(u, Kprim, coords, amatrx)
     
-    write(*,*) 'check norm of antisymmetric part of Kel:'
-    write(*,*) sum((amatrx-transpose(amatrx))**2)
+    call uel_output(lflags, kinc, kstep, time(2))
+    ! write(*,*) 'additional uel output'
+    ! write(*,*) 'check norm of Kprim-Kel:'
+    ! write(*,*) norm(Kprim-amatrx)/norm(Kprim)
     
-    call uel_output(u, ndofel, nnode, lflags, kinc)
+    ! write(*,*) 'check norm of antisymmetric part of Kprim:'
+    ! write(*,*) norm(Kprim-transpose(Kprim))/norm(Kprim)
+    
+    ! write(*,*) 'check norm of antisymmetric part of Kel:'
+    ! write(*,*) norm(amatrx-transpose(amatrx))/norm(Kprim)
+    ! write(*,*) 'end of additional uel output'
     
 end subroutine uel

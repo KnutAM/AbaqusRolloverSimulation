@@ -187,7 +187,7 @@ def save_results(cycle_nr):
     else:
         winst = get.inst(names.wheel_inst, odb=odb)
         rinst = get.inst(names.rail_inst, odb=odb)
-        rp_node = winst.nodeSets[names.wheel_rp_set].nodes[0]
+        rp_node = get.assy(odb=odb).nodeSets[names.wheel_rp_set].nodes[0][0]
         wheel_contact_surf_nodes = winst.nodeSets[names.wheel_contact_nodes].nodes
         rail_contact_surf_nodes = rinst.nodeSets[names.rail_contact_nodes].nodes
     
@@ -239,6 +239,14 @@ def save_node_results(nodes, node_hr, filename, variable_keys=[]):
     np.save(filename + '.npy', result_data)
             
     
+def get_wheel_angle_incr():
+    coords = np.load('uel_coords.npy')
+    v1 = coords[:,0]    # First node
+    v2 = coords[:,1]    # Second node
+    ang = np.arccos(np.dot(v1,v2)/(np.linalg.norm(v1)*np.linalg.norm(v2)))
+    return ang
+    
+    
 def setup_next_rollover(new_cycle_nr):
     old_model = get.model(stepnr=new_cycle_nr-1)
     old_job_name = names.get_job(new_cycle_nr-1)
@@ -270,9 +278,8 @@ def setup_next_rollover(new_cycle_nr):
     end_stp_frac = abs(ntpar['extrap_roll_length']/rolling_length)
     
     # Mesh parameters
-    wheel_node_angles = wheel_ssc_mod.get_split_angles(user_settings.wheel_geometry, 
-                                                       user_settings.wheel_mesh)
-    wheel_node_angle_increment = wheel_node_angles[1] - wheel_node_angles[0]
+    wheel_node_angle_increment = get_wheel_angle_incr()
+    print 'wheel_node_angle_increment = ', wheel_node_angle_increment*180/np.pi, ' deg'
     
     # Boundary conditions and loads to be modified
     ctrl_bc = new_model.boundaryConditions[names.rp_ctrl_bc]
@@ -284,9 +291,18 @@ def setup_next_rollover(new_cycle_nr):
                          timeIncrementationMethod=FIXED, initialInc=1, 
                          maxNumInc=1, amplitude=STEP)
                          
-    num_element_rolled = int(np.round(rolling_angle/wheel_node_angle_increment))
+    #num_element_rolled = int(np.round(rolling_angle/wheel_node_angle_increment))
+    num_element_rolled = int(np.round(ur3_end/wheel_node_angle_increment))
+    num_element_rolled = int(ur3_end/wheel_node_angle_increment)
     rot_angle = num_element_rolled*wheel_node_angle_increment
-    return_angle = rolling_angle - rot_angle
+    return_angle = ur3_end - rot_angle
+    
+    print 'step               = ', new_cycle_nr
+    print 'w_node_angle_incr. = ', wheel_node_angle_increment
+    print 'num_element_rolled = ', num_element_rolled
+    print 'rot_angle          = ', rot_angle
+    print 'ur3_end            = ', ur3_end
+    print 'return_angle       = ', return_angle
     
     ctrl_bc.setValuesInStep(stepName=return_step_name, ur3=return_angle, u1=0, u2=u2_end)
     
@@ -298,8 +314,8 @@ def setup_next_rollover(new_cycle_nr):
     
     # The node labels from above are given from odb. Due to renumbering these may have been changed. 
     # Therefore, we need to get the node labels from the instance and use those instead when setting boundary conditions
-    wheel_part = get.part(names.wheel_part, cyclenr=new_cycle_nr)
-    contact_nodes = wheel_part.sets[names.wheel_contact_nodes]
+    wheel_part = get.part(names.wheel_part, stepnr=new_cycle_nr)
+    contact_nodes = wheel_part.sets[names.wheel_contact_nodes].nodes
     
     new_node_info = np.array([[node.label, node.coordinates[0], node.coordinates[1]] 
                                  for node in contact_nodes])
@@ -357,10 +373,11 @@ def setup_next_rollover(new_cycle_nr):
     rolling_start_step_name = names.get_step_roll_start(new_cycle_nr)
     time = rolling_time*end_stp_frac
     new_model.StaticStep(name=rolling_start_step_name, previous=return_step_name, timePeriod=time, 
-                         maxNumInc=3, initialInc=time, minInc=time/2.0, maxInc=time)
+                         #maxNumInc=3, initialInc=time, minInc=time/2.0, maxInc=time)
+                         maxNumInc=30, initialInc=time/10, minInc=time/20, maxInc=time/10)
     ctrl_load.setValuesInStep(stepName=rolling_start_step_name, cf3=-wheel_load)
     ctrl_bc.setValuesInStep(stepName=rolling_start_step_name, u1=rolling_length*end_stp_frac, 
-                            ur3=rolling_angle*end_stp_frac, u2=FREED)
+                            ur3=rolling_angle*end_stp_frac + return_angle, u2=FREED)
     
     for bc in node_bc:
         # bc.setValuesInStep(stepName=rolling_step_name, u1=FREED, u2=FREED)
@@ -377,18 +394,19 @@ def setup_next_rollover(new_cycle_nr):
                          initialInc=dt0, minInc=dtmin, maxInc=dt0)
     
     ctrl_bc.setValuesInStep(stepName=rolling_step_name, u1=rolling_length*(1.0 - end_stp_frac), 
-                            ur3=rolling_angle*(1.0 - end_stp_frac), u2=FREED)
+                            ur3=rolling_angle*(1.0 - end_stp_frac) + return_angle, u2=FREED)
     
-    ctrl_load.setValuesInStep(stepName=rolling_step_name, cf3=-wheel_load)
+    
     
     rolling_step_end_name = names.get_step_roll_end(new_cycle_nr)
     time = rolling_time*end_stp_frac
     new_model.StaticStep(name=rolling_step_end_name, previous=rolling_step_name, timePeriod=time, 
                          maxNumInc=3, initialInc=time, minInc=time/2.0, maxInc=time)
+                         #maxNumInc=30, initialInc=time/10, minInc=time/20, maxInc=time/10)
     
     ctrl_bc.setValuesInStep(stepName=rolling_step_end_name, 
                             u1=rolling_length, u2=FREED,
-                            ur3=rolling_angle)
+                            ur3=rolling_angle + return_angle)
     
     new_model.steps[rolling_step_end_name].Restart(numberIntervals=1)
     
