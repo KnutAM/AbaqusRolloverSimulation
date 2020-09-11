@@ -42,7 +42,7 @@ def setup_outputs(is_3d=False):
     # WHEEL CONTROL POINT
     the_model.HistoryOutputRequest(name='RP', createStepName=step_name, 
                                    region=wheel_refpoint, variables=vars_rp,
-                                   frequency=100)
+                                   frequency=LAST_INCREMENT)
     
     # WHEEL CONTACT AREA
     wheel_contact_region = wheel_inst.sets[names.wheel_contact_nodes]

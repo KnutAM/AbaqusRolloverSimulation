@@ -38,7 +38,7 @@ use_substructure = True
 job_name = wheel_simulation.job_name
 
 if use_substructure:
-    # job_name = wheel_simulation.create_substructure()
+    job_name = wheel_simulation.create_substructure()
     Kred, coords = stiffness_matrix.get_stiffness_from_substructure_mtx_file(job_name)
 else:
     # 1) Simulate unit deformations on wheel
