@@ -49,8 +49,8 @@ def main():
     setup_initial_model()
     setup_time = time.time() - t0
     if num_cycles > 0:
-        run_time = -1.0
-        #run_time = run_cycle(cycle_nr=1)
+        #run_time = -1.0
+        run_time = run_cycle(cycle_nr=1)
     else:
         run_time = run_cycle(cycle_nr=1, n_proc=1, run=False)
         return
@@ -407,16 +407,10 @@ def setup_next_rollover(new_cycle_nr):
                          maxNumInc=10, 
                          #amplitude=STEP
                          )
-    return_recover_step_name = 'recover_' + str(new_cycle_nr).zfill(5)
-    new_model.StaticStep(name=return_recover_step_name, previous=return_step_name,
-                         timeIncrementationMethod=FIXED, initialInc=0.1, 
-                         maxNumInc=10, 
-                         #amplitude=STEP
-                         )
     
     rolling_start_step_name = names.get_step_roll_start(new_cycle_nr)
     rs_time = rolling_time*end_stp_frac
-    new_model.StaticStep(name=rolling_start_step_name, previous=return_recover_step_name, timePeriod=rs_time, 
+    new_model.StaticStep(name=rolling_start_step_name, previous=return_step_name, timePeriod=rs_time, 
                          #maxNumInc=3, initialInc=rs_time, minInc=rs_time/2.0, maxInc=rs_time)
                          maxNumInc=30, initialInc=rs_time/10, minInc=rs_time/20, maxInc=rs_time/10)
                          
@@ -498,11 +492,11 @@ def setup_next_rollover(new_cycle_nr):
         node_id = int(node.label)
         rnode_bc_name = return_step_name + '_rail_' + str(node_id)
         region = new_model.rootAssembly.Set(name=rnode_bc_name, nodes=mesh.MeshNodeArray([node]))
-        lock_rail_bc = new_model.VelocityBC(name=names.get_lock_rail_bc(new_cycle_nr),
+        lock_rail_bc = new_model.VelocityBC(name=rnode_bc_name,
                                             createStepName=return_step_name,
                                             region=region,
                                             v1=0., v2=0., v3=0.)
-        vel = rail_data['V'][i,:]
+        vel = rail_data['V'][i]
         lock_rail_bc.setValuesInStep(stepName=rolling_start_step_name, 
                                      v1=vel[0], v2=vel[1], v3=0.0)
         lock_rail_bc.deactivate(stepName=rolling_step_name)
@@ -523,7 +517,7 @@ def setup_next_rollover(new_cycle_nr):
     
     
 def get_contact_nodes(wheel_data, rp_data):
-    xpos = wheel_data['X'][0] + wheel_data['U'][0]
+    xpos = wheel_data['X'][:,0] + wheel_data['U'][:,0]
     rp_x = rp_data['X'][0] + rp_data['U'][0]
     contact_length = user_settings.max_contact_length
     all_indices = np.arange(wheel_data['X'].shape[0])
