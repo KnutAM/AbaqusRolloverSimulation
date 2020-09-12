@@ -6,6 +6,7 @@ import inspect
 import time
 import pickle
 import subprocess
+from shutil import copyfile
 
 # Abaqus imports 
 from abaqus import mdb
@@ -48,8 +49,8 @@ def main():
     setup_initial_model()
     setup_time = time.time() - t0
     if num_cycles > 0:
-        #run_time = -1.0
-        run_time = run_cycle(cycle_nr=1)
+        run_time = -1.0
+        #run_time = run_cycle(cycle_nr=1)
     else:
         run_time = run_cycle(cycle_nr=1, n_proc=1, run=False)
         return
@@ -83,12 +84,14 @@ def main():
     
     
 def join_odb_files(odb_file_list):
+    joined_odb_file_name = 'rollover_joined'
+    copyfile(odb_file_list[0] + '.odb', joined_odb_file_name + '.odb')
     try:
         for odb_i in odb_file_list[1:]:
-            subprocess.call('abaqus restartjoin originalodb=' + odb_file_list[0] + ' restartodb='+odb_i, shell=True)
+            subprocess.call('abaqus restartjoin originalodb=' + joined_odb_file_name + ' restartodb='+odb_i, shell=True)
     except:
         for odb_i in odb_file_list[1:]:
-            subprocess.call('abq2017 restartjoin originalodb=' + odb_file_list[0] + ' restartodb='+odb_i, shell=True)
+            subprocess.call('abq2017 restartjoin originalodb=' + joined_odb_file_name + ' restartodb='+odb_i, shell=True)
     
 def get_cycle_name(cycle_nr):
     return 'rollover_' + str(cycle_nr).zfill(6)
@@ -300,27 +303,66 @@ def save_node_results(nodes, inst_name, history_reg, filename, incl_rot=False, n
     # return ang
     
 
-def get_old_node_data(filename):
+def sort_dict(dict_unsrt, array_to_sort):
+    # Sort a dictionary containing arrays of equal first dimension
+    # Input
+    # dict_unsrt        A dictionary containing arrays (of shapes [n, m] or [n])
+    # array_to_sort     An array of length n. Corresponding to the arrays in dict_unsrt
+    #                   This array will be sorted and the indices will be used to reorder dict_unsrt
+    # Output
+    # dict_srt          The sorted variant of dict_unsrt. 
+    
+    sort_inds = np.argsort(array_to_sort)
+    dict_srt = {}
+    for key in dict_unsrt:
+        if len(dict_unsrt[key].shape) > 1:
+            dict_srt[key] = dict_unsrt[key][sort_inds, :] 
+        else:
+            dict_srt[key] = dict_unsrt[key][sort_inds]
+    
+    return dict_srt
+    
+
+def get_old_node_data(filename, new_cycle_nr):
+    # Read in results from previous cycle. Sort node data and ensure that node labels match that in the odb file
+    # Reference point data
     rp_data = pickle.load(open(filename + '_rp.pickle', 'rb'))
     # Saved as 2-d array, but for simplicity remove the "first" unneccessary dimension
     for key in rp_data:
         rp_data[key] = rp_data[key][0]
     
+    # Wheel data
     wheel_data_unsrt = pickle.load(open(filename + '_wheel.pickle', 'rb'))
     node_angles = get_node_angles(wheel_data_unsrt['X'], rp_data['X'])
-
-    sort_inds = np.argsort(node_angles)
-    # Sort wheel data
-    wheel_data = {}
-    for key in wheel_data_unsrt:
-        if len(wheel_data_unsrt[key].shape) > 1:
-            wheel_data[key] = wheel_data_unsrt[key][sort_inds, :] 
-        else:
-            wheel_data[key] = wheel_data_unsrt[key][sort_inds]
+    
+    wheel_data = sort_dict(wheel_data_unsrt, node_angles)   # Sort by angle
+    
+    # The node labels from above are given from odb. Due to renumbering these may have been changed. 
+    # Therefore, we need to get the node labels from the part and use those instead when setting boundary conditions
+    wheel_part = get.part(names.wheel_part, stepnr=new_cycle_nr)
+    contact_nodes = wheel_part.sets[names.wheel_contact_nodes].nodes
+    
+    new_node_labels = np.array([node.label for node in contact_nodes])
+    new_node_coords = np.array([node.coordinates[0:2] for node in contact_nodes])
+    
+    sort_inds = np.argsort(get_node_angles(new_node_coords, rp_data['X']))
+    wheel_data['label'] = new_node_labels[sort_inds]   # Add correct node labels
     
     wheel_data['angle_incr'] = node_angles[sort_inds[1]]-node_angles[sort_inds[0]]
     
-    rail_data = None
+    # Rail data
+    rail_data_unsrt = pickle.load(open(filename + '_rail.pickle', 'rb'))
+    rail_data = sort_dict(rail_data_unsrt, rail_data_unsrt['X'][:,0])   # Sort by x-coordinate
+    
+    # As for the wheel, labels should be updated to ensure conformance to odb labels
+    rail_part = get.part(names.rail_part, stepnr=new_cycle_nr)
+    contact_nodes = rail_part.sets[names.rail_contact_nodes].nodes
+    
+    new_node_labels = np.array([node.label for node in contact_nodes])
+    new_node_coords = np.array([node.coordinates[0:2] for node in contact_nodes])
+    
+    sort_inds = np.argsort(new_node_coords[:,0])        # Sort by x-coordinate
+    rail_data['label'] = new_node_labels[sort_inds]     # Add correct node labels
     
     return rp_data, wheel_data, rail_data
 
@@ -337,7 +379,7 @@ def setup_next_rollover(new_cycle_nr):
     new_model.setValues(restartJob=old_model.name, restartStep=last_step_in_old_job)
     
     # Read in old state
-    rp_data, wheel_data, rail_data = get_old_node_data(filename=old_model.name)
+    rp_data, wheel_data, rail_data = get_old_node_data(old_model.name, new_cycle_nr)
     u2_end = rp_data['U'][1]
     ur3_end = rp_data['UR'][-1]
     
@@ -389,8 +431,8 @@ def setup_next_rollover(new_cycle_nr):
     rolling_step_end_name = names.get_step_roll_end(new_cycle_nr)
     re_time = rolling_time*end_stp_frac
     new_model.StaticStep(name=rolling_step_end_name, previous=rolling_step_name, timePeriod=re_time, 
-                         maxNumInc=3, initialInc=re_time, minInc=re_time/2.0, maxInc=re_time)
-                         #maxNumInc=30, initialInc=re_time/10, minInc=re_time/20, maxInc=re_time/10)
+                         #maxNumInc=3, initialInc=re_time, minInc=re_time/2.0, maxInc=re_time)
+                         maxNumInc=30, initialInc=re_time/10, minInc=re_time/20, maxInc=re_time/10)
                          
     num_element_rolled = int(np.round(ur3_end/wheel_data['angle_incr']))
     rot_angle = num_element_rolled*wheel_data['angle_incr']
@@ -404,17 +446,6 @@ def setup_next_rollover(new_cycle_nr):
     print 'return_angle       = ', return_angle
     
     ctrl_bc.setValuesInStep(stepName=return_step_name, ur3=return_angle, u1=0, u2=u2_end)
-    
-    # The node labels from above are given from odb. Due to renumbering these may have been changed. 
-    # Therefore, we need to get the node labels from the instance and use those instead when setting boundary conditions
-    wheel_part = get.part(names.wheel_part, stepnr=new_cycle_nr)
-    contact_nodes = wheel_part.sets[names.wheel_contact_nodes].nodes
-    
-    new_node_labels = np.array([node.label for node in contact_nodes])
-    new_node_coords = np.array([node.coordinates[0:2] for node in contact_nodes])
-    
-    sort_inds = np.argsort(get_node_angles(new_node_coords, rp_data['X']))
-    wheel_data['label'] = new_node_labels[sort_inds]   # Add correct node labels
     
     # Determine which nodes are in contact at the end of previous step
     old_contact_node_indices = get_contact_nodes(wheel_data, rp_data)
@@ -442,13 +473,13 @@ def setup_next_rollover(new_cycle_nr):
         
         unew = xnew - Xnew                      # Displacement is relative undeformed pos
                     
-        node_bc_name = return_step_name + '_' + str(new_node_id)
-        region = new_model.rootAssembly.Set(name=node_bc_name, 
+        wnode_bc_name = return_step_name + '_wheel_' + str(new_node_id)
+        region = new_model.rootAssembly.Set(name=wnode_bc_name, 
                                             nodes=wheel_nodes[(new_node_id-1):(new_node_id)])
                                             # number due to nodes numbered from 1 but python from 0
         
         # Prescribe the displacements of the old nodes to the new node, but moved back to start point
-        node_bc = new_model.DisplacementBC(name=node_bc_name,
+        node_bc = new_model.DisplacementBC(name=wnode_bc_name,
                                                 createStepName=return_step_name, 
                                                 region=region, u1=unew[0], u2=unew[1])
         # Prescribe the same velocity in a the rolling_start_step as in the last step of the previous sim
@@ -459,12 +490,22 @@ def setup_next_rollover(new_cycle_nr):
         node_bc.deactivate(stepName=rolling_step_name)
         
     # Lock all rail contact node displacements
-    rail_contact_nodes = new_model.rootAssembly.instances['RAIL'].sets['CONTACT_NODES']
-    lock_rail_bc = new_model.VelocityBC(name=names.get_lock_rail_bc(new_cycle_nr),
-                                        createStepName=return_step_name,
-                                        region=rail_contact_nodes,
-                                        v1=0., v2=0., v3=0.)
-    lock_rail_bc.deactivate(stepName=rolling_start_step_name)
+    rail_contact_nodes = new_model.rootAssembly.instances['RAIL'].sets['CONTACT_NODES'].nodes
+    rcn_sortinds = np.argsort([node.coordinates[0] for node in rail_contact_nodes])
+        
+    for i, rcn_ind in enumerate(rcn_sortinds):
+        node = rail_contact_nodes[rcn_ind]
+        node_id = int(node.label)
+        rnode_bc_name = return_step_name + '_rail_' + str(node_id)
+        region = new_model.rootAssembly.Set(name=rnode_bc_name, nodes=mesh.MeshNodeArray([node]))
+        lock_rail_bc = new_model.VelocityBC(name=names.get_lock_rail_bc(new_cycle_nr),
+                                            createStepName=return_step_name,
+                                            region=region,
+                                            v1=0., v2=0., v3=0.)
+        vel = rail_data['V'][i,:]
+        lock_rail_bc.setValuesInStep(stepName=rolling_start_step_name, 
+                                     v1=vel[0], v2=vel[1], v3=0.0)
+        lock_rail_bc.deactivate(stepName=rolling_step_name)
     
     # Set values for wheel center
     ctrl_bc.setValuesInStep(stepName=rolling_start_step_name, u1=rolling_length*end_stp_frac, 
