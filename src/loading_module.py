@@ -91,11 +91,14 @@ def get_rolling_parameters():
     rolling_time = abs(rolling_length)/lpar['speed']
     rolling_angle = -(1+lpar['slip'])*rolling_length/nominal_radius
     
+    end_stp_frac = abs(user_settings.numtrick['extrap_roll_length']/rolling_length)
+    
     rpar = {'length': rolling_length,
             'time': rolling_time,
             'angle': rolling_angle,
             'radius': nominal_radius,
-            'load': lpar['normal_load']
+            'load': lpar['normal_load'],
+            'end_stp_frac': end_stp_frac,
             }
             
     return rpar
@@ -130,14 +133,9 @@ def initial_bc():
     #                            region=wheel_refpoint, cf2=-lpar['normal_load'])
 
     rpar = get_rolling_parameters()
-    rolling_length = rpar['length']
-    rolling_time = rpar['time']
-    rolling_angle = rpar['angle']
-    
-    end_stp_frac = abs(ntpar['extrap_roll_length']/rolling_length)
-    
+        
     rolling_step_name = names.get_step_rolling(1)
-    time = rolling_time*(1.0 - end_stp_frac)
+    time = rpar['time']*(1.0 - rpar['end_stp_frac'])
     dt0 = time/ipar['nom_num_incr_rolling']
     dtmin = time/(ipar['max_num_incr_rolling']+1)
     the_model.StaticStep(name=rolling_step_name, previous=names.step1, timePeriod=time,
@@ -150,15 +148,15 @@ def initial_bc():
     
     
     ctrl_bc.setValuesInStep(stepName=rolling_step_name, 
-                            u1=rolling_length*(1.0 - end_stp_frac), u2=FREED,
-                            ur3=rolling_angle*(1.0 - end_stp_frac))
+                            u1=rpar['length']*(1.0 - rpar['end_stp_frac']), u2=FREED,
+                            ur3=rpar['angle']*(1.0 - rpar['end_stp_frac']))
     
     rolling_step_end_name = names.get_step_roll_end(1)
-    time = rolling_time*end_stp_frac
+    time = rpar['time']*rpar['end_stp_frac']
     the_model.StaticStep(name=rolling_step_end_name, previous=rolling_step_name, timePeriod=time,
                          maxNumInc=3, initialInc=time, minInc=time/2.0, maxInc=time)
     
     ctrl_bc.setValuesInStep(stepName=rolling_step_end_name, 
-                            u1=rolling_length, u2=FREED, ur3=rolling_angle)
+                            u1=rpar['length'], u2=FREED, ur3=rpar['angle'])
     
     the_model.steps[rolling_step_end_name].Restart(numberIntervals=1)

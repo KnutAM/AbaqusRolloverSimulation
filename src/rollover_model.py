@@ -10,7 +10,7 @@ from shutil import copyfile
 
 # Abaqus imports 
 from abaqus import mdb
-import assembly, regionToolset
+import assembly, regionToolset, mesh
 from abaqusConstants import *
 
 # Custom imports (need to append project path to python path)
@@ -31,6 +31,7 @@ import user_settings
 import abaqus_python_tools as apt
 import naming_mod as names
 import get_utils as get
+import setup_next_rollover as next_rollover
 
 # Reload to account for script updates when running from inside abaqus CAE
 reload(matmod)
@@ -42,6 +43,8 @@ reload(user_settings)
 reload(apt)
 reload(names)
 reload(get)
+reload(next_rollover)
+
 
 def main():
     num_cycles = user_settings.num_cycles
@@ -49,6 +52,8 @@ def main():
     setup_initial_model()
     setup_time = time.time() - t0
     if num_cycles > 0:
+        # If debugging continuation, can comment run_cycle(..) and uncomment run_time = -1.0
+        # to avoid simulating the first cycle if result files already exist. 
         #run_time = -1.0
         run_time = run_cycle(cycle_nr=1)
     else:
@@ -65,7 +70,7 @@ def main():
     
     for nr in range(2, num_cycles+1):
         t0 = time.time()
-        setup_next_rollover(new_cycle_nr=nr)
+        next_rollover.setup_next_rollover(new_cycle_nr=nr)
         setup_time = time.time() - t0
         # if nr == 2:
             # FiOpRe = mdb.models['rollover_00002'].FieldOutputRequest(name='F-Output-2', 
@@ -303,235 +308,7 @@ def save_node_results(nodes, inst_name, history_reg, filename, incl_rot=False, n
     # return ang
     
 
-def sort_dict(dict_unsrt, array_to_sort):
-    # Sort a dictionary containing arrays of equal first dimension
-    # Input
-    # dict_unsrt        A dictionary containing arrays (of shapes [n, m] or [n])
-    # array_to_sort     An array of length n. Corresponding to the arrays in dict_unsrt
-    #                   This array will be sorted and the indices will be used to reorder dict_unsrt
-    # Output
-    # dict_srt          The sorted variant of dict_unsrt. 
-    
-    sort_inds = np.argsort(array_to_sort)
-    dict_srt = {}
-    for key in dict_unsrt:
-        if len(dict_unsrt[key].shape) > 1:
-            dict_srt[key] = dict_unsrt[key][sort_inds, :] 
-        else:
-            dict_srt[key] = dict_unsrt[key][sort_inds]
-    
-    return dict_srt
-    
 
-def get_old_node_data(filename, new_cycle_nr):
-    # Read in results from previous cycle. Sort node data and ensure that node labels match that in the odb file
-    # Reference point data
-    rp_data = pickle.load(open(filename + '_rp.pickle', 'rb'))
-    # Saved as 2-d array, but for simplicity remove the "first" unneccessary dimension
-    for key in rp_data:
-        rp_data[key] = rp_data[key][0]
-    
-    # Wheel data
-    wheel_data_unsrt = pickle.load(open(filename + '_wheel.pickle', 'rb'))
-    node_angles = get_node_angles(wheel_data_unsrt['X'], rp_data['X'])
-    
-    wheel_data = sort_dict(wheel_data_unsrt, node_angles)   # Sort by angle
-    
-    # The node labels from above are given from odb. Due to renumbering these may have been changed. 
-    # Therefore, we need to get the node labels from the part and use those instead when setting boundary conditions
-    wheel_part = get.part(names.wheel_part, stepnr=new_cycle_nr)
-    contact_nodes = wheel_part.sets[names.wheel_contact_nodes].nodes
-    
-    new_node_labels = np.array([node.label for node in contact_nodes])
-    new_node_coords = np.array([node.coordinates[0:2] for node in contact_nodes])
-    
-    sort_inds = np.argsort(get_node_angles(new_node_coords, rp_data['X']))
-    wheel_data['label'] = new_node_labels[sort_inds]   # Add correct node labels
-    
-    wheel_data['angle_incr'] = node_angles[sort_inds[1]]-node_angles[sort_inds[0]]
-    
-    # Rail data
-    rail_data_unsrt = pickle.load(open(filename + '_rail.pickle', 'rb'))
-    rail_data = sort_dict(rail_data_unsrt, rail_data_unsrt['X'][:,0])   # Sort by x-coordinate
-    
-    # As for the wheel, labels should be updated to ensure conformance to odb labels
-    rail_part = get.part(names.rail_part, stepnr=new_cycle_nr)
-    contact_nodes = rail_part.sets[names.rail_contact_nodes].nodes
-    
-    new_node_labels = np.array([node.label for node in contact_nodes])
-    new_node_coords = np.array([node.coordinates[0:2] for node in contact_nodes])
-    
-    sort_inds = np.argsort(new_node_coords[:,0])        # Sort by x-coordinate
-    rail_data['label'] = new_node_labels[sort_inds]     # Add correct node labels
-    
-    return rp_data, wheel_data, rail_data
-
-    
-def setup_next_rollover(new_cycle_nr):
-    old_model = get.model(stepnr=new_cycle_nr-1)
-    old_job_name = names.get_job(new_cycle_nr-1)
-    # copy the old model and add new steps. Restart from the previous job
-    new_model_name = names.get_model(new_cycle_nr)
-    new_model = mdb.Model(name=new_model_name, objectToCopy=old_model)
-    
-    # Setup restart parameters
-    last_step_in_old_job = old_model.steps.keys()[-1]
-    new_model.setValues(restartJob=old_model.name, restartStep=last_step_in_old_job)
-    
-    # Read in old state
-    rp_data, wheel_data, rail_data = get_old_node_data(old_model.name, new_cycle_nr)
-    u2_end = rp_data['U'][1]
-    ur3_end = rp_data['UR'][-1]
-    
-    # Load parameters
-    ntpar = user_settings.numtrick
-    ipar = user_settings.time_incr_param
-    rol_par = loadmod.get_rolling_parameters()
-    
-    wheel_load = rol_par['load']
-    slip_ratio = user_settings.load_parameters['slip']
-    rolling_length = rol_par['length']
-    rolling_time = rol_par['time']
-    rolling_angle = rol_par['angle']
-    
-    end_stp_frac = abs(ntpar['extrap_roll_length']/rolling_length)
-    
-    # Boundary conditions and loads to be modified
-    ctrl_bc = new_model.boundaryConditions[names.rp_ctrl_bc]
-    # ctrl_load = new_model.loads[names.rp_vert_load]
-    
-    # Define steps
-    return_step_name = names.get_step_return(new_cycle_nr)
-    new_model.StaticStep(name=return_step_name, previous=last_step_in_old_job,
-                         timeIncrementationMethod=FIXED, initialInc=0.1, 
-                         maxNumInc=10, 
-                         #amplitude=STEP
-                         )
-    
-    rolling_start_step_name = names.get_step_roll_start(new_cycle_nr)
-    rs_time = rolling_time*end_stp_frac
-    new_model.StaticStep(name=rolling_start_step_name, previous=return_step_name, timePeriod=rs_time, 
-                         #maxNumInc=3, initialInc=rs_time, minInc=rs_time/2.0, maxInc=rs_time)
-                         maxNumInc=30, initialInc=rs_time/10, minInc=rs_time/20, maxInc=rs_time/10)
-                         
-    rolling_step_name = names.get_step_rolling(new_cycle_nr)
-    r_time = rolling_time*(1.0 - 2.0*end_stp_frac)
-    dt0 = r_time/ipar['nom_num_incr_rolling']
-    dtmin = r_time/(ipar['max_num_incr_rolling']+1)
-    new_model.StaticStep(name=rolling_step_name, previous=rolling_start_step_name, timePeriod=r_time, 
-                         maxNumInc=ipar['max_num_incr_rolling'], 
-                         initialInc=dt0, minInc=dtmin, maxInc=dt0)
-                         
-    rolling_step_end_name = names.get_step_roll_end(new_cycle_nr)
-    re_time = rolling_time*end_stp_frac
-    new_model.StaticStep(name=rolling_step_end_name, previous=rolling_step_name, timePeriod=re_time, 
-                         #maxNumInc=3, initialInc=re_time, minInc=re_time/2.0, maxInc=re_time)
-                         maxNumInc=30, initialInc=re_time/10, minInc=re_time/20, maxInc=re_time/10)
-                         
-    num_element_rolled = int(np.round(ur3_end/wheel_data['angle_incr']))
-    rot_angle = num_element_rolled*wheel_data['angle_incr']
-    return_angle = ur3_end - rot_angle
-    
-    print 'step               = ', new_cycle_nr
-    print 'w_node_angle_incr. = ', wheel_data['angle_incr']
-    print 'num_element_rolled = ', num_element_rolled
-    print 'rot_angle          = ', rot_angle
-    print 'ur3_end            = ', ur3_end
-    print 'return_angle       = ', return_angle
-    
-    ctrl_bc.setValuesInStep(stepName=return_step_name, ur3=return_angle, u1=0, u2=u2_end)
-    
-    # Determine which nodes are in contact at the end of previous step
-    old_contact_node_indices = get_contact_nodes(wheel_data, rp_data)
-    
-    # Identify the new nodes in contact by shifting the sorted list by num_element_rolled
-    new_contact_node_indices = old_contact_node_indices + num_element_rolled
-    
-    x_rp_old = rp_data['X'] + rp_data['U']
-    x_rp_new = rp_data['X'] + np.array([0, u2_end])
-    
-    wheel_nodes = new_model.rootAssembly.instances['WHEEL'].sets['CONTACT_NODES'].nodes
-    
-    for iold, inew in zip(old_contact_node_indices, new_contact_node_indices):
-        
-        new_node_id = int(wheel_data['label'][inew])
-        
-        # Node positions
-        #  Deformed old position
-        xold = wheel_data['X'][iold] + wheel_data['U'][iold]
-        #  Undeformed new position
-        Xnew = wheel_data['X'][inew]
-        
-        # Old position relative old rp is same as new position relative new rp
-        xnew = x_rp_new + (xold - x_rp_old)
-        
-        unew = xnew - Xnew                      # Displacement is relative undeformed pos
-                    
-        wnode_bc_name = return_step_name + '_wheel_' + str(new_node_id)
-        region = new_model.rootAssembly.Set(name=wnode_bc_name, 
-                                            nodes=wheel_nodes[(new_node_id-1):(new_node_id)])
-                                            # number due to nodes numbered from 1 but python from 0
-        
-        # Prescribe the displacements of the old nodes to the new node, but moved back to start point
-        node_bc = new_model.DisplacementBC(name=wnode_bc_name,
-                                                createStepName=return_step_name, 
-                                                region=region, u1=unew[0], u2=unew[1])
-        # Prescribe the same velocity in a the rolling_start_step as in the last step of the previous sim
-        vel = wheel_data['V'][iold] # Take velocity from old node
-        unext = unew + vel*rs_time
-        node_bc.setValuesInStep(stepName=rolling_start_step_name, u1=unext[0], u2=unext[1])
-        # Free the prescribed displacements of the nodes in the general rolling step
-        node_bc.deactivate(stepName=rolling_step_name)
-        
-    # Lock all rail contact node displacements
-    rail_contact_nodes = new_model.rootAssembly.instances['RAIL'].sets['CONTACT_NODES'].nodes
-    rcn_sortinds = np.argsort([node.coordinates[0] for node in rail_contact_nodes])
-        
-    for i, rcn_ind in enumerate(rcn_sortinds):
-        node = rail_contact_nodes[rcn_ind]
-        node_id = int(node.label)
-        rnode_bc_name = return_step_name + '_rail_' + str(node_id)
-        region = new_model.rootAssembly.Set(name=rnode_bc_name, nodes=mesh.MeshNodeArray([node]))
-        lock_rail_bc = new_model.VelocityBC(name=rnode_bc_name,
-                                            createStepName=return_step_name,
-                                            region=region,
-                                            v1=0., v2=0., v3=0.)
-        vel = rail_data['V'][i]
-        lock_rail_bc.setValuesInStep(stepName=rolling_start_step_name, 
-                                     v1=vel[0], v2=vel[1], v3=0.0)
-        lock_rail_bc.deactivate(stepName=rolling_step_name)
-    
-    # Set values for wheel center
-    ctrl_bc.setValuesInStep(stepName=rolling_start_step_name, u1=rolling_length*end_stp_frac, 
-                            ur3=rolling_angle*end_stp_frac + return_angle, u2=FREED)
-    
-    ctrl_bc.setValuesInStep(stepName=rolling_step_name, u1=rolling_length*(1.0 - end_stp_frac), 
-                            ur3=rolling_angle*(1.0 - end_stp_frac) + return_angle, u2=FREED)
-    
-    ctrl_bc.setValuesInStep(stepName=rolling_step_end_name, 
-                            u1=rolling_length, u2=FREED,
-                            ur3=rolling_angle + return_angle)
-    
-    # Add restart capability to the last rolling step
-    new_model.steps[rolling_step_end_name].Restart(numberIntervals=1)
-    
-    
-def get_contact_nodes(wheel_data, rp_data):
-    xpos = wheel_data['X'][:,0] + wheel_data['U'][:,0]
-    rp_x = rp_data['X'][0] + rp_data['U'][0]
-    contact_length = user_settings.max_contact_length
-    all_indices = np.arange(wheel_data['X'].shape[0])
-    contact_indices = all_indices[np.abs(xpos-rp_x) < contact_length/2.0]
-    
-    return contact_indices[1:-1]    # Remove the first and last to avoid taking one too many on either side
-    
-    
-def get_node_angles(wheel_node_coord, rp_coord):
-    dx = np.transpose([wheel_node_coord[:, i] - rp_coord[i] for i in range(2)])
-    
-    # Get angle wrt. y-axis
-    angles = np.arctan2(dx[:, 0], -dx[:, 1])
-    return angles
     
     
 if __name__ == '__main__':
