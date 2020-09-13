@@ -138,6 +138,53 @@ end subroutine uel_output
     
 end module uel_mod
 
+module debug_mod    ! Module with functions not required for regular function of element
+implicit none
+
+    contains
+    
+subroutine print_nodal_contributions(coords, Fprim, kstep, kinc, time)
+implicit none
+    double precision, intent(in)    :: coords(:,:), Fprim(:), time(2)
+    integer, intent (in)            :: kstep, kinc    
+    double precision                :: torque
+    double precision, allocatable   :: torque_contrib(:)    ! Torque contribution from each node
+    double precision, allocatable   :: Fvec(:,:)            ! Force vector for each node
+    double precision, allocatable   :: xrel(:,:)            ! Coordinates relative center
+    double precision, allocatable   :: ang(:)               ! Node angles
+    
+    integer                         :: ncnod                ! Number of nodes on wheel circumference
+    integer                         :: ndof                 ! Total number of dof
+    integer                         :: k1, k2               ! Iterators
+    
+    ncnod = size(coords,2) - 1
+    ndof = size(Fprim)
+    allocate(torque_contrib(ncnod), Fvec(2,ncnod), xrel(2,ncnod), ang(ncnod))
+    
+    xrel(1,:) = coords(1,2:(ncnod+1)) - coords(1,1)
+    xrel(2,:) = coords(2,2:(ncnod+1)) - coords(2,1)
+    Fvec(1,:) = Fprim(4:ndof:2)
+    Fvec(2,:) = Fprim(5:ndof:2)
+    
+    ang = atan2(xrel(2,:), xrel(1,:))*180.0/acos(-1.0)
+    
+    torque_contrib = xrel(1,:)*Fvec(2,:) - xrel(2,:)*Fvec(1,:)
+    
+    write(*,"(A, E15.3, E15.3, E15.3)") 'Fprim(1:3) = ', Fprim(1), Fprim(2), Fprim(3)
+    
+    write(*,"(A10, A10, A15, A15, A15)") 'num', 'ang', 'torque_contrib', 'Fx', 'Fy'
+    do k1=1,ncnod
+        write(*,"(I10, F10.1, E15.3, E15.3, E15.3)") k1, ang(k1), torque_contrib(k1), Fvec(1,k1), Fvec(2,k1)
+    enddo
+    
+    write(*,"(A, E15.3)") 'F(3)                     = ', Fprim(3)
+    write(*,"(A, E15.3)") 'Sum torque contributions = ', sum(torque_contrib)
+    
+end subroutine
+    
+
+end module debug_mod
+
 module wheel_super_element_mod
 implicit none
     double precision, parameter :: PI=2.0*asin(1.0)
@@ -372,6 +419,7 @@ subroutine uel(rhs,amatrx,svars,energy,ndofel,nrhs,nsvars,&
                lflags,mlvarx,ddlmag,mdload,pnewdt,jprops,njprop,period)
     use uel_mod
     use wheel_super_element_mod
+    use debug_mod
     implicit none
     double precision, intent(inout) :: rhs(mlvarx,*), amatrx(ndofel,ndofel), svars(nsvars), energy(8), pnewdt
     double precision, intent(in)    :: props(*), coords(mcrd,nnode)
@@ -410,6 +458,8 @@ subroutine uel(rhs,amatrx,svars,energy,ndofel,nrhs,nsvars,&
     call get_stiffness(u, Kprim, coords, amatrx)
     
     call uel_output(lflags, kinc, kstep, time(2))
+    
+    call print_nodal_contributions(coords, Fprim, kstep, kinc, time)
     ! write(*,*) 'additional uel output'
     ! write(*,*) 'check norm of Kprim-Kel:'
     ! write(*,*) norm(Kprim-amatrx)/norm(Kprim)
