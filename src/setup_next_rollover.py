@@ -348,7 +348,7 @@ def moveback_reapply_load(new_cycle_nr, last_step_in_old_job, lock_rail=True):
     # Define steps
     return_step_name = names.get_step_return(new_cycle_nr)
     time = 1.e-6
-    new_model.StaticStep(name=return_step_name, previous=last_step_in_oldtime, 
+    new_model.StaticStep(name=return_step_name, previous=last_step_in_old_job, 
                          maxNumInc=2, timePeriod=time, initialInc=time,
                          amplitude=STEP
                          )
