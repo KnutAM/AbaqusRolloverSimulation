@@ -6,6 +6,7 @@ Script to setup rollover simulation in Abaqus for CHARMEC
 Contributors
 
 * Knut Andreas Meyer 
+* Rostyslav Skrypnyk
 
 ## Running for the first time 
 ### Requirements
