@@ -40,7 +40,7 @@ def get_roll_back_info(rp_data, wheel_data):
     
    
 def setup_next_rollover(new_cycle_nr):
-    old_model = get.model(stepnr=new_cycle_nr-1)
+    old_model = get.model(cycle_nr=new_cycle_nr-1)
     old_job_name = names.get_job(new_cycle_nr-1)
     # copy the old model and add new steps. Restart from the previous job
     new_model_name = names.get_model(new_cycle_nr)
@@ -89,7 +89,7 @@ def moveback_reapply_load(new_cycle_nr, last_step_in_old_job, lock_rail=True):
     
     # Define steps
     return_step_name = names.get_step_return(new_cycle_nr)
-    time = 1.e-6
+    time = user_settings.numtrick['move_back_time']
     new_model.StaticStep(name=return_step_name, previous=last_step_in_old_job, 
                          maxNumInc=2, timePeriod=time, initialInc=time,
                          amplitude=STEP
@@ -101,12 +101,19 @@ def moveback_reapply_load(new_cycle_nr, last_step_in_old_job, lock_rail=True):
                          maxNumInc=2, timePeriod=time, 
                          amplitude=STEP
                          )
+                         
+    release_nodes_step_name = 'release' + names.cycle_str(new_cycle_nr)
+    new_model.StaticStep(name=release_nodes_step_name, previous=reapply_step_name,
+                         timeIncrementationMethod=FIXED, initialInc=time, 
+                         maxNumInc=2, timePeriod=time, 
+                         amplitude=STEP
+                         )
     
     rolling_step_name = names.get_step_rolling(new_cycle_nr)
     r_time = rol_par['time']
     dt0 = r_time/inc_par['nom_num_incr_rolling']
     dtmin = r_time/(inc_par['max_num_incr_rolling']+1)
-    new_model.StaticStep(name=rolling_step_name, previous=reapply_step_name, timePeriod=r_time, 
+    new_model.StaticStep(name=rolling_step_name, previous=release_nodes_step_name, timePeriod=r_time, 
                          maxNumInc=inc_par['max_num_incr_rolling'], 
                          initialInc=dt0, minInc=dtmin, maxInc=dt0)
                          
@@ -159,7 +166,7 @@ def moveback_reapply_load(new_cycle_nr, last_step_in_old_job, lock_rail=True):
                                                 createStepName=return_step_name,
                                                 region=rail_contact_node_set,
                                                 v1=0., v2=0., v3=0.)
-        lock_rail_bc.deactivate(stepName=reapply_step_name)
+        lock_rail_bc.deactivate(stepName=release_nodes_step_name)
     
 
     
@@ -201,7 +208,7 @@ def get_old_node_data(new_cycle_nr):
     
     # The node labels from above are given from odb. Due to renumbering these may have been changed. 
     # Therefore, we need to get the node labels from the part and use those instead when setting boundary conditions
-    wheel_part = get.part(names.wheel_part, stepnr=new_cycle_nr)
+    wheel_part = get.part(names.wheel_part, cycle_nr=new_cycle_nr)
     contact_nodes = wheel_part.sets[names.wheel_contact_nodes].nodes
     
     new_node_labels = np.array([node.label for node in contact_nodes])
@@ -217,7 +224,7 @@ def get_old_node_data(new_cycle_nr):
     rail_data = sort_dict(rail_data_unsrt, rail_data_unsrt['X'][:,0])   # Sort by x-coordinate
     
     # As for the wheel, labels should be updated to ensure conformance to odb labels
-    rail_part = get.part(names.rail_part, stepnr=new_cycle_nr)
+    rail_part = get.part(names.rail_part, cycle_nr=new_cycle_nr)
     contact_nodes = rail_part.sets[names.rail_contact_nodes].nodes
     
     new_node_labels = np.array([node.label for node in contact_nodes])

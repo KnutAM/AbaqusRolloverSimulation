@@ -1,6 +1,6 @@
 # Define functions that allow to get things such as the model, instances etc. 
 # Recommended to import as "import get_utils as get"
-# Hence, the functions can be called by e.g. "get.model(stepnr)"
+# Hence, the functions can be called by e.g. "get.model(cycle_nr)"
 # Functions in this file should therefore not include the word get as this is implicit when the 
 # proper import is used. 
 
@@ -10,21 +10,21 @@ from abaqusConstants import *
 
 import naming_mod as names
 
-def model(stepnr=1):
-	return mdb.models[names.get_model(stepnr)]
+def model(cycle_nr=1):
+	return mdb.models[names.get_model(cycle_nr)]
 	
 
-def assy(stepnr=1, odb=None):
+def assy(cycle_nr=1, odb=None):
     if odb:
         return odb.rootAssembly
     else:
-        return model(stepnr).rootAssembly
+        return model(cycle_nr).rootAssembly
     
 
-def inst(inst_name, stepnr=1, odb=None):
-    return assy(stepnr, odb).instances[inst_name]
+def inst(inst_name, cycle_nr=1, odb=None):
+    return assy(cycle_nr, odb).instances[inst_name]
 
 
-def part(part_name, stepnr=1):
-	return model(stepnr).parts[part_name]
+def part(part_name, cycle_nr=1):
+	return model(cycle_nr).parts[part_name]
 

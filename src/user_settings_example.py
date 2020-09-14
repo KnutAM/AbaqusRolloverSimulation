@@ -1,18 +1,11 @@
-
 # Overall simulation settings
-simulation_name = 'rollover'
-substructure_path = ('C:/Users/knutan/Documents/Work/ProjectsWorkFolders/MU34/' + 
-                     'Project_2020_C_RolloverSimulation/substructures')
 max_contact_length = 16.0
-num_cycles = 6
+num_cycles = 2
 
 # Numerical "trick" settings
 numtrick = {'dummy_stiffness': 1.e-6,   # MPa   (Stiffness for dummy materials extending contact 
                                         #        regions)
-            'extrap_roll_length': 0.01, # mm    (Rolling length for last and first increment for 
-                                        #        each cycle. The first increment extrapolates the 
-                                        #        last in the previous cycle)
-            'move_back_time': 1,
+            'move_back_time': 1.e-6,
            }
 
 # Rail settings
@@ -20,16 +13,15 @@ rail_geometry = {'length': 30.0, 'height': 30.0,
                  'max_contact_length': max_contact_length}
 rail_mesh = {'fine': 2.0, 'coarse': 5.0}
 
-super_element_path = substructure_path + '/super_elements/R200_M02p00_A00p150_db'
+super_element_path = ('C:/Users/knutan/Documents/Work/ProjectsWorkFolders/MU34/' + 
+                     'Project_2020_C_RolloverSimulation/substructures/super_elements/' +
+                     'R200_M02p00_A00p150')
 
 wheel_geometry = {'outer_diameter': 400., 'inner_diameter': 200., 
                   'max_contact_length': max_contact_length, 
                   'rolling_angle': 30./(400./2.)}
-wheel_mesh = {'fine': 2.0, 'coarse': 20.0, 'refine_thickness': 10.0}
+wheel_mesh = {'fine': 2.0}
                 
-substructure_name = ('substr_' + str(int(wheel_mesh['fine'])).zfill(2) + '_' + 
-                     str(int(100*(wheel_mesh['fine']-int(wheel_mesh['fine'])))))
-
 # Material settings
 # Only dictionary "materials" required, the remaining are only support variables
 elastic_steel = {'material_model': 'elastic', 'mpar': {'E': 210.e3, 'nu': 0.3}}

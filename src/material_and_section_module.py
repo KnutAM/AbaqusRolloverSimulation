@@ -13,31 +13,32 @@ src_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
 if not src_path in sys.path:
     sys.path.append(src_path)
 from user_settings import materials
+import get_utils as get
+import naming_mod as names
 
-def setup_sections(the_model, section_names):
-    if 'rail' in section_names:        
-        the_material = materials['rail']
-        material(the_model, matmod=the_material['material_model'], mpar=the_material['mpar'], 
-                 name='RailMaterial')
-        the_model.HomogeneousSolidSection(name=section_names['rail'], material='RailMaterial', thickness=None)
+
+def setup_sections():
+    the_model = get.model()
     
-    if 'wheel' in section_names:
-        the_material = materials['wheel']
-        material(the_model, matmod=the_material['material_model'], mpar=the_material['mpar'], 
-                 name='WheelMaterial')
-        the_model.HomogeneousSolidSection(name=section_names['wheel'], material='WheelMaterial', thickness=None)
+    # Rail
+    rail_material = materials['rail']
+    material(the_model, matmod=rail_material['material_model'], mpar=rail_material['mpar'], 
+                 name='rail_material')
+    the_model.HomogeneousSolidSection(name=names.rail_sect, material='rail_material')
     
-    if 'shadow' in section_names:
-        the_material = materials['shadow_rail']
-        material(the_model, matmod=the_material['material_model'], mpar=the_material['mpar'], 
-                 name='ShadowMaterial')
-        the_model.HomogeneousSolidSection(name=section_names['shadow'], material='ShadowMaterial', thickness=None)
+    # Shadow rail
+    rail_shadow_material = materials['shadow_rail']
+    material(the_model, matmod=rail_shadow_material['material_model'], 
+             mpar=rail_shadow_material['mpar'], name='rail_shadow_material')
+    the_model.HomogeneousSolidSection(name=names.rail_shadow_sect, material='rail_shadow_material')
     
-    if 'contact' in section_names:
-        the_material = materials['contact_trusses_wheel']
-        material(the_model, matmod=the_material['material_model'], mpar=the_material['mpar'], 
-                 name='ContactTrussMaterial')
-        the_model.TrussSection(name=section_names['contact'], material='ContactTrussMaterial', area=1.0)
+    # Dummy wheel elements
+    wheel_dummy_material = materials['contact_trusses_wheel']
+    material(the_model, matmod=wheel_dummy_material['material_model'], 
+             mpar=wheel_dummy_material['mpar'], name='wheel_dummy_material')
+    the_model.TrussSection(name=names.wheel_dummy_contact_sect, material='wheel_dummy_material', 
+                           area=1.0)
+    
     
 
 def material(fe_model, matmod, mpar, name):

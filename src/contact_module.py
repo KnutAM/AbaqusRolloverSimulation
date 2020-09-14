@@ -20,10 +20,11 @@ import user_settings
 import naming_mod as names
 import get_utils as get
 
-def setup_contact(rail_contact_surface):
+def setup_contact():
     the_model = get.model()
     assy = get.assy()
     wheel_contact_surface = assy.surfaces[names.wheel_contact_surf]
+    rail_contact_surface = assy.surfaces[names.rail_contact_surf]
     
     cpar = user_settings.contact_parameters
     create_step_name = names.step0

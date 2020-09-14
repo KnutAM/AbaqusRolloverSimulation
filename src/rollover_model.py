@@ -97,10 +97,7 @@ def join_odb_files(odb_file_list):
     except:
         for odb_i in odb_file_list[1:]:
             subprocess.call('abq2017 restartjoin originalodb=' + joined_odb_file_name + ' restartodb='+odb_i, shell=True)
-    
-def get_cycle_name(cycle_nr):
-    return 'rollover_' + str(cycle_nr).zfill(6)
-    
+ 
     
 def run_cycle(cycle_nr, n_proc=1, run=True):
     job_name = names.get_job(cycle_nr)
@@ -149,12 +146,10 @@ def setup_initial_model():
     assy.DatumCsysByDefault(CARTESIAN)
     
     # Setup sections
-    matmod.setup_sections(the_model, section_names={'rail': names.rail_sect, 
-                                                    'shadow': names.rail_shadow_sect,
-                                                    'contact': names.wheel_dummy_contact_sect})
+    matmod.setup_sections()
     
     # Setup rail
-    rail_part, rail_contact_surf, bottom_reg = railmod.setup_rail(the_model, assy, rail_geometry, rail_mesh)
+    railmod.setup_rail()
     
     # Setup wheel
     wheelmod.setup_wheel()
@@ -166,16 +161,17 @@ def setup_initial_model():
     loadmod.initial_bc()
     
     # Setup contact conditions
-    contactmod.setup_contact(rail_contact_surf)
+    contactmod.setup_contact()
     
     # Setup output requests
     loadmod.setup_outputs()
     
-    # Edit input directly to add user element
+    # Edit input directly to add user element (should be done last)
     wheelmod.add_wheel_super_element_to_inp()
     
        
     return the_model
+    
     
 def save_results(cycle_nr):
     # Save the results required for continued simulation
@@ -228,34 +224,6 @@ def save_results(cycle_nr):
     # 
     odb.close()
     
-    
-def save_node_results_old(nodes, node_hr, filename, variable_keys=[]):
-    # Save <filename>.npy containing one row per node. The first column contain 
-    # the node label, and the three following columns the x, y, z coordinates.
-    # Then the variables described by variable_keys follow. 
-    # nodes:         List of nodes from which to save results
-    # node_hr:       Dictionary with history region with node label as key
-    # filename:      Name (excluding suffix) of .npy file to save to
-    # variable_keys: List of keys (e.g. 'U1', 'UR2', 'RF1', etc.) that should be saved
-    #                Also the rate of change of these variables will be saved in the following col.
-    n_cols = 4 if not variable_keys else 4 + 2*len(variable_keys)
-    
-    result_data = np.zeros((len(nodes), n_cols))
-    row = 0
-    for node in nodes:
-        result_data[row, 0] = node.label
-        result_data[row, 1:4] = np.array(node.coordinates)
-        col = 4
-        for key in variable_keys:
-            ndata = node_hr[node.label].historyOutputs[key].data
-            result_data[row, col] = ndata[-1][1]
-            dt = ndata[-1][0] - ndata[-2][0]
-            result_data[row, col+1] = (ndata[-1][1] - ndata[-2][1])/dt
-            col = col + 2
-            
-        row = row + 1
-    
-    np.save(filename + '.npy', result_data)
             
 def save_node_results(nodes, inst_name, history_reg, filename, incl_rot=False, ndim=2):
     # Save <filename>.pickle containing a dictionary with array for each node in each field.
@@ -298,18 +266,7 @@ def save_node_results(nodes, inst_name, history_reg, filename, incl_rot=False, n
         result_dict[key] = np.array(result_dict[key])
         
     pickle.dump(result_dict, open(filename + '.pickle', 'wb'))
-    
-    
-# def get_wheel_angle_incr():
-    # coords = np.load('uel_coords.npy')
-    # v1 = coords[:,0]    # First node
-    # v2 = coords[:,1]    # Second node
-    # ang = np.arccos(np.dot(v1,v2)/(np.linalg.norm(v1)*np.linalg.norm(v2)))
-    # return ang
-    
 
-
-    
     
 if __name__ == '__main__':
     main()
