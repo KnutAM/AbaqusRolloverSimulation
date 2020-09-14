@@ -47,6 +47,9 @@ def get_rotation_matrix(ang):
 
 
 def create_uel(stiffness_matrix, coords):
+    # Need to save this first as loadmod.get_preposition_motion require this file to exist.
+    np.save('uel_coords.npy', coords)
+    
     this_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
     
     base_file = this_path + '/uel_base_file.f90'
@@ -68,8 +71,6 @@ def create_uel(stiffness_matrix, coords):
     
     with open('uel.for', 'w') as fid:
         fid.write(uel_str)
-        
-    np.save('uel_coords.npy', coords)
 
 
 def get_stiffness_str(ke):
