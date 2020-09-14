@@ -104,7 +104,8 @@ def setup_wheel():
 def move_super_element_to_cwd():
     se_path = user_settings.super_element_path
     filenames = ['uel_coords.npy']
-    filenames.append('standardU.dll' if os.name=='nt' else 'standard.so')
+    filenames.append('standardU.dll' if os.name=='nt' else 'libstandardU.so')
+
     
     for filename in filenames:
         copyfile(se_path + '/' + filename, os.getcwd() + '/' + filename)
