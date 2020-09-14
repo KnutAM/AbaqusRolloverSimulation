@@ -51,11 +51,14 @@ def setup_next_rollover(new_cycle_nr):
     new_model.setValues(restartJob=old_model.name, restartStep=last_step_in_old_job)
     
     return_method = 2
+    lock_rail = True
+    # NOTE: moveback_reapply_load seem to give correct results without torque oscillations!!!
+    # Should clean code and use this if it still works after further testing!
     
     if return_method == 1:
-        quick_moveback(new_cycle_nr, last_step_in_old_job, lock_rail=False)
+        quick_moveback(new_cycle_nr, last_step_in_old_job, lock_rail=lock_rail)
     elif return_method == 2:
-        quick_moveback(new_cycle_nr, last_step_in_old_job, lock_rail=True)
+        moveback_reapply_load(new_cycle_nr, last_step_in_old_job, lock_rail=lock_rail)
     elif return_method == 3:
         full_moveback(new_cycle_nr, last_step_in_old_job)
     
@@ -251,9 +254,9 @@ def quick_moveback(new_cycle_nr, last_step_in_old_job, lock_rail=True):
     # Define steps
     return_step_name = names.get_step_return(new_cycle_nr)
     new_model.StaticStep(name=return_step_name, previous=last_step_in_old_job,
-                         timeIncrementationMethod=FIXED, initialInc=0.1, 
-                         maxNumInc=10, 
-                         #amplitude=STEP
+                         timeIncrementationMethod=FIXED, initialInc=1, 
+                         maxNumInc=2, 
+                         amplitude=STEP
                          )
     
     rolling_step_name = names.get_step_rolling(new_cycle_nr)
@@ -312,6 +315,109 @@ def quick_moveback(new_cycle_nr, last_step_in_old_job, lock_rail=True):
                                                 region=rail_contact_node_set,
                                                 v1=0., v2=0., v3=0.)
         lock_rail_bc.deactivate(stepName=rolling_step_name)
+    
+def moveback_reapply_load(new_cycle_nr, last_step_in_old_job, lock_rail=True):
+    # Move straight back. Add step to reapply load.
+    # Input
+    # new_cycle_nr          Cycle number for the analysis to be set up
+    # last_step_in_old_job  Name of the last step in the job from which the current continues from
+    
+    # Model
+    new_model = get.model(new_cycle_nr)
+    # Load parameters
+    inc_par = user_settings.time_incr_param
+    rol_par = loadmod.get_rolling_parameters()
+    
+    # Roll back info
+    rp_data, wheel_data, rail_data = get_old_node_data(new_cycle_nr)
+    u1_end = rp_data['U'][0]
+    u2_end = rp_data['U'][1]
+    ur3_end = rp_data['UR'][-1]
+    
+    num_element_rolled, ret_ang = get_roll_back_info(rp_data, wheel_data)
+    
+    # Determine which nodes are in contact at the end of previous step
+    old_contact_node_indices = get_contact_nodes(wheel_data, rp_data)
+    
+    # Identify the new nodes in contact by shifting the sorted list by num_element_rolled
+    new_contact_node_indices = old_contact_node_indices + num_element_rolled
+    
+    # Boundary conditions and loads to be modified
+    ctrl_bc = new_model.boundaryConditions[names.rp_ctrl_bc]
+    
+    # Define steps
+    return_step_name = names.get_step_return(new_cycle_nr)
+    time = 1.e-6
+    new_model.StaticStep(name=return_step_name, previous=last_step_in_oldtime, 
+                         maxNumInc=2, timePeriod=time, initialInc=time,
+                         amplitude=STEP
+                         )
+    
+    reapply_step_name = 'reapply' + names.cycle_str(new_cycle_nr)
+    new_model.StaticStep(name=reapply_step_name, previous=return_step_name,
+                         timeIncrementationMethod=FIXED, initialInc=time, 
+                         maxNumInc=2, timePeriod=time, 
+                         amplitude=STEP
+                         )
+    
+    rolling_step_name = names.get_step_rolling(new_cycle_nr)
+    r_time = rol_par['time']
+    dt0 = r_time/inc_par['nom_num_incr_rolling']
+    dtmin = r_time/(inc_par['max_num_incr_rolling']+1)
+    new_model.StaticStep(name=rolling_step_name, previous=reapply_step_name, timePeriod=r_time, 
+                         maxNumInc=inc_par['max_num_incr_rolling'], 
+                         initialInc=dt0, minInc=dtmin, maxInc=dt0)
+                         
+    # Set values for wheel center
+    ctrl_bc.setValuesInStep(stepName=return_step_name, ur3=ret_ang, u1=0, u2=u2_end)
+    ctrl_bc.setValuesInStep(stepName=reapply_step_name, ur3=ret_ang, u1=0, u2=FREED)
+    ctrl_bc.setValuesInStep(stepName=rolling_step_name, u1=rol_par['length'], 
+                            ur3=rol_par['angle'] + ret_ang, u2=FREED)
+    
+    
+    # Set values for wheel
+    x_rp_old = rp_data['X'] + rp_data['U']
+    x_rp_new = rp_data['X'] + np.array([0, u2_end])
+    
+    wheel_nodes = new_model.rootAssembly.instances['WHEEL'].sets['CONTACT_NODES'].nodes
+    
+    for iold, inew in zip(old_contact_node_indices, new_contact_node_indices):
+        
+        new_node_id = int(wheel_data['label'][inew])
+        
+        # Node positions
+        #  Deformed old position
+        xold = wheel_data['X'][iold] + wheel_data['U'][iold]
+        #  Undeformed new position
+        Xnew = wheel_data['X'][inew]
+        
+        # Old position relative old rp is same as new position relative new rp
+        xnew = x_rp_new + (xold - x_rp_old)
+        
+        unew = xnew - Xnew                      # Displacement is relative undeformed pos
+                    
+        wnode_bc_name = return_step_name + '_wheel_' + str(new_node_id)
+        region = new_model.rootAssembly.Set(name=wnode_bc_name, 
+                                            nodes=wheel_nodes[(new_node_id-1):(new_node_id)])
+                                            # number due to nodes numbered from 1 but python from 0
+        
+        # Prescribe the displacements of the old nodes to the new node, but moved back to start point
+        node_bc = new_model.DisplacementBC(name=wnode_bc_name,
+                                                createStepName=return_step_name, 
+                                                region=region, u1=unew[0], u2=unew[1])
+
+        # Free the prescribed displacements of the nodes in the general rolling step
+        node_bc.deactivate(stepName=rolling_step_name)
+        
+    # Set values for rail
+    if lock_rail:
+        # Lock all rail contact node displacements
+        rail_contact_node_set = new_model.rootAssembly.instances['RAIL'].sets['CONTACT_NODES']
+        lock_rail_bc = new_model.VelocityBC(name=return_step_name + '_lockrail',
+                                                createStepName=return_step_name,
+                                                region=rail_contact_node_set,
+                                                v1=0., v2=0., v3=0.)
+        lock_rail_bc.deactivate(stepName=reapply_step_name)
     
 
     

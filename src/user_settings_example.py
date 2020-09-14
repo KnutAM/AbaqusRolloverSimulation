@@ -4,12 +4,12 @@ simulation_name = 'rollover'
 substructure_path = ('C:/Users/knutan/Documents/Work/ProjectsWorkFolders/MU34/' + 
                      'Project_2020_C_RolloverSimulation/substructures')
 max_contact_length = 16.0
-num_cycles = 3
+num_cycles = 6
 
 # Numerical "trick" settings
 numtrick = {'dummy_stiffness': 1.e-6,   # MPa   (Stiffness for dummy materials extending contact 
                                         #        regions)
-            'extrap_roll_length': 1.0,  # mm    (Rolling length for last and first increment for 
+            'extrap_roll_length': 0.01, # mm    (Rolling length for last and first increment for 
                                         #        each cycle. The first increment extrapolates the 
                                         #        last in the previous cycle)
             'move_back_time': 1,
@@ -20,7 +20,7 @@ rail_geometry = {'length': 30.0, 'height': 30.0,
                  'max_contact_length': max_contact_length}
 rail_mesh = {'fine': 2.0, 'coarse': 5.0}
 
-super_element_path = substructure_path + '/super_elements/R200_M02p00_A00p150'
+super_element_path = substructure_path + '/super_elements/R200_M02p00_A00p150_db'
 
 wheel_geometry = {'outer_diameter': 400., 'inner_diameter': 200., 
                   'max_contact_length': max_contact_length, 
@@ -57,7 +57,7 @@ time_incr_param = {'nom_num_incr_rolling': 50,      # Nominal number of incremen
 load_parameters = {'initial_depression': 0.01,      # mm
                    'normal_load': 5000,             # N
                    'slip': 0.02,                    # -
-                   'speed': 30,                     # mm/s
+                   'speed': 30e3,                   # mm/s
                    }
 
 # Contact settings
