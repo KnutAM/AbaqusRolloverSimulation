@@ -1,6 +1,6 @@
 # Overall simulation settings
 max_contact_length = 16.0
-num_cycles = 2
+num_cycles = 3
 
 # Numerical "trick" settings
 numtrick = {'dummy_stiffness': 1.e-6,   # MPa   (Stiffness for dummy materials extending contact 
@@ -14,14 +14,9 @@ rail_geometry = {'length': 30.0, 'height': 30.0,
 rail_mesh = {'fine': 2.0, 'coarse': 5.0}
 
 super_element_path = ('C:/Users/knutan/Documents/Work/ProjectsWorkFolders/MU34/' + 
-                     'Project_2020_C_RolloverSimulation/substructures/super_elements/' +
-                     'R200_M02p00_A00p150')
+                     'Project_2020_C_RolloverSimulation/super_wheels/' +
+                     'D400_M01p000')
 
-wheel_geometry = {'outer_diameter': 400., 'inner_diameter': 200., 
-                  'max_contact_length': max_contact_length, 
-                  'rolling_angle': 30./(400./2.)}
-wheel_mesh = {'fine': 2.0}
-                
 # Material settings
 # Only dictionary "materials" required, the remaining are only support variables
 elastic_steel = {'material_model': 'elastic', 'mpar': {'E': 210.e3, 'nu': 0.3}}
