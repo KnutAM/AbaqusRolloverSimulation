@@ -47,6 +47,7 @@ reload(next_rollover)
 
 
 def main():
+    apt.setup_log_file()
     num_cycles = user_settings.num_cycles
     t0 = time.time()
     setup_initial_model()
@@ -63,9 +64,9 @@ def main():
     t0 = time.time()
     save_results(cycle_nr=1)
     result_time = time.time() - t0
-    apt.print_message('Setup time:  ' + str(setup_time) + 's \n' + 
-                      'Run time:    ' + str(run_time) + ' s \n' + 
-                      'Result time: ' + str(result_time) + ' s')
+    apt.log('Setup time:  ' + str(setup_time) + 's \n' + 
+            'Run time:    ' + str(run_time) + ' s \n' + 
+            'Result time: ' + str(result_time) + ' s')
     
     
     for nr in range(2, num_cycles+1):
@@ -80,9 +81,9 @@ def main():
                 # rebar=EXCLUDE)
             # FiOpRe.deactivate(stepName='rolling_start_00002')
         run_time = run_cycle(cycle_nr=nr)
-        apt.print_message('Setup time:  ' + str(setup_time) + 's \n' + 
-                          'Run time:    ' + str(run_time) + ' s \n' + 
-                          'Result time: ' + str(result_time) + ' s')
+        apt.log('Setup time:  ' + str(setup_time) + 's \n' + 
+                'Run time:    ' + str(run_time) + ' s \n' + 
+                'Result time: ' + str(result_time) + ' s')
         save_results(cycle_nr=nr)
     
     join_odb_files([names.get_odb(cycle_nr=i+1) for i in range(num_cycles)])

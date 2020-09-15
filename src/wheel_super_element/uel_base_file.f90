@@ -399,6 +399,8 @@ implicit none
     integer                         :: nnods
     
     call get_coords(uel_coords_check)
+    uel_coords_check(1, :) = uel_coords_check(1, :) + coords(1,1)
+    uel_coords_check(2, :) = uel_coords_check(2, :) + coords(2,1)
     nnods = size(coords,2)
     coord_error = norm(coords(1:2, 2:size(coords,2)) - uel_coords_check(1:2, :))/nnods
     

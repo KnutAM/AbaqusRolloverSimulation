@@ -20,6 +20,7 @@ import user_settings
 import wheel_super_element_import as wsei
 import naming_mod as names
 import get_utils as get
+import abaqus_python_tools as apt
 
 
 def setup_outputs(is_3d=False):
@@ -60,23 +61,17 @@ def setup_outputs(is_3d=False):
 def get_preposition_motion():
     rolling_par = get_rolling_parameters()
     radius = rolling_par['radius']
-    rolling_angle = -0.5*rolling_par['angle']
     rgeom = user_settings.rail_geometry
     
     vector = ((rgeom['length'] - rgeom['max_contact_length'])/2.0, radius, 0.0)
     
-    return rolling_angle, vector
+    return vector
     
 
 def preposition():
     wheel_inst = get.inst(names.wheel_inst)
     
-    rotation_angle, translation_vector = get_preposition_motion()
-    
-    # Rotate wheel to correct starting angle
-    wheel_inst.rotateAboutAxis(axisPoint=(0.0, 0.0, 0.0), 
-                               axisDirection=(0.0, 0.0, 1.0), 
-                               angle= 180.0 * rotation_angle/np.pi)
+    translation_vector = get_preposition_motion()
     
     # Move wheel to correct starting position
     wheel_inst.translate(vector=translation_vector)
@@ -84,12 +79,32 @@ def preposition():
     
 def get_rolling_parameters():
     wheel_info = wsei.get_wheel_info()
-    nominal_radius = wheel_info['r']
+    nominal_radius = wheel_info['outer_diameter']/2.0
     
     lpar = user_settings.load_parameters
     rolling_length = -user_settings.rail_geometry['length']
     rolling_time = abs(rolling_length)/lpar['speed']
     rolling_angle = -(1+lpar['slip'])*rolling_length/nominal_radius
+    
+    # Check that rolling angle is not too large for wheel
+    w_contact_angle = wheel_info['contact_angle']
+    w_rolling_angle = wheel_info['rolling_angle']
+    
+    if np.abs(rolling_angle) > w_contact_angle:
+        apt.log('Rolling angle (abs value) too large for chosen wheel')
+        apt.log('Rolling angle = %6.2f deg' % (rolling_angle*180/np.pi))
+        apt.log('Contact angle = %6.2f deg (max abs rolling angle)' % (w_contact_angle*180/np.pi))
+        raise ValueError
+    
+    max_contact_length_as_angle = 0.5*user_settings.max_contact_length/nominal_radius
+    if max_contact_length_as_angle > (w_contact_angle-w_rolling_angle):
+        apt.log('max_contact_length too large for chosen wheel')
+        apt.log('Wheel rolling angle = %6.2f deg' % (w_rolling_angle*180/np.pi))
+        apt.log('Wheel contact angle = %6.2f deg' % (w_contact_angle*180/np.pi))
+        apt.log('Settings max contact length = %6.2f mm' % (user_settings.max_contact_length))
+        apt.log('Require wheel contact-rolling angle = %6.2f deg > %6.2f deg' % 
+                ((w_contact_angle-w_rolling_angle)*180/np.pi, max_contact_length_as_angle*180/np.pi))
+        raise ValueError
     
     rpar = {'length': rolling_length,
             'time': rolling_time,
@@ -124,11 +139,6 @@ def initial_bc():
                                        region=wheel_refpoint, u1=0.0, ur3=0.0, 
                                        u2=-lpar['initial_depression'])
     
-    #the_model.StaticStep(name=names.step2, previous=names.step1)
-    #ctrl_bc.setValuesInStep(stepName=names.step2, u2=FREED)
-    #the_model.ConcentratedForce(name='ctrl_load', createStepName=names.step2, 
-    #                            region=wheel_refpoint, cf2=-lpar['normal_load'])
-
     rpar = get_rolling_parameters()
         
     rolling_step_name = names.get_step_rolling(1)

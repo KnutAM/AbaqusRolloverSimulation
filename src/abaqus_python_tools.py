@@ -1,11 +1,23 @@
-import os
+from __future__ import print_function
+import os, sys
+from datetime import datetime
 
-def print_message(message, log_file='abaqus_python.log'):
+# Make output to log to 
+def setup_log_file(log_file='abaqus_python.log'):
     if os.path.exists(log_file):
-        f = open(log_file,'a')
-    else:
-        f = open(log_file,'w')
+        os.remove(log_file)
+    
+    with open(log_file, 'w') as fid:
+        fid.write('Abaqus log file. Created ' + datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '\n')
         
-    f.write(message+'\n')
-    f.close()
-    print message  # Print 'message' to STDOUT
+
+def log(message, log_file='abaqus_python.log'):
+    if os.path.exists(log_file):
+        with open(log_file, 'a') as fid:
+            fid.write(message+'\n')
+            print(message)  # Print 'message' to STDOUT
+            if not sys.__stdout__ == sys.stdout:    # If redirected by abaqus, still write to shell
+                sys.__stdout__.write(message + '\n')
+    else:
+        setup_log_file(log_file)
+        log(message, log_file)

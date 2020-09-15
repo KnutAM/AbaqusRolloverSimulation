@@ -241,7 +241,7 @@ def get_contact_nodes(wheel_data, rp_data):
     rp_x = rp_data['X'][0] + rp_data['U'][0]
     contact_length = user_settings.max_contact_length
     all_indices = np.arange(wheel_data['X'].shape[0])
-    contact_indices = all_indices[np.abs(xpos-rp_x) < contact_length/2.0]
+    contact_indices = all_indices[np.abs(xpos-rp_x) < (contact_length/2.0)]
     
     return contact_indices[1:-1]    # Remove the first and last to avoid taking one too many on either side
     

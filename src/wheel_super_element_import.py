@@ -1,12 +1,11 @@
 # System imports
-import sys
-import os
+import sys, os, inspect, json, time
 import numpy as np
-import inspect
 from shutil import copyfile
 
 # Abaqus imports 
 from abaqusConstants import *
+import abaqus
 import assembly
 import part
 import sketch
@@ -25,6 +24,7 @@ if not src_path in sys.path:
 import naming_mod as names
 import user_settings
 import get_utils as get
+import abaqus_python_tools as apt
 
 
 def add_wheel_super_element_to_inp():
@@ -48,7 +48,7 @@ def add_wheel_super_element_to_inp():
         kwb.insert(line_num, get_inp_str_element_connectivity())
         kwb.insert(line_num, get_inp_str_element_property())
     else:
-        print 'could not find "*Part" and "name=' + names.wheel_part + '"'
+        apt.log('could not find "*Part" and "name=' + names.wheel_part + '"')
     
 
 def get_inp_str_element_definition():
@@ -103,12 +103,17 @@ def setup_wheel():
 
 def move_super_element_to_cwd():
     se_path = user_settings.super_element_path
-    filenames = ['uel_coords.npy']
-    filenames.append('standardU.dll' if os.name=='nt' else 'libstandardU.so')
-
-    
+    filenames = ['uel_coords.npy', 'uel_info.json']
+    uel_lib = 'standardU.dll' if os.name=='nt' else 'libstandardU.so'
+    filenames.append(uel_lib)
     for filename in filenames:
-        copyfile(se_path + '/' + filename, os.getcwd() + '/' + filename)
+        try:
+            copyfile(se_path + '/' + filename, os.getcwd() + '/' + filename)
+        except:
+            apt.log('Could not find ' + filename + ' in ' + se_path)
+            if '.dll' in filename or '.so' in filename:
+                apt.log('Check that uel has been compiled and ' + uel_lib + ' has been created')
+            raise
     
     
 def define_contact_surface_mesh_part():
@@ -122,7 +127,7 @@ def define_contact_surface_mesh_part():
     
     xrel = winfo['xrel']
     yrel = winfo['yrel']
-    radius = winfo['r']
+    radius = winfo['outer_diameter']/2.0
     
     angles = np.arctan2(xrel,-yrel)
     minang = np.min(angles)
@@ -164,19 +169,14 @@ def define_contact_surface_mesh_part():
                                      name=names.wheel_contact_nodes)
     
 def get_wheel_info():
-    super_wheel_element='uel'
-    coords = np.load(super_wheel_element + '_coords.npy')
-    xrel = coords[0, :]
-    yrel = coords[1, :]
-    radius = np.sqrt(xrel[0]**2 + yrel[0]**2)
+    coords = np.load('uel_coords.npy')
+    with open('uel_info.json', 'r') as fid:
+        wheel_info = json.load(fid)
     
-    # Calculate angle to the -y axis:
-    angles = np.arctan2(-xrel, -yrel)
-    angle = np.max(angles) - np.min(angles)
+    wheel_info['xrel'] = coords[0, :]
+    wheel_info['yrel'] = coords[1, :]
+    wheel_info['num_nodes'] = coords.shape[1]+1
     
-    wheel_info = {'r': radius, 'ang': angle, 
-                  'xrel': xrel, 'yrel': yrel,
-                  'num_nodes': len(xrel)+1}
     return wheel_info
     
     

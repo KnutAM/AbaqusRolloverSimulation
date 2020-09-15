@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 
 def get_stiffness_from_substructure_mtx_file(filename):
@@ -18,7 +19,7 @@ def get_stiffness_from_substructure_mtx_file(filename):
     if np.abs(ndof-int(ndof)) < 1.e-10:
         ndof = int(ndof)
     else:
-        print 'Error reading matrix from ' + filename + '.mtx'
+        print('Error reading matrix from ' + filename + '.mtx')
         return None
     
     kmat = np.zeros((ndof,ndof))
@@ -40,7 +41,7 @@ def get_stiffness_from_substructure_mtx_file(filename):
     kmat = kmat[np.ix_(re_order, re_order)]
     coords = np.load('uel_coords_tmp.npy')
     
-    print 'Checking stiffness matrix:'
+    print('Checking stiffness matrix:')
     check_stiffness_matrix(kmat, coords)
     
     return kmat, coords
@@ -202,9 +203,9 @@ def reduce_stiffness_matrix(Kfull, outer_node_coord, angle_to_keep):
     # If the problem remains, then discuss with a senior how this can be and if the removal of rbm is reasonable?
     #Kred = remove_rbm(Kred, coords)
     #Kred = remove_rbm(Kred, coords)
-    print 'Checking reduced matrix'
+    print('Checking reduced matrix')
     check_stiffness_matrix(Kred, coords)
-    print 'Checking reduced symmetrized matrix'
+    print('Checking reduced symmetrized matrix')
     check_stiffness_matrix(0.5*(Kred+np.transpose(Kred)), coords)
     
     return Kred, coords
@@ -274,25 +275,25 @@ def check_stiffness_matrix(kmat, coords):
     symnorm = np.linalg.norm(np.transpose(kmat)-kmat)/np.linalg.norm(kmat)
     stiffness_ok = (cond < 1.e4)    # Nodal output typically single precision
     if cond > 1.e12:
-        print 'stiffness NOT OK, check for errors'
+        print('stiffness NOT OK, check for errors')
     elif cond > 1.e4:
-        print 'stiffness matrix badly conditioned, consider double precision for nodal output'
+        print('stiffness matrix badly conditioned, consider double precision for nodal output')
     
     # Put check to a non-conservative level (1e-4) to avoid output. But this seems rather high.
     # However, in the fortran uel code, the forces are calculated by considering displacements
     # relative the central node, hence the rbm are small and should not pose a numerical problem. 
     if any(np.array([np.max(check_rbm_x), np.max(check_rbm_y), np.max(check_rbm_rot)]) > 1.e-3):
-        print 'stiffness matrix sensitive to rbm'
+        print('stiffness matrix sensitive to rbm')
         for n, v in enumerate(check_rbm_x):
-            print 'K*u [' + str(n) + '] for ux=1: %10.3e' % v
+            print('K*u [' + str(n) + '] for ux=1: %10.3e' % v)
         for n, v in enumerate(check_rbm_y):
-            print 'K*u [' + str(n) + '] for uy=1: %10.3e' % v
+            print('K*u [' + str(n) + '] for uy=1: %10.3e' % v)
         for n, v in enumerate(check_rbm_rot):
-            print 'K*u [' + str(n) + '] for ur=1: %10.3e' % v
+            print('K*u [' + str(n) + '] for ur=1: %10.3e' % v)
         
-    print 'determinant  = %10.3e' % np.linalg.det(kcheck)
-    print 'condition nr = %10.3e' % cond
-    print '|K-K^T|/|K|  = %10.3e' % symnorm 
-    print 'max rbm x effect = %10.3e' % np.max(check_rbm_x)
-    print 'max rbm y effect = %10.3e' % np.max(check_rbm_y)
-    print 'max rbm rot effect = %10.3e' % np.max(check_rbm_rot)
+    print('determinant  = %10.3e' % np.linalg.det(kcheck))
+    print('condition nr = %10.3e' % cond)
+    print('|K-K^T|/|K|  = %10.3e' % symnorm)
+    print('max rbm x effect = %10.3e' % np.max(check_rbm_x))
+    print('max rbm y effect = %10.3e' % np.max(check_rbm_y))
+    print('max rbm rot effect = %10.3e' % np.max(check_rbm_rot))

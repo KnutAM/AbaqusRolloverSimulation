@@ -3,14 +3,6 @@ import os
 import numpy as np
 import inspect
 
-this_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
-src_path = os.path.dirname(this_path)
-if not src_path in sys.path:
-    sys.path.append(src_path)
-    
-import loading_module as loadmod
-reload(loadmod)
-
 
 def rotate_stiffness(stiffness_matrix, ang):
     ndof = stiffness_matrix.shape[0]
@@ -46,6 +38,17 @@ def get_rotation_matrix(ang):
     return np.array([[np.cos(ang), -np.sin(ang)], [np.sin(ang), np.cos(ang)]])
 
 
+def get_preposition_motion():
+    rolling_par = get_rolling_parameters()
+    radius = rolling_par['radius']
+    rolling_angle = -0.5*rolling_par['angle']
+    rgeom = user_settings.rail_geometry
+    
+    vector = ((rgeom['length'] - rgeom['max_contact_length'])/2.0, radius, 0.0)
+    
+    return rolling_angle, vector
+    
+
 def create_uel(stiffness_matrix, coords):
     # Need to save this first as loadmod.get_preposition_motion require this file to exist.
     np.save('uel_coords.npy', coords)
@@ -57,15 +60,15 @@ def create_uel(stiffness_matrix, coords):
         uel_str = fid.read()
     
     # Rotate stiffness and coordinates to account for rotation during prepositioning
-    rotation_angle, translation_vector = loadmod.get_preposition_motion()
-    krot = rotate_stiffness(stiffness_matrix, rotation_angle)
-    coords_rot = rotate_and_translate_coordinates(coords, rotation_angle, translation_vector)
+    # rotation_angle, translation_vector = get_preposition_motion()
+    # krot = rotate_stiffness(stiffness_matrix, rotation_angle)
+    # coords_rot = rotate_and_translate_coordinates(coords, rotation_angle, translation_vector)
     
-    stiffness_str = get_stiffness_str(krot)
+    stiffness_str = get_stiffness_str(stiffness_matrix)
     uel_str = uel_str.split('    !<ke_to_be_defined_by_python_script>')
     uel_str = uel_str[0] + stiffness_str + uel_str[1]
     
-    coord_str = get_coord_str(coords_rot)
+    coord_str = get_coord_str(coords)
     uel_str = uel_str.split('    !<coords_to_be_defined_by_python_script>')
     uel_str = uel_str[0] + coord_str + uel_str[1]
     

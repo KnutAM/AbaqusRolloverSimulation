@@ -14,82 +14,51 @@ import mesh, interaction, step
 # __file__ not found when calling from abaqus, 
 # used solution from "https://stackoverflow.com/a/53293924":
 
-src_path = os.path.dirname(os.path.dirname(os.path.abspath(inspect.getfile(lambda: None))))
+this_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
+src_path = os.path.dirname(this_path)
 if not src_path in sys.path:
     sys.path.append(src_path)
+
+if not this_path in sys.path:
+    sys.path.append(this_path)
     
 import user_settings
 import wheel_super_element_import as wheelmod
+import wheel_mesh_tb
 reload(user_settings)
 reload(wheelmod)
-
-
 
 model_name = 'SUPER_WHEEL'
 part_name = model_name
 inst_name = model_name
 job_name = model_name
 
-def get_node_nr(inod_radial, inod_circumf, nel_radial, nel_circumf):
-    return inod_radial*nel_circumf + inod_circumf 
-    
-    
-def get_elem_nr(iel_radial, iel_circumf, nel_radial, nel_circumf):
-    return iel_radial*nel_circumf + iel_circumf
-    
-    
-def get_elem_node_nrs(iel_radial, iel_circumf, nel_radial, nel_circumf):
-    # Given the element position, return the number for the 4 nodes that build up the element.
-    node_indices_radial = np.array([iel_radial,
-                                    iel_radial,
-                                    iel_radial + 1,
-                                    iel_radial + 1], dtype=np.int)
-    node_indices_circumf= np.array([iel_circumf,
-                                    iel_circumf + 1 if iel_circumf < (nel_circumf - 1) else 0,
-                                    iel_circumf + 1 if iel_circumf < (nel_circumf - 1) else 0,
-                                    iel_circumf], dtype=np.int)
-    
-    return get_node_nr(node_indices_radial, node_indices_circumf, nel_radial, nel_circumf)
-
-
-def get_radial_node_pos(id, od, elsize):
-    # Distribute radial node positions to get elsize element length at outer diameter (od) and then 
-    # approx square elements while going to inner diameter (id)
-    radii = [od/2.0, od/2.0 - elsize]
-    while radii[-1] > id/2:
-        radii.append(radii[-1] - radii[-1]*elsize/(od/2.0))
-    radii = np.array(radii)
-    sfac = 1 + (id/(2*radii[-1]) - 1)*(radii[0] - radii)/(radii[0]-radii[-1])
-    radii = radii*sfac
-    nel_radial = radii.size - 1
-    return radii, nel_radial
-
-
 def create_mesh(the_part, id, od, elsize):
     # Calculate number of elements around circumference. Multiple of 4 to ensure symmetry.
     nel_circumf = 4*int(od*np.pi/(4.0*elsize))
     angles = np.linspace(0, 2*np.pi, nel_circumf + 1)[:-1]  # Remove last element that is duplicated
-    radii, nel_radial = get_radial_node_pos(id, od, elsize)
+    radii, nel_radial = wheel_mesh_tb.get_radial_node_pos(id, od, elsize)
     
     for ir, r in zip(range(nel_radial+1), radii):
         for ic, a in zip(range(nel_circumf), angles):
             x = r*np.cos(a)
             y = r*np.sin(a)
-            node_nr = get_node_nr(ir, ic, nel_radial, nel_circumf)
+            node_nr = wheel_mesh_tb.get_node_nr(ir, ic, nel_radial, nel_circumf)
             the_part.Node(coordinates=(x, y, 0.0), label=node_nr + 1)
     
     for ir in range(nel_radial):
         for ic in range(nel_circumf):
-            enodes = [the_part.nodes[i] for i in get_elem_node_nrs(ir, ic, nel_radial, nel_circumf)]
+            enodes = [the_part.nodes[i] for i in 
+                      wheel_mesh_tb.get_elem_node_nrs(ir, ic, nel_radial, nel_circumf)]
             the_part.Element(nodes=enodes, elemShape=QUAD4, 
-                             label=get_elem_nr(ir, ic, nel_radial, nel_circumf) + 1)
+                             label=wheel_mesh_tb.get_elem_nr(ir, ic, nel_radial, nel_circumf) + 1)
     
-    inner_nodes = [the_part.nodes[get_node_nr(nel_radial, ic, nel_radial, nel_circumf)] 
+    inner_nodes = [the_part.nodes[wheel_mesh_tb.get_node_nr(nel_radial, ic, nel_radial, nel_circumf)] 
                    for ic in range(nel_circumf)]
-    outer_nodes = [the_part.nodes[get_node_nr(0, ic, nel_radial, nel_circumf)] 
+    outer_nodes = [the_part.nodes[wheel_mesh_tb.get_node_nr(0, ic, nel_radial, nel_circumf)] 
                    for ic in range(nel_circumf)]
-    n1_node = [the_part.nodes[get_node_nr(0, 0, nel_radial, nel_circumf)]]
-    outer_nodes_without_n1 = [the_part.nodes[get_node_nr(0, ic, nel_radial, nel_circumf)] 
+    n1_node = [the_part.nodes[wheel_mesh_tb.get_node_nr(0, 0, nel_radial, nel_circumf)]]
+    outer_nodes_without_n1 = [the_part.nodes[wheel_mesh_tb.get_node_nr(0, ic, nel_radial, nel_circumf)] 
                               for ic in range(1,nel_circumf)]
                    
     the_part.Set(nodes=mesh.MeshNodeArray(nodes=inner_nodes), name='INNER_CIRCLE')
@@ -199,7 +168,7 @@ def create_substructure():
         kwb.insert(linenum-1, '*SUBSTRUCTURE MATRIX OUTPUT, STIFFNESS=YES, ' + 
                    'OUTPUT FILE=USER DEFINED, FILE NAME=' + job_name)
     else:
-        print 'could not find "*End Step"'
+        print('could not find "*End Step"')
         
     the_job = mdb.Job(name=job_name, model=model_name, type=ANALYSIS, resultsFormat=ODB)
     mdb.jobs[job_name].submit()
