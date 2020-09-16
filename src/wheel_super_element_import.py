@@ -20,11 +20,11 @@ src_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
 if not src_path in sys.path:
     sys.path.append(src_path)
 
-
 import naming_mod as names
 import user_settings
 import get_utils as get
 import abaqus_python_tools as apt
+import user_subroutine as usub
 
 
 def add_wheel_super_element_to_inp():
@@ -104,15 +104,13 @@ def setup_wheel():
 def move_super_element_to_cwd():
     se_path = user_settings.super_element_path
     filenames = ['uel_coords.npy', 'uel_info.json']
-    uel_lib = 'standardU.dll' if os.name=='nt' else 'libstandardU.so'
+    uel_lib = 'uel.for' if os.name=='nt' else 'uel.f'
     filenames.append(uel_lib)
     for filename in filenames:
         try:
             copyfile(se_path + '/' + filename, os.getcwd() + '/' + filename)
         except:
             apt.log('Could not find ' + filename + ' in ' + se_path)
-            if '.dll' in filename or '.so' in filename:
-                apt.log('Check that uel has been compiled and ' + uel_lib + ' has been created')
             raise
     
     

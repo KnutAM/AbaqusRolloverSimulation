@@ -32,6 +32,7 @@ import abaqus_python_tools as apt
 import naming_mod as names
 import get_utils as get
 import setup_next_rollover as next_rollover
+import user_subroutine as usub
 
 # Reload to account for script updates when running from inside abaqus CAE
 reload(matmod)
@@ -48,9 +49,11 @@ reload(next_rollover)
 
 def main():
     apt.setup_log_file()
+    usub.setup()
     num_cycles = user_settings.num_cycles
     t0 = time.time()
     setup_initial_model()
+    usub.generate()
     setup_time = time.time() - t0
     if num_cycles > 0:
         # If debugging continuation, can comment run_cycle(..) and uncomment run_time = -1.0
