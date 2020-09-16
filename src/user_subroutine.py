@@ -10,7 +10,8 @@ import shutil
 folder = 'usub'
 name = 'usub'
 fortran_suffix = '.for' if os.name == 'nt' else '.f'
-supported_usubs = ['umat', 'uel', 'disp', 'urdfil']
+# If they exist, the following files (excluding suffix), will be made into one subroutine
+supported_usubs = ['umat', 'uel', 'disp', 'urdfil'] 
 
 
 def setup():
@@ -30,6 +31,17 @@ def generate():
     check_abaqus_env()
 
 
+def copy_all_files_and_folders_from_folder(input_folder):
+    # Copy all files and folders in the given input_folder to the usub folder.
+    items = os.listdir(input_folder)
+    for item in items:
+        full_item_path = input_folder + '/' + item
+        if os.path.isdir(full_item_path):
+            shutil.copytree(full_item_path, folder + '/' + item)
+        else:
+            shutil.copy(full_item_path, folder)
+
+
 def copy_fortran_files_from_cwd():
     files_and_folders_in_cwd = os.listdir('.')
     for file in files_and_folders_in_cwd:
@@ -46,7 +58,7 @@ def create_file():
     usub_str = usub_str + '! Compile with "abaqus make library=' + usub_name + '\n'
     for file in all_files_and_folders:
         if file in usubs:
-            with open(file, 'r') as fid:
+            with open(folder + '/' + file, 'r') as fid:
                 file_str = fid.read()
                 # Following line requried? Is it a problem to have multiple of "!DEC$ FREEFORM"?
                 file_str = file_str.replace('!DEC$ FREEFORM', '!')  
@@ -59,11 +71,18 @@ def create_file():
 
 def make():
     os.chdir(folder)
+    
+    shared_lib = 'standardU.dll' if os.name == 'nt' else 'libstandard.so'
+    object_file = (name + '-std.obj') if os.name == 'nt' else (name + '-std.o')
+    
+    # Remove any old compiled files
+    for file in [shared_lib, object_file]:
+        if os.path.exists(file):
+            os.remove(file)
+    
+    # Compile new files and move shared library to simulation directory
     os.system('abaqus make library=' + name)
-    if os.name == 'nt':
-        shutil.copy('standardU.dll', '..')
-    else:
-        shutil.copy('libstandardU.so', '..')
+    shutil.copy(shared_lib, '..')
         
     os.chdir('..')
 

@@ -108,18 +108,13 @@ def run_cycle(cycle_nr, n_proc=1, run=True):
     model_name = names.get_model(cycle_nr)
     job_type = ANALYSIS if cycle_nr == 1 else RESTART
     
-    if user_settings.materials['rail']['material_model']=='user':
-        usub = user_settings.materials['rail']['mpar']['umat']
-    else:
-        usub = ''
-    usub=''
     if job_name in mdb.jobs:
         del(mdb.jobs[job_name])
     
     job = mdb.Job(getMemoryFromAnalysis=True, memory=90, memoryUnits=PERCENTAGE,
                   model=model_name, name=job_name, nodalOutputPrecision=SINGLE,
                   multiprocessingMode=THREADS, numCpus=n_proc, numDomains=n_proc,
-                  type=job_type,userSubroutine=usub)
+                  type=job_type)
     
     time_before = time.time()
     if run:

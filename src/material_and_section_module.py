@@ -15,7 +15,7 @@ if not src_path in sys.path:
 from user_settings import materials
 import get_utils as get
 import naming_mod as names
-
+import user_subroutine as usub
 
 def setup_sections():
     the_model = get.model()
@@ -52,6 +52,7 @@ def material(fe_model, matmod, mpar, name):
     elif matmod=='user':
         the_material.UserMaterial(type=MECHANICAL, unsymm=OFF, mechanicalConstants=mpar['user_mpar_array'])
         the_material.Depvar(n=mpar['nstatv'])
+        usub.copy_all_files_and_folders_from_folder(mpar['src_folder'])
     else:
         print('Material model ' + matmod + ' is not supported')
     
