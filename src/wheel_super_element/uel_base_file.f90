@@ -461,16 +461,4 @@ subroutine uel(rhs,amatrx,svars,energy,ndofel,nrhs,nsvars,&
     
     call uel_output(lflags, kinc, kstep, time(2))
     
-    call print_nodal_contributions(coords, Fprim, kstep, kinc, time)
-    ! write(*,*) 'additional uel output'
-    ! write(*,*) 'check norm of Kprim-Kel:'
-    ! write(*,*) norm(Kprim-amatrx)/norm(Kprim)
-    
-    ! write(*,*) 'check norm of antisymmetric part of Kprim:'
-    ! write(*,*) norm(Kprim-transpose(Kprim))/norm(Kprim)
-    
-    ! write(*,*) 'check norm of antisymmetric part of Kel:'
-    ! write(*,*) norm(amatrx-transpose(amatrx))/norm(Kprim)
-    ! write(*,*) 'end of additional uel output'
-    
 end subroutine uel
