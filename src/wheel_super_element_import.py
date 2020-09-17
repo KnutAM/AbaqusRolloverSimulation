@@ -24,7 +24,7 @@ import naming_mod as names
 import user_settings
 import get_utils as get
 import abaqus_python_tools as apt
-import user_subroutine as usub
+import inp_file_edit_module as inpmod
 
 
 def add_wheel_super_element_to_inp():
@@ -38,18 +38,12 @@ def add_wheel_super_element_to_inp():
         assy.regenerate()
     
     kwb = the_model.keywordBlock
-    kwb.synchVersions(storeNodesAndElements=True)
     
-    line_num = 0
-    kwb.insert(line_num, get_inp_str_element_definition())
-    
-    line_num = find_strings_in_iterable(kwb.sieBlocks, ['*Part', 'name='+names.wheel_part])
-    if line_num:
-        kwb.insert(line_num, get_inp_str_element_connectivity())
-        kwb.insert(line_num, get_inp_str_element_property())
-    else:
-        apt.log('could not find "*Part" and "name=' + names.wheel_part + '"')
-    
+    inpmod.add_after(kwb, get_inp_str_element_definition())
+    find_strings = ['*Part', 'name='+names.wheel_part]
+    inpmod.add_after(kwb, get_inp_str_element_connectivity(), find_strings)
+    inpmod.add_after(kwb, get_inp_str_element_property(), find_strings)
+
 
 def get_inp_str_element_definition():
     winfo = get_wheel_info()
@@ -65,7 +59,8 @@ def get_inp_str_element_connectivity():
     inp_str = '*Element, type=U1, ELSET=WHEEL_SUPER_ELEMENT\n'
     con_parts = ['%u' % num_nodes]*2
     inp_str = inp_str + ', '.join(['%u' % num_nodes]*2 + ['%u' % i for i in range(1, num_nodes)])
-    
+    apt.log('get_inp_str_element_connectivity returns:')
+    apt.log(inp_str)
     return inp_str
     
 
@@ -73,20 +68,6 @@ def get_inp_str_element_property():
     inp_str = '*UEL PROPERTY, ELSET=WHEEL_SUPER_ELEMENT\n'
     inp_str = inp_str + str(user_settings.materials['wheel']['mpar']['E'])
     return inp_str
-    
-
-def find_strings_in_iterable(iterable, find_strings):
-    # Return the first position in iterable which contains all strings in the list find_strings
-    # Input
-    # iterable      An iterable (e.g. list, tuple) containing strings
-    # find_strings  A list of strings that all must be in the string in iterable to produce a match
-    
-    for n, line in enumerate(iterable):
-        if all([find_string in line for find_string in find_strings]):
-            return n
-    
-    # If no match found return None
-    return None
     
 
 def setup_wheel():

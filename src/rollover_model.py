@@ -33,6 +33,7 @@ import naming_mod as names
 import get_utils as get
 import setup_next_rollover as next_rollover
 import user_subroutine as usub
+import move_back_module as movebackmod
 
 # Reload to account for script updates when running from inside abaqus CAE
 reload(matmod)
@@ -165,10 +166,15 @@ def setup_initial_model():
     # Setup output requests
     loadmod.setup_outputs()
     
-    # Edit input directly to add user element (should be done last)
+    # Direct editing of input file (should be done last)
+    the_model.keywordBlock.synchVersions(storeNodesAndElements=True)
+    
+    ## Add user element 
     wheelmod.add_wheel_super_element_to_inp()
     
-       
+    ## Add output to .fil file
+    movebackmod.add_output(cycle_nr=1)
+    
     return the_model
     
     
