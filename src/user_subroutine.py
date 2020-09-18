@@ -25,9 +25,8 @@ def setup():
 def generate():
     # Before submitting the first abaqus job, the generate routine should be called to create the 
     # necessary fortran files and compile these into a library
-    shutil.copy('C:/Users/knutan/Documents/Work/ProjectsWorkFolders/MU34/Project_2020_C_RolloverSimulation/abaqus_fil_test/urdfil.for',
-                folder)
-    copy_fortran_files_from_cwd()
+    shutil.copyfile('C:/Users/knutan/Documents/Work/ProjectsWorkFolders/MU34/Project_2020_C_RolloverSimulation/AbaqusRolloverSimulation/src/bc_usub/urdfil_2d.for',
+                    folder + '/urdfil.for')
     create_file()
     make()
     check_abaqus_env()
@@ -44,11 +43,8 @@ def copy_all_files_and_folders_from_folder(input_folder):
             shutil.copy(full_item_path, folder)
 
 
-def copy_fortran_files_from_cwd():
-    files_and_folders_in_cwd = os.listdir('.')
-    for file in files_and_folders_in_cwd:
-        if fortran_suffix in file:
-            shutil.copy(file, folder + '/')
+def copy_to_usub_dir(file_path):
+    shutil.copy(file_path, folder)
 
 
 def create_file():

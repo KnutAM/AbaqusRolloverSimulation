@@ -48,13 +48,20 @@ reload(get)
 reload(next_rollover)
 
 
+def save_node_info():
+    assy = get.assy()
+    
+
+
 def main():
     apt.setup_log_file()
     usub.setup()
     num_cycles = user_settings.num_cycles
     t0 = time.time()
     setup_initial_model()
+    return None
     usub.generate()
+    save_node_info()
     setup_time = time.time() - t0
     if num_cycles > 0:
         # If debugging continuation, can comment run_cycle(..) and uncomment run_time = -1.0
@@ -77,13 +84,6 @@ def main():
         t0 = time.time()
         next_rollover.setup_next_rollover(new_cycle_nr=nr)
         setup_time = time.time() - t0
-        # if nr == 2:
-            # FiOpRe = mdb.models['rollover_00002'].FieldOutputRequest(name='F-Output-2', 
-               # createStepName='return_00002', variables=('S', 'U'), substructures=(
-                # 'WHEEL.Entire Substructure', 'WHEEL.WHEEL-REFPT_', 'WHEEL.WHEELCENTER', 
-                # 'WHEEL.WHEEL_CONTACT_NODES', 'WHEEL.WHEEL_WHEEL'), sectionPoints=DEFAULT, 
-                # rebar=EXCLUDE)
-            # FiOpRe.deactivate(stepName='rolling_start_00002')
         run_time = run_cycle(cycle_nr=nr)
         apt.log('Setup time:  ' + str(setup_time) + 's \n' + 
                 'Run time:    ' + str(run_time) + ' s \n' + 

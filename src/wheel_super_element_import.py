@@ -25,6 +25,7 @@ import user_settings
 import get_utils as get
 import abaqus_python_tools as apt
 import inp_file_edit_module as inpmod
+import user_subroutine as usub
 
 
 def add_wheel_super_element_to_inp():
@@ -59,8 +60,6 @@ def get_inp_str_element_connectivity():
     inp_str = '*Element, type=U1, ELSET=WHEEL_SUPER_ELEMENT\n'
     con_parts = ['%u' % num_nodes]*2
     inp_str = inp_str + ', '.join(['%u' % num_nodes]*2 + ['%u' % i for i in range(1, num_nodes)])
-    apt.log('get_inp_str_element_connectivity returns:')
-    apt.log(inp_str)
     return inp_str
     
 
@@ -84,9 +83,13 @@ def setup_wheel():
 
 def move_super_element_to_cwd():
     se_path = user_settings.super_element_path
-    filenames = ['uel_coords.npy', 'uel_info.json']
+    
+    # Move uel.for / uel.f to user subroutine directory
     uel_lib = 'uel.for' if os.name=='nt' else 'uel.f'
-    filenames.append(uel_lib)
+    usub.copy_to_usub_dir(se_path + '/' + uel_lib)
+    
+    # Move information files to current working directory
+    filenames = ['uel_coords.npy', 'uel_info.json']
     for filename in filenames:
         try:
             copyfile(se_path + '/' + filename, os.getcwd() + '/' + filename)

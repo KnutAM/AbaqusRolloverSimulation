@@ -39,6 +39,10 @@ def add_output(cycle_nr=1):
     
     # Add output for wheel contact nodes
     nset = names.wheel_inst + '.' + names.wheel_contact_nodes
+    inpmod.add_at_end_of_cat(kwb, get_output_string(nset, variable='COORD'), 
+                             category='Step', 
+                             name=names.get_step_rolling(cycle_nr))
+                             
     inpmod.add_at_end_of_cat(kwb, get_output_string(nset, variable='U'), 
                              category='Step', 
                              name=names.get_step_rolling(cycle_nr))

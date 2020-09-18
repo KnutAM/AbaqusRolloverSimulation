@@ -27,14 +27,21 @@ implicit none
         double precision, allocatable   :: nodes_u_tmp(:,:) ! Node displacements
         integer, allocatable            :: nodes_num_tmp(:) ! Node numbers
         integer                         :: k1               ! Counter
+        character(len=8)                :: set_name
         
         
         k1 = 0
+        write(*, "(A15, A15)") 'Record type', 'Record length'
         do while (.true.)
             call dbfile(0, array, fil_status)
             if (fil_status .ne. 0) exit
             record_length = transfer(array(1), 1)
             record_type_key = transfer(array(2), 1)
+            write(*, "(I15, I15)") record_type_key, record_length
+            if (record_type_key==1911) then ! Output request definition
+                write(*, "(A40, I8)") 'elem(0), node(1), model(2), energy(3)', transfer(array(3), 1)
+                write(*, "(A40, A8)") 'set name', array(4)
+            endif
             if (record_type_key==101) then  ! Node displacement information
                 ! If first iteration, allocate tmp variables
                 if (k1 == 0) then 
