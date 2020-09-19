@@ -232,12 +232,14 @@ implicit none
     integer                         :: record_type_key  ! Variable describing current record type
     
     ! Other internal variables
-    integer, allocatable            :: node_cn(:)           ! Contact node numbers (coord) [Nc]
-    double precision, allocatable   :: node_c(:,:)          ! Contact node coordinates [2,Nc]
+    integer, allocatable            :: tmp_n(:)         ! Temporary variable for getting node nums
+    double precision, allocatable   :: tmp_c(:,:)       ! Temporary variable for getting node coords
+    integer, allocatable            :: node_cn(:)       ! Contact node numbers (coord) [Nc]
+    double precision, allocatable   :: node_c(:,:)      ! Contact node coordinates [2,Nc]
+    double precision, allocatable   :: rp_c(:,:)        ! Reference point coordinates [2,1]
     
     ! Check to ensure that multiple data sources does not exist
     integer                         :: check_rp_node_num_data       
-    
     
     check_rp_node_num_data = 0
     
@@ -251,11 +253,18 @@ implicit none
             if ((record_length-3)==2) then      ! 2 displacements => contact node
                 call get_node_data(node_n, node_u, array)
             elseif ((record_length-3)==3) then    ! 3 displacements => assume reference point
-                rp_displacements = array(4:6)
+                rp_u = array(4:6)
                 check_rp_node_num_data = check_rp_node_num_data + 1     ! Others will give allocation error
             endif
         elseif (record_type_key==107) then  ! Node coordinates
-            call get_node_data(node_cn, node_c, array)
+            call get_node_data(tmp_n, tmp_c, array)
+            if (size(tmp_n) > 1) then   ! More than one node, contact nodes
+                allocate(node_cn, source=tmp_n)
+                allocate(node_c, source=tmp_c)
+            else
+                allocate(rp_c, source=tmp_c)
+            endif
+            deallocate(tmp_n, tmp_c)
         endif
         
         call dbfile(0, array, fil_status)
@@ -267,21 +276,68 @@ implicit none
         call xit()  ! Quit analysis
     endif
     
-    call sort_node_disp(node_cn, node_c, node_n, node_u)
+    call sort_node_disp(rp_c, rp_u, node_cn, node_c, node_n, node_u)
     
 end subroutine 
 
-subroutine sort_node_disp(node_cn, node_c, node_n, node_u)
+subroutine sort_node_disp(rp_c, rp_u, node_cn, node_c, node_n, node_u)
 implicit none
+    ! Sort node_n and node_u by angle to -y axis. Note side effect that node_c become relative to rp
+    ! and initial coordinates. This is not sorted. 
+    double precision                :: rp_c(:,:)                    ! Reference point coordinates
+    double precision                :: rp_u(3)                      ! Reference point displacements    
     integer                         :: node_cn(:), node_n(:)        ! Node numbers (coord,disp)
     double precision                :: node_c(:,:), node_u(:,:)     ! Node coords and disps
     double precision, allocatable   :: angles(:)                    ! Node angles to -y axis
     integer, allocatable            :: sort_inds(:)                 ! Sorting inds to sort
+    integer                         :: n_nodes                      ! Number of nodes
+    integer                         :: k1                           ! Iterator
+            
+    n_nodes = size(node_c,1)
+    ! Calculate coordinates relative reference point. Note that with nlgeom=true coord are current
+    ! coordinates, and to get initial value we subtract the displacements.
+    do k1=1,n_nodes
+        node_c(k1,:) = (node_c(k1,:) - node_u(k1,:)) - (rp_c(k1,1) - rp_u(k1))
+    enddo
     
-    ! Sort node_n and node_u by angle. This ensures consistent numbering when applying boundary 
-    ! conditions. To do this, we should also output the reference point coordinate. However, this 
-    ! require some additional logic to separate from nodal information. Could use temporary variable 
-    ! to save it in, and check if more than one node is in the set. (This should be done in get_data)
+    ! Calculate angles relative -y axis
+    allocate(angles(n_nodes))
+    angles = atan2(-node_c(1,:), -node_c(2,:))
+    
+    ! Get sorting indices
+    call sortinds(angles, sort_inds)
+    
+    ! Sort node numbers and displacements.
+    node_n = node_n(sort_inds)
+    node_u = node_u(:, sort_inds)
+    
+end subroutine
+
+subroutine sortinds(array, sort_inds)
+! Crude function to find determine sort_inds such that array(sort_inds) is sorted in ascending order
+implicit none
+    double precision        :: array(:)     ! Array with values to be sorted
+    integer, allocatable    :: sort_inds(:) ! Index array to be created
+    logical, allocatable    :: unused(:)    ! Logical array to remove assigned values in minloc
+    integer                 :: k1           ! Iterator
+    
+    allocate(unused(size(array)))
+    
+    if (.not.allocated(sort_inds)) then
+        allocate(sort_inds(size(array)))
+    else
+        if (size(sort_inds).ne.size(array)) then
+            write(*,*) 'array and sort_inds must have same size in sortinds subroutine'
+            call xit()
+        endif
+    endif
+        
+    unused = .true.
+        
+    do k1=1,size(array)
+        sort_inds(k1) = minloc(array, dim=1, mask=unused)
+        unused(sort_inds(k1)) = .false.
+    enddo
     
 end subroutine
  
@@ -307,9 +363,7 @@ implicit none
     CHARACTER(len=255)              :: cwd, filename        !
     integer                         :: k1                   ! Iterator
     
-    
-    
-    call get_data(node_u, rp_u, kstep, kinc)
+    call get_data(node_n, node_u, rp_u, kstep, kinc)
     
     ! Use Abaqus utility routine, getoutdir, to get the output directory of the current job
     ! Otherwise, a special temporary folder will contain all the files making it difficult to debug.
