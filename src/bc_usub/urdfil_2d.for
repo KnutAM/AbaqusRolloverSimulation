@@ -327,27 +327,22 @@ implicit none
     do while (fil_status==0)
         record_length = transfer(array(1), 1)
         record_type_key = transfer(array(2), 1)
-        write(*,"(A, I0, A, I0)") 'key = ', record_type_key, ', nval = ', (record_length - 3)
         if (record_type_key==101) then  ! Node displacement information
             if ((record_length-3)==2) then      ! 2 displacements => contact node
                 call get_node_data(node_n, node_u, array)
-                write(*,*) 'node_u read'
             elseif ((record_length-3)==3) then    ! 3 displacements => assume reference point
                 rp_u = array(4:6)
                 check_rp_disp = check_rp_disp + 1
-                write(*,*) 'rp_u read'
             endif
         elseif (record_type_key==107) then  ! Node coordinates
             call get_node_data(tmp_n, tmp_c, array)
             if (size(tmp_n) > 1) then   ! More than one node, contact nodes
                 allocate(node_cn, source=tmp_n)
                 allocate(node_c, source=tmp_c)
-                write(*,*) 'node_c read'
             else
                 rp_c = tmp_c(:,1)
                 rp_n = tmp_n(1)
                 check_rp_coord = check_rp_coord + 1
-                write(*,*) 'rp_c read'
             endif
             deallocate(tmp_n, tmp_c)
         endif
@@ -408,12 +403,12 @@ implicit none
     ! Note that with nlgeom=true coord are current coordinates, and we need the initial values.
     allocate(node_c_rel, source=node_c)
     do k1=1,n_nodes
-        node_c_rel(:,k1) = (node_c(:,k1) - node_u(:,k1)) - (rp_c(k1) - rp_u(k1))
+        node_c_rel(:,k1) = (node_c(:,k1) - node_u(:,k1)) - (rp_c - rp_u(1:2))
     enddo
     
     ! Step 3: Calculate angles relative -y axis
     allocate(angles(n_nodes))
-    angles = atan2(-node_c(1,:), -node_c(2,:))
+    angles = atan2(node_c_rel(1,:), -node_c_rel(2,:))
     
     ! Get sorting indices based on angles
     call sortinds(angles, sort_inds)
@@ -466,9 +461,7 @@ implicit none
     integer                         :: io_status    ! Input/output status
     
     ! Open output file
-    write(*,*) 'Opening output file'
     call getoutdir(filename, cwd_length)
-    write(*,*) 'cwd: '//trim(filename)
     
     ! Check that cwd is not too long (current limit of 256 from abaqus getoutdir)
     if (len(trim(filename)) > (len(filename)-20)) then
@@ -477,14 +470,14 @@ implicit none
         call xit()
     endif
     
-    write(filename, "(A, A, I0, A)") trim(filename), '/bc_step', kstep, '.txt'
-    write(*,*) 'filename = '//trim(filename)
-    file_id = 101
-    open(file_id, file=trim(filename), iostat=io_status)
-    write(*,"(A, I0)") 'iostat = ', io_status
+    ! Create filename, note that bc applied in the subsequent step, hence kstep+1
+    write(filename, "(A, A, I0, A)") trim(filename), '/bc_step', kstep+1, '.txt'
+    !file_id = 101
+    open(newunit=file_id, file=trim(filename), iostat=io_status)
     
     ! Calculate motion for the reference point
     num_elem_roll = nint(rp_u(3)/angle_incr)
+    
     return_angle = rp_u(3) - num_elem_roll*angle_incr
     
     ! Equations that help understanding why we arrive at dx_rp and that being used later (Eq. 4)
@@ -495,8 +488,7 @@ implicit none
     
     ! Save reference point prescribed displacements to first row
     u_new_rp = [0.d0, rp_u(2), return_angle]
-    write(file_id, "(I0, E25.15, E25.15, E25.15)", iostat=io_status) rp_n, u_new_rp(1), u_new_rp(2), u_new_rp(3)
-    write(*,"(A, I0)") 'rp written, iostat = ', io_status
+    write(file_id, "(I0, 3ES25.15)", iostat=io_status) rp_n, u_new_rp(1), u_new_rp(2), u_new_rp(3)
     
     ! Save remaining node prescribed displacements to subsequent rows
     nnod = size(node_n)
@@ -508,8 +500,7 @@ implicit none
         !x_new = x_rp_new + (x_old - x_rp_old) = x_old + dx_rp  (4)
         x_new = x_old + dx_rp
         u_new = x_new - x0_new
-        write(file_id, "(I0, E25.15, E25.15)") node_n(new_ind), u_new(1), u_new(2)
-        write(*,"(A, I0, A, I0)") 'node row ', old_ind, ' written, iostat = ', io_status
+        write(file_id, "(I0, 2ES25.15)") node_n(new_ind), u_new(1), u_new(2)
     enddo
     
     close(file_id)
