@@ -164,9 +164,81 @@ implicit none
 end subroutine
 
 end module
+
+module sortinds_mod
+implicit none
+
+private
+
+public  :: sortinds             ! Determine indices that sorts the given array
+
+interface sortinds
+    procedure sortinds_int, sortinds_dbl
+end interface sortinds
+
+contains
+
+subroutine sortinds_dbl(array, sort_inds)
+! Crude subroutine to determine sort_inds such that array(sort_inds) is sorted in ascending order
+implicit none
+    double precision        :: array(:)     ! Array with values to be sorted
+    integer, allocatable    :: sort_inds(:) ! Index array to be created
+    logical, allocatable    :: unused(:)    ! Logical array to remove assigned values in minloc
+    integer                 :: k1           ! Iterator
+    
+    allocate(unused(size(array)))
+    
+    if (.not.allocated(sort_inds)) then
+        allocate(sort_inds(size(array)))
+    else
+        if (size(sort_inds).ne.size(array)) then
+            write(*,*) 'array and sort_inds must have same size in sortinds subroutine'
+            call xit()
+        endif
+    endif
+        
+    unused = .true.
+        
+    do k1=1,size(array)
+        sort_inds(k1) = minloc(array, dim=1, mask=unused)
+        unused(sort_inds(k1)) = .false.
+    enddo
+    
+end subroutine
+
+subroutine sortinds_int(array, sort_inds)
+! Crude subroutine to determine sort_inds such that array(sort_inds) is sorted in ascending order
+implicit none
+    integer                 :: array(:)     ! Array with values to be sorted
+    integer, allocatable    :: sort_inds(:) ! Index array to be created
+    logical, allocatable    :: unused(:)    ! Logical array to remove assigned values in minloc
+    integer                 :: k1           ! Iterator
+    
+    allocate(unused(size(array)))
+    
+    if (.not.allocated(sort_inds)) then
+        allocate(sort_inds(size(array)))
+    else
+        if (size(sort_inds).ne.size(array)) then
+            write(*,*) 'array and sort_inds must have same size in sortinds subroutine'
+            call xit()
+        endif
+    endif
+        
+    unused = .true.
+        
+    do k1=1,size(array)
+        sort_inds(k1) = minloc(array, dim=1, mask=unused)
+        unused(sort_inds(k1)) = .false.
+    enddo
+    
+end subroutine
+
+end module
     
 module urdfil_mod
 use resize_array_mod
+use sortinds_mod
 implicit none
     integer, parameter  :: NPRECD = 2           ! Precision for floats
     integer, parameter  :: GUESS_NUM = 100     ! Guess for number of contact nodes
@@ -215,15 +287,18 @@ implicit none
 end subroutine
     
 
-subroutine get_data(node_n, node_u, rp_u, kstep, kinc)
+subroutine get_data(node_n, node_u, node_c, rp_n, rp_u, angle_incr, kstep, kinc)
 implicit none
     ! Output
-    integer, allocatable            :: node_n(:)    ! Contact node numbers (disp) [Nc]
-    double precision, allocatable   :: node_u(:,:)  ! Contact node displacements [2,Nc]
-    double precision                :: rp_u(3)      ! Reference point displacements
+    integer, allocatable            :: node_n(:)        ! Contact node numbers (disp) [Nc]
+    double precision, allocatable   :: node_u(:,:)      ! Contact node displacements [2,Nc]
+    double precision, allocatable   :: node_c(:,:)      ! Contact node coordinates [2,Nc]
+    integer, intent(out)            :: rp_n             ! Reference point node number
+    double precision, intent(out)   :: rp_u(3)          ! Reference point displacements
+    double precision, intent(out)   :: angle_incr       ! Angular nodal spacing (wheel)
     
     ! Input
-    integer                         :: kstep, kinc              ! Current step and increment, resp.
+    integer, intent(in)             :: kstep, kinc      ! Current step and increment, resp.
     
     ! Variables for reading .fil files
     double precision                :: array(513)       ! Array to save float information to
@@ -235,14 +310,14 @@ implicit none
     integer, allocatable            :: tmp_n(:)         ! Temporary variable for getting node nums
     double precision, allocatable   :: tmp_c(:,:)       ! Temporary variable for getting node coords
     integer, allocatable            :: node_cn(:)       ! Contact node numbers (coord) [Nc]
-    double precision, allocatable   :: node_c(:,:)      ! Contact node coordinates [2,Nc]
-    double precision, allocatable   :: rp_c(:,:)        ! Reference point coordinates [2,1]
+    double precision                :: rp_c(2)          ! Reference point coordinates [2]
     
-    ! Check to ensure that multiple data sources does not exist
-    integer                         :: check_rp_node_num_data       
+    ! Check that multiple data sources doesn't exist (for arrays that do not give alloc error)
+    integer                         :: check_rp_disp
+    integer                         :: check_rp_coord
     
-    check_rp_node_num_data = 0
-    
+    check_rp_disp = 0   
+    check_rp_coord = 0
     ! Set position to current increment and step
     call posfil(kstep,kinc,array,fil_status)
 
@@ -254,7 +329,7 @@ implicit none
                 call get_node_data(node_n, node_u, array)
             elseif ((record_length-3)==3) then    ! 3 displacements => assume reference point
                 rp_u = array(4:6)
-                check_rp_node_num_data = check_rp_node_num_data + 1     ! Others will give allocation error
+                check_rp_disp = check_rp_disp + 1   
             endif
         elseif (record_type_key==107) then  ! Node coordinates
             call get_node_data(tmp_n, tmp_c, array)
@@ -262,7 +337,9 @@ implicit none
                 allocate(node_cn, source=tmp_n)
                 allocate(node_c, source=tmp_c)
             else
-                allocate(rp_c, source=tmp_c)
+                rp_c = tmp_c(:,1)
+                rp_n = tmp_n(1)
+                check_rp_coord = check_rp_coord + 1
             endif
             deallocate(tmp_n, tmp_c)
         endif
@@ -270,81 +347,149 @@ implicit none
         call dbfile(0, array, fil_status)
     enddo
     
-    if (check_rp_node_num_data > 1) then
+    if ((check_rp_disp > 1).or.(check_rp_coord > 1)) then
         write(*,*) 'ERROR: multiple data sources found in .fil file'
-        write(*,"(A,I1)") 'check_rp_node_num_data = ', check_rp_node_num_data
+        write(*,"(A,I0)") 'check_rp_disp  = ', check_rp_disp
+        write(*,"(A,I0)") 'check_rp_coord = ', check_rp_coord
         call xit()  ! Quit analysis
     endif
     
-    call sort_node_disp(rp_c, rp_u, node_cn, node_c, node_n, node_u)
+    call sort_node_disp(rp_c, rp_u, node_cn, node_c, node_n, node_u, angle_incr)
     
 end subroutine 
 
-subroutine sort_node_disp(rp_c, rp_u, node_cn, node_c, node_n, node_u)
+subroutine sort_node_disp(rp_c, rp_u, node_cn, node_c, node_n, node_u, angle_incr)
 implicit none
-    ! Sort node_n and node_u by angle to -y axis. Note side effect that node_c become relative to rp
-    ! and initial coordinates. This is not sorted. 
-    double precision                :: rp_c(:,:)                    ! Reference point coordinates
-    double precision                :: rp_u(3)                      ! Reference point displacements    
-    integer                         :: node_cn(:), node_n(:)        ! Node numbers (coord,disp)
-    double precision                :: node_c(:,:), node_u(:,:)     ! Node coords and disps
+    ! Sort node_n, node_u and node_c by angle to -y axis. 
+    ! Also, calculate the angle increment between nodes
+    double precision, intent(in)    :: rp_c(:)                      ! Reference point coordinates
+    double precision, intent(in)    :: rp_u(3)                      ! Reference point displacements    
+    integer, intent(in)             :: node_cn(:)                   ! Node numbers for coord
+    integer, intent(inout)          :: node_n(:)                    ! Node numbers for disp
+    double precision, intent(inout) :: node_c(:,:), node_u(:,:)     ! Node coords and disps
+    double precision, intent(out)   :: angle_incr                   ! Angular nodal spacing (wheel)
     double precision, allocatable   :: angles(:)                    ! Node angles to -y axis
+    double precision, allocatable   :: node_c_rel(:,:)              ! Node coords relative refpoint
     integer, allocatable            :: sort_inds(:)                 ! Sorting inds to sort
     integer                         :: n_nodes                      ! Number of nodes
     integer                         :: k1                           ! Iterator
-            
+    
     n_nodes = size(node_c,1)
-    ! Calculate coordinates relative reference point. Note that with nlgeom=true coord are current
-    ! coordinates, and to get initial value we subtract the displacements.
+    
+    ! Step 1: Ensure that lists with coordinates and displacements have the same node order. 
+    !         Probably, this is not necessary as the same node order is used each time, but if not 
+    !         it will result in an error that is very hard to find. It is quick to compare anyways
+    if (.not.all(node_cn == node_n)) then            
+        call sortinds(node_n, sort_inds)
+        node_n = node_n(sort_inds)
+        node_u = node_u(:, sort_inds)
+        call sortinds(node_cn, sort_inds)
+        ! node_cn = node_cn(sort_inds)  ! We do not need node_cn anymore, from now on equal to node_n.
+        node_c = node_c(:, sort_inds)
+    endif
+    
+    ! Step 2: Calculate coordinates relative reference point. 
+    ! Note that with nlgeom=true coord are current coordinates, and we need the initial values.
+    allocate(node_c_rel, source=node_c)
     do k1=1,n_nodes
-        node_c(k1,:) = (node_c(k1,:) - node_u(k1,:)) - (rp_c(k1,1) - rp_u(k1))
+        node_c_rel(k1,:) = (node_c(k1,:) - node_u(k1,:)) - (rp_c(k1) - rp_u(k1))
     enddo
     
-    ! Calculate angles relative -y axis
+    ! Step 3: Calculate angles relative -y axis
     allocate(angles(n_nodes))
     angles = atan2(-node_c(1,:), -node_c(2,:))
     
-    ! Get sorting indices
+    ! Get sorting indices based on angles
     call sortinds(angles, sort_inds)
     
-    ! Sort node numbers and displacements.
+    ! Sort node numbers, coordinates and displacements.
     node_n = node_n(sort_inds)
+    node_c = node_c(:, sort_inds)
     node_u = node_u(:, sort_inds)
     
-end subroutine
-
-subroutine sortinds(array, sort_inds)
-! Crude function to find determine sort_inds such that array(sort_inds) is sorted in ascending order
-implicit none
-    double precision        :: array(:)     ! Array with values to be sorted
-    integer, allocatable    :: sort_inds(:) ! Index array to be created
-    logical, allocatable    :: unused(:)    ! Logical array to remove assigned values in minloc
-    integer                 :: k1           ! Iterator
-    
-    allocate(unused(size(array)))
-    
-    if (.not.allocated(sort_inds)) then
-        allocate(sort_inds(size(array)))
-    else
-        if (size(sort_inds).ne.size(array)) then
-            write(*,*) 'array and sort_inds must have same size in sortinds subroutine'
-            call xit()
-        endif
-    endif
-        
-    unused = .true.
-        
-    do k1=1,size(array)
-        sort_inds(k1) = minloc(array, dim=1, mask=unused)
-        unused(sort_inds(k1)) = .false.
-    enddo
+    ! Calculate angle increment:
+    angle_incr = angles(sort_inds(2)) - angles(sort_inds(1))
     
 end subroutine
  
 end module urdfil_mod
 
+module bc_mod
+implicit none
+    
+contains
+
+subroutine set_bc(node_n, node_u, node_c, rp_n, rp_u, angle_incr, kstep)
+implicit none
+    integer, intent(in)             :: node_n(:)    ! Node numbers
+    double precision, intent(in)    :: node_u(:,:)  ! Node displacements
+    double precision, intent(in)    :: node_c(:,:)  ! Node coordinates
+    integer, intent(in)             :: rp_n         ! Node number for reference point
+    double precision, intent(in)    :: rp_u(:)      ! Reference point disp (incl. rot. at pos 3)
+    double precision, intent(in)    :: angle_incr   ! Angular nodal spacing
+    integer, intent(in)             :: kstep        ! Current step
+    
+    integer                         :: nnod             ! Number of nodes
+    
+    integer                         :: num_elem_roll    ! How many elements to roll back
+    double precision                :: return_angle     ! What angle to return back to
+    
+    integer                         :: old_ind  ! Node indices for the old node from which the disp
+    integer                         :: new_ind  ! should be applied to the new node
+    
+    double precision                :: dx_rp(2)         ! Linear motion of reference point
+    double precision                :: x0_new(2)        ! Initial position of new node
+    double precision                :: x_old(2)         ! Current position of corresponding old node
+    double precision                :: x_new(2)         ! New (cf. current) position of new node
+    double precision                :: u_new(2)         ! Displacements applied to new nodes
+    double precision                :: u_new_rp(3)      ! Disp (and rot) applied to ref. point
+    
+    integer                         :: cwd_length   ! Required when calling abaqus getoutdir, unused
+    character(len=256)              :: filename     ! Full path to file with boundary conditions
+    integer                         :: file_id      ! File identifier for boundary condition file    
+    
+    ! Open output file
+    call getoutdir(filename, cwd_length)
+    write(filename, "(A, A, I0, A)") filename, '/bc_step', kstep, '.txt'
+    file_id = 101
+    open(file_id, file=trim(filename))
+    
+    ! Calculate motion for the reference point
+    num_elem_roll = nint(rp_u(3)/angle_incr)
+    return_angle = rp_u(3) - num_elem_roll*angle_incr
+    
+    ! Equations that help understanding why we arrive at dx_rp and that being used later (Eq. 4)
+    !x_rp_old = (rp_c - rp_u) + rp_u                (1)
+    !x_rp_new = (rp_c - rp_u) + [0.0, rp_u(2)]      (2)
+    !dx_rp = x_rp_new - x_rp_old                    (3)
+    dx_rp = [-rp_u(1), 0.d0]
+    
+    ! Save reference point prescribed displacements to first row
+    u_new_rp = [0.d0, rp_u(2), return_angle]
+    write(file_id, "(I0, E25.15, E25.15, E25.15)") rp_n, u_new_rp(1), u_new_rp(2), u_new_rp(3)
+    
+    ! Save remaining node prescribed displacements to subsequent rows
+    nnod = size(node_n)
+    do old_ind=1,(nnod-num_elem_roll)
+        new_ind = old_ind + num_elem_roll
+        x0_new = node_c(:, new_ind) - node_u(:, new_ind)
+        x_old = node_c(:, old_ind)
+        
+        !x_new = x_rp_new + (x_old - x_rp_old) = x_old + dx_rp  (4)
+        x_new = x_old + dx_rp
+        u_new = x_new - x0_new
+        write(file_id, "(I0, E25.15, E25.15)") node_n(new_ind), u_new(1), u_new(2)
+    enddo
+    
+    close(file_id)
+    
+end subroutine
+    
+end module bc_mod
+
 subroutine urdfil(lstop,lovrwrt,kstep,kinc,dtime,time)
 use urdfil_mod
+use bc_mod
 implicit none
     ! Variables to be defined
     integer             :: lstop        ! Flag, set to 1 to stop analysis
@@ -355,33 +500,19 @@ implicit none
     integer             :: kstep, kinc  ! Current step and increment, respectively
     double precision    :: time(2)      ! Time at end of increment (step, total)
     
-    ! New variables
-    double precision, allocatable   :: node_u(:,:)          ! Contact node displacements
+    ! Internal variables
     integer, allocatable            :: node_n(:)            ! Contact node numbers
+    double precision, allocatable   :: node_u(:,:)          ! Contact node displacements
+    double precision, allocatable   :: node_c(:,:)          ! Contact node coordinates
+    integer                         :: rp_n                 ! Reference point node number
     double precision                :: rp_u(3)              ! Reference point displacements
-    integer                         :: file_id, cwd_length
-    CHARACTER(len=255)              :: cwd, filename        !
-    integer                         :: k1                   ! Iterator
+    double precision                :: angle_incr           ! Angular nodal spacing (wheel)
     
-    call get_data(node_n, node_u, rp_u, kstep, kinc)
+    call get_data(node_n, node_u, node_c, rp_n, rp_u, angle_incr, kstep, kinc)
     
-    ! Use Abaqus utility routine, getoutdir, to get the output directory of the current job
-    ! Otherwise, a special temporary folder will contain all the files making it difficult to debug.
-    call getoutdir(cwd, cwd_length)
-    write(filename, "(A, I0, A)") '/fil_results_step', kstep, '.txt'
-    file_id = 101
-    
-    open(file_id, file=trim(cwd)//trim(filename))
-    write(*,*) 'urdfil called, writing to file'
-    write(*,*) '"'//trim(cwd)//trim(filename)//'"'
-    write(file_id,"(A4, A25, A25)") 'NUM', 'U1', 'U2'
-    
-    do k1=1,size(node_n)
-        write(file_id,"(I4, E25.15, E25.15)") node_n(k1), node_u(1,k1), node_u(2,k1)
-    enddo
-    close(file_id)
+    call set_bc(node_n, node_u, node_c, rp_n, rp_u, angle_incr, kstep)
     
     lstop = 0   ! Continue analysis (set lstop=1 to stop analysis)
     lovrwrt = 1 ! Overwrite read results. (These results not needed later, set to 0 to keep in .fil)
     
-END
+end subroutine
