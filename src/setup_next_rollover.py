@@ -143,7 +143,7 @@ def moveback_reapply_load(new_cycle_nr, last_step_in_old_job, lock_rail=True):
         xnew = x_rp_new + (xold - x_rp_old)
         
         unew = xnew - Xnew                      # Displacement is relative undeformed pos
-                    
+        
         wnode_bc_name = return_step_name + '_wheel_' + str(new_node_id)
         region = new_model.rootAssembly.Set(name=wnode_bc_name, 
                                             nodes=wheel_nodes[(new_node_id-1):(new_node_id)])

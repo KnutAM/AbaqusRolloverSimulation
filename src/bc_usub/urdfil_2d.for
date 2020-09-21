@@ -513,6 +513,8 @@ subroutine urdfil(lstop,lovrwrt,kstep,kinc,dtime,time)
 use urdfil_mod
 use bc_mod
 implicit none
+    integer, parameter  :: N_STEP_INITIAL = 3   ! Number of steps including first rollover
+    integer, parameter  :: N_STEP_BETWEEN = 3   ! Number of steps between rollover simulations
     ! Variables to be defined
     integer             :: lstop        ! Flag, set to 1 to stop analysis
     integer             :: lovrwrt      ! Flag, set to 1 to allow overwriting of
@@ -530,9 +532,11 @@ implicit none
     double precision                :: rp_u(3)              ! Reference point displacements
     double precision                :: angle_incr           ! Angular nodal spacing (wheel)
     
-    call get_data(node_n, node_u, node_c, rp_n, rp_u, angle_incr, kstep, kinc)
-    
-    call set_bc(node_n, node_u, node_c, rp_n, rp_u, angle_incr, kstep)
+    ! There are 
+    if (mod(kstep-N_STEP_INITIAL, N_STEP_BETWEEN) == 0) then
+        call get_data(node_n, node_u, node_c, rp_n, rp_u, angle_incr, kstep, kinc)
+        call set_bc(node_n, node_u, node_c, rp_n, rp_u, angle_incr, kstep)
+    endif
     
     lstop = 0   ! Continue analysis (set lstop=1 to stop analysis)
     lovrwrt = 1 ! Overwrite read results. (These results not needed later, set to 0 to keep in .fil)
