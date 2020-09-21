@@ -58,39 +58,47 @@ def main():
     usub.setup()
     num_cycles = user_settings.num_cycles
     t0 = time.time()
-    setup_initial_model()
-    # return None
-    usub.generate()
-    save_node_info()
-    setup_time = time.time() - t0
-    if num_cycles > 0:
-        # If debugging continuation, can comment run_cycle(..) and uncomment run_time = -1.0
-        # to avoid simulating the first cycle if result files already exist. 
-        #run_time = -1.0
-        run_time = run_cycle(cycle_nr=1)
-    else:
-        run_time = run_cycle(cycle_nr=1, n_proc=1, run=False)
-        return
-    
-    t0 = time.time()
-    save_results(cycle_nr=1)
-    result_time = time.time() - t0
-    apt.log('Setup time:  ' + str(setup_time) + 's \n' + 
-            'Run time:    ' + str(run_time) + ' s \n' + 
-            'Result time: ' + str(result_time) + ' s')
-    
-    
-    for nr in range(2, num_cycles+1):
-        t0 = time.time()
-        next_rollover.setup_next_rollover(new_cycle_nr=nr)
+    if user_settings.use_restart:
+        setup_initial_model()
+        #return None
+        usub.generate()
+        save_node_info()
         setup_time = time.time() - t0
-        run_time = run_cycle(cycle_nr=nr)
+        if num_cycles > 0:
+            # If debugging continuation, can comment run_cycle(..) and uncomment run_time = -1.0
+            # to avoid simulating the first cycle if result files already exist. 
+            #run_time = -1.0
+            run_time = run_cycle(cycle_nr=1)
+        else:
+            run_time = run_cycle(cycle_nr=1, n_proc=1, run=False)
+            return
+        
+        t0 = time.time()
+        save_results(cycle_nr=1)
+        result_time = time.time() - t0
         apt.log('Setup time:  ' + str(setup_time) + 's \n' + 
                 'Run time:    ' + str(run_time) + ' s \n' + 
                 'Result time: ' + str(result_time) + ' s')
-        save_results(cycle_nr=nr)
-    
-    join_odb_files([names.get_odb(cycle_nr=i+1) for i in range(num_cycles)])
+        
+        
+        for nr in range(2, num_cycles+1):
+            t0 = time.time()
+            next_rollover.setup_next_rollover(new_cycle_nr=nr)
+            setup_time = time.time() - t0
+            run_time = run_cycle(cycle_nr=nr)
+            apt.log('Setup time:  ' + str(setup_time) + 's \n' + 
+                    'Run time:    ' + str(run_time) + ' s \n' + 
+                    'Result time: ' + str(result_time) + ' s')
+            save_results(cycle_nr=nr)
+        
+        join_odb_files([names.get_odb(cycle_nr=i+1) for i in range(num_cycles)])
+    else:
+        setup_full_model()
+        setup_time = time.time() - t0
+        run_time = run_cycle(cycle_nr=1)
+        
+        apt.log('Setup time: ' + str(setup_time) + 's \n' + 
+                'Run time:   ' + str(run_time) + 's')
     
     
 def join_odb_files(odb_file_list):
@@ -172,10 +180,105 @@ def setup_initial_model():
     ## Add user element 
     wheelmod.add_wheel_super_element_to_inp()
     
-    ## Add output to .fil file
-    movebackmod.add_output(cycle_nr=1)
+    if not user_settings.use_restart:            
+        ## Add output to .fil file
+        movebackmod.add_output(cycle_nr=1)
     
     return the_model
+    
+def setup_full_model():
+    setup_initial_model()   # Should potentially edit input file at end of setup_full_model and not
+                            # at the end of setup_initial_model. But for now, that should be ok.
+    
+    if user_settings.num_cycles > 1:
+        setup_remaining_rolling_cycles()
+
+
+def setup_steps(the_model, cycle_nr, rol_par, inc_par):
+    previous_step_name = names.get_step_rolling(cycle_nr-1)
+    return_step_name = names.get_step_return(cycle_nr)
+    time = user_settings.numtrick['move_back_time']
+    the_model.StaticStep(name=return_step_name, previous=previous_step_name, 
+                     maxNumInc=2, timePeriod=time, initialInc=time,
+                     amplitude=STEP
+                     )
+    
+    reapply_step_name = 'reapply' + names.cycle_str(cycle_nr)
+    the_model.StaticStep(name=reapply_step_name, previous=return_step_name,
+                         timeIncrementationMethod=FIXED, initialInc=time, 
+                         maxNumInc=2, timePeriod=time, 
+                         amplitude=STEP
+                         )
+                         
+    release_nodes_step_name = 'release' + names.cycle_str(cycle_nr)
+    the_model.StaticStep(name=release_nodes_step_name, previous=reapply_step_name,
+                         timeIncrementationMethod=FIXED, initialInc=time, 
+                         maxNumInc=2, timePeriod=time, 
+                         amplitude=STEP
+                         )
+    
+    rolling_step_name = names.get_step_rolling(cycle_nr)
+    r_time = rol_par['time']
+    dt0 = r_time/inc_par['nom_num_incr_rolling']
+    dtmin = r_time/(inc_par['max_num_incr_rolling']+1)
+    the_model.StaticStep(name=rolling_step_name, previous=release_nodes_step_name, timePeriod=r_time, 
+                         maxNumInc=inc_par['max_num_incr_rolling'], 
+                         initialInc=dt0, minInc=dtmin, maxInc=dt0)
+                         
+    return return_step_name, reapply_step_name, release_nodes_step_name, rolling_step_name
+    
+    
+def setup_remaining_rolling_cycles():
+    the_model = get.model()
+    # Setup steps for second cycle
+    inc_par = user_settings.time_incr_param
+    rol_par = loadmod.get_rolling_parameters()
+    
+    step_names = setup_steps(the_model, cycle_nr=2, rol_par=rol_par, inc_par=inc_par)
+    # returns: return_step_name, reapply_step_name, release_nodes_step_name, rolling_step_name
+    
+    # Determine which nodes that should be controlled by moving back boundary conditions
+    assy = get.assy()
+    winst = get.inst(names.wheel_inst)
+    wpart = get.part(names.wheel_part)
+    rp_node = assy.sets[names.wheel_rp_set].nodes[0]
+    #rp_x = rp_node.coordinates[0]
+    rp_x = loadmod.get_preposition_motion()[0]  # For some unknown reason, rp_node has no coords???
+    wheel_nodes = winst.sets['CONTACT_NODES'].nodes
+    bc_nodes = wheel_nodes.sequenceFromLabels([node.label for node in wheel_nodes 
+                if (np.abs(node.coordinates[0]-rp_x) < (user_settings.max_contact_length/2.0))])
+    
+    # Setup boundary condition for those nodes
+    bc_cnod_region = regionToolset.Region(nodes=bc_nodes)
+    cnod_bc = get.model().DisplacementBC(name='contact_node_bc', createStepName=step_names[0], 
+                                         region=bc_cnod_region, distributionType=USER_DEFINED)
+    
+    # Get boundary condition for rp
+    ctrl_bc = the_model.boundaryConditions[names.rp_ctrl_bc]
+    
+    # Setup boundary condition for rail contact nodes
+    rail_contact_node_set = the_model.rootAssembly.instances['RAIL'].sets['CONTACT_NODES']
+    lock_rail_bc = the_model.VelocityBC(name='lock_rail_contact_surface',
+                                        createStepName=step_names[0],
+                                        region=rail_contact_node_set)
+    
+    for cycle_nr in range(2, user_settings.num_cycles+1):
+        if cycle_nr > 2:
+            step_names = setup_steps(the_model, cycle_nr, rol_par, inc_par)
+        
+        # Set boundary conditions for controlled contact nodes
+        cnod_bc.setValuesInStep(stepName=step_names[0], u1=0.0, u2=0.0)
+        cnod_bc.setValuesInStep(stepName=step_names[3], u1=FREED, u2=FREED)
+        
+        # Set boundary condition for rp
+        ctrl_bc.setValuesInStep(stepName=step_names[0], 
+                                u1=0.0, u2=0.0, ur3=0.0)    # DISP routine to set all (u1,u2,ur3)
+        ctrl_bc.setValuesInStep(stepName=step_names[1], 
+                                u1=0.0, u2=FREED, ur3=0.0)  # DISP routine to set u1 and ur3
+    
+        # Set boundary condition for rail contact nodes
+        lock_rail_bc.setValuesInStep(stepName=step_names[0], v1=0.0, v2=0.0)
+        lock_rail_bc.setValuesInStep(stepName=step_names[2], v1=FREED, v2=FREED)
     
     
 def save_results(cycle_nr):

@@ -9,13 +9,13 @@ def cycle_str(cycle_nr):    # Format cycle nr
     return str(cycle_nr).zfill(5)
 
 # Model, job and odb naming
-def get_model(cycle_nr):
+def get_model(cycle_nr=1):
     return 'rollover_' + cycle_str(cycle_nr)
 
-def get_job(cycle_nr):
+def get_job(cycle_nr=1):
     return get_model(cycle_nr)      # job and model name can be different, but no reason for that
 
-def get_odb(cycle_nr):
+def get_odb(cycle_nr=1):
     return get_job(cycle_nr)   # odb and job name should always be the same
     
 # Part, instance and section names
@@ -42,11 +42,11 @@ step1 = 'Preload'   # Apply fixed displacement
 step2 = 'Loading'   # Apply the contact normal load
 
 
-def get_step_rolling(cycle_nr):
+def get_step_rolling(cycle_nr=1):
     return 'rolling_' + cycle_str(cycle_nr)
     
     
-def get_step_return(cycle_nr):
+def get_step_return(cycle_nr=2):
     return 'return_' + cycle_str(cycle_nr)
     
 

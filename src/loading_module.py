@@ -135,9 +135,11 @@ def initial_bc():
         region=rail_contact_nodes, u1=SET, u2=SET, ur3=UNSET)
     
     # BC for wheel
+    distribution = UNIFORM if user_settings.use_restart else USER_DEFINED
     ctrl_bc = the_model.DisplacementBC(name=names.rp_ctrl_bc, createStepName=names.step1, 
                                        region=wheel_refpoint, u1=0.0, ur3=0.0, 
-                                       u2=-lpar['initial_depression'])
+                                       u2=-lpar['initial_depression'],
+                                       distributionType=distribution)
     
     rpar = get_rolling_parameters()
         
