@@ -459,6 +459,6 @@ subroutine uel(rhs,amatrx,svars,energy,ndofel,nrhs,nsvars,&
     ! Calculate stiffness
     call get_stiffness(u, Kprim, coords, amatrx)
     
-    call uel_output(lflags, kinc, kstep, time(2))
+    !call uel_output(lflags, kinc, kstep, time(2))
     
 end subroutine uel
