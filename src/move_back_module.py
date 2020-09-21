@@ -35,21 +35,18 @@ def add_output(cycle_nr=1):
         
     kwb = the_model.keywordBlock
     
-    find_strings = ['*Step', 'name=' + names.get_step_rolling(cycle_nr)]
-    
     # Add output for wheel contact nodes
     nset = names.wheel_inst + '.' + names.wheel_contact_nodes
-    inpmod.add_at_end_of_cat(kwb, get_output_string(nset, variable='COORD'), 
-                             category='Step', 
+    inpmod.add_at_end_of_cat(kwb, get_output_string(nset, variable='COORD'), category='Step', 
                              name=names.get_step_rolling(cycle_nr))
                              
-    inpmod.add_at_end_of_cat(kwb, get_output_string(nset, variable='U'), 
-                             category='Step', 
+    inpmod.add_at_end_of_cat(kwb, get_output_string(nset, variable='U'), category='Step', 
                              name=names.get_step_rolling(cycle_nr))
     
     # Add outputs for wheel reference point
     nset = names.wheel_rp_set   # This is created on assembly level, hence no instance prefix
-    inpmod.add_at_end_of_cat(kwb, get_output_string(nset, variable='U'), 
-                             category='Step', 
+    inpmod.add_at_end_of_cat(kwb, get_output_string(nset, variable='U'), category='Step', 
                              name=names.get_step_rolling(cycle_nr))
     
+    inpmod.add_at_end_of_cat(kwb, get_output_string(nset, variable='COORD'), category='Step', 
+                             name=names.get_step_rolling(cycle_nr))

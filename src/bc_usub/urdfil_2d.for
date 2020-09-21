@@ -250,21 +250,25 @@ implicit none
     ! Input/output
     integer, allocatable            :: node_n(:)        ! Contact node numbers [Nc]
     double precision, allocatable   :: node_val(:,:)    ! Contact node displacements [num_values,Nc]
-    double precision, intent(inout) :: array(513)       ! Array to which .fil info is saved
+    double precision, intent(inout) :: array(:)         ! Array to which .fil info is saved
     
     ! Internal variables
     integer                         :: fil_status       ! Status for .fil file input/output
-    integer                         :: record_type_key  ! Variable describing current record type
+    integer                         :: record_type_ref  ! The record type key that should be read
+                                                        ! (should remain constant, stop reading when
+                                                        !  the record type key changes)
+    integer                         :: record_type      ! The current entry's record type key
     integer                         :: num_values       ! Number of values per node
     integer                         :: k1               ! Counter
     
     k1 = 0
     fil_status = 0
     num_values = transfer(array(1), 1) - 3
-    record_type_key = transfer(array(2), 1)
+    record_type_ref = transfer(array(2), 1)
+    record_type = record_type_ref
     allocate(node_n(GUESS_NUM), node_val(num_values,GUESS_NUM))
     
-    do while ((fil_status==0).and.(record_type_key==101))
+    do while ((fil_status==0).and.(record_type==record_type_ref))
         if (k1 >= size(node_n)) then
             call expand_array(node_n, GUESS_NUM)
             call expand_array(node_val, [0, GUESS_NUM])
@@ -275,14 +279,13 @@ implicit none
         node_val(1:num_values,k1) = array(4:(3+num_values))
         
         call dbfile(0, array, fil_status)
-        record_type_key = transfer(array(2), 1)
+        record_type = transfer(array(2), 1)
     enddo
     
     ! Resize arrays to match number of nodes
-    write(*,*) 'Contracting arrays'
     call contract_array(node_n, k1)
     call contract_array(node_val, [num_values, k1])
-    write(*,*) 'Done contracting arrays'
+    
     
 end subroutine
     
@@ -324,22 +327,27 @@ implicit none
     do while (fil_status==0)
         record_length = transfer(array(1), 1)
         record_type_key = transfer(array(2), 1)
+        write(*,"(A, I0, A, I0)") 'key = ', record_type_key, ', nval = ', (record_length - 3)
         if (record_type_key==101) then  ! Node displacement information
             if ((record_length-3)==2) then      ! 2 displacements => contact node
                 call get_node_data(node_n, node_u, array)
+                write(*,*) 'node_u read'
             elseif ((record_length-3)==3) then    ! 3 displacements => assume reference point
                 rp_u = array(4:6)
-                check_rp_disp = check_rp_disp + 1   
+                check_rp_disp = check_rp_disp + 1
+                write(*,*) 'rp_u read'
             endif
         elseif (record_type_key==107) then  ! Node coordinates
             call get_node_data(tmp_n, tmp_c, array)
             if (size(tmp_n) > 1) then   ! More than one node, contact nodes
                 allocate(node_cn, source=tmp_n)
                 allocate(node_c, source=tmp_c)
+                write(*,*) 'node_c read'
             else
                 rp_c = tmp_c(:,1)
                 rp_n = tmp_n(1)
                 check_rp_coord = check_rp_coord + 1
+                write(*,*) 'rp_c read'
             endif
             deallocate(tmp_n, tmp_c)
         endif
@@ -347,11 +355,19 @@ implicit none
         call dbfile(0, array, fil_status)
     enddo
     
-    if ((check_rp_disp > 1).or.(check_rp_coord > 1)) then
-        write(*,*) 'ERROR: multiple data sources found in .fil file'
-        write(*,"(A,I0)") 'check_rp_disp  = ', check_rp_disp
-        write(*,"(A,I0)") 'check_rp_coord = ', check_rp_coord
-        call xit()  ! Quit analysis
+    ! ERROR checking. Note that multiple node_u or node_c will lead to allocation error.
+    if (.not.allocated(node_u)) then
+        write(*,*) 'ERROR: Did not find node displacement data in .fil file'
+        call xit()
+    elseif (.not.allocated(node_c)) then
+        write(*,*) 'ERROR: Did not find node coordinate data in .fil file'
+        call xit()
+    elseif (check_rp_disp /= 1) then
+        write(*,"(A,I0,A)") 'ERROR: Found ', check_rp_disp, ' entries that could represent rp disp'
+        call xit()
+    elseif(check_rp_coord /= 1) then
+        write(*,"(A,I0,A)") 'ERROR: Found ', check_rp_coord, ' entries that could represent rp coord'
+        call xit()
     endif
     
     call sort_node_disp(rp_c, rp_u, node_cn, node_c, node_n, node_u, angle_incr)
@@ -374,12 +390,12 @@ implicit none
     integer                         :: n_nodes                      ! Number of nodes
     integer                         :: k1                           ! Iterator
     
-    n_nodes = size(node_c,1)
+    n_nodes = size(node_n)
     
     ! Step 1: Ensure that lists with coordinates and displacements have the same node order. 
     !         Probably, this is not necessary as the same node order is used each time, but if not 
     !         it will result in an error that is very hard to find. It is quick to compare anyways
-    if (.not.all(node_cn == node_n)) then            
+    if (.not.all(node_cn == node_n)) then
         call sortinds(node_n, sort_inds)
         node_n = node_n(sort_inds)
         node_u = node_u(:, sort_inds)
@@ -392,7 +408,7 @@ implicit none
     ! Note that with nlgeom=true coord are current coordinates, and we need the initial values.
     allocate(node_c_rel, source=node_c)
     do k1=1,n_nodes
-        node_c_rel(k1,:) = (node_c(k1,:) - node_u(k1,:)) - (rp_c(k1) - rp_u(k1))
+        node_c_rel(:,k1) = (node_c(:,k1) - node_u(:,k1)) - (rp_c(k1) - rp_u(k1))
     enddo
     
     ! Step 3: Calculate angles relative -y axis
@@ -444,15 +460,28 @@ implicit none
     double precision                :: u_new(2)         ! Displacements applied to new nodes
     double precision                :: u_new_rp(3)      ! Disp (and rot) applied to ref. point
     
-    integer                         :: cwd_length   ! Required when calling abaqus getoutdir, unused
+    integer                         :: cwd_length   ! Required when calling abaqus getoutdir
     character(len=256)              :: filename     ! Full path to file with boundary conditions
     integer                         :: file_id      ! File identifier for boundary condition file    
+    integer                         :: io_status    ! Input/output status
     
     ! Open output file
+    write(*,*) 'Opening output file'
     call getoutdir(filename, cwd_length)
-    write(filename, "(A, A, I0, A)") filename, '/bc_step', kstep, '.txt'
+    write(*,*) 'cwd: '//trim(filename)
+    
+    ! Check that cwd is not too long (current limit of 256 from abaqus getoutdir)
+    if (len(trim(filename)) > (len(filename)-20)) then
+        write(*,*) 'ERROR: Current working directory path too long'
+        write(*,*) 'cwd = '//trim(filename)
+        call xit()
+    endif
+    
+    write(filename, "(A, A, I0, A)") trim(filename), '/bc_step', kstep, '.txt'
+    write(*,*) 'filename = '//trim(filename)
     file_id = 101
-    open(file_id, file=trim(filename))
+    open(file_id, file=trim(filename), iostat=io_status)
+    write(*,"(A, I0)") 'iostat = ', io_status
     
     ! Calculate motion for the reference point
     num_elem_roll = nint(rp_u(3)/angle_incr)
@@ -466,7 +495,8 @@ implicit none
     
     ! Save reference point prescribed displacements to first row
     u_new_rp = [0.d0, rp_u(2), return_angle]
-    write(file_id, "(I0, E25.15, E25.15, E25.15)") rp_n, u_new_rp(1), u_new_rp(2), u_new_rp(3)
+    write(file_id, "(I0, E25.15, E25.15, E25.15)", iostat=io_status) rp_n, u_new_rp(1), u_new_rp(2), u_new_rp(3)
+    write(*,"(A, I0)") 'rp written, iostat = ', io_status
     
     ! Save remaining node prescribed displacements to subsequent rows
     nnod = size(node_n)
@@ -479,6 +509,7 @@ implicit none
         x_new = x_old + dx_rp
         u_new = x_new - x0_new
         write(file_id, "(I0, E25.15, E25.15)") node_n(new_ind), u_new(1), u_new(2)
+        write(*,"(A, I0, A, I0)") 'node row ', old_ind, ' written, iostat = ', io_status
     enddo
     
     close(file_id)

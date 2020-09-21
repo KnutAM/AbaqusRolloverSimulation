@@ -59,7 +59,7 @@ def main():
     num_cycles = user_settings.num_cycles
     t0 = time.time()
     setup_initial_model()
-    return None
+    # return None
     usub.generate()
     save_node_info()
     setup_time = time.time() - t0
