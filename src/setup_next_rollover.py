@@ -123,8 +123,6 @@ def moveback_reapply_load(new_cycle_nr, last_step_in_old_job, lock_rail=True):
     ctrl_bc.setValuesInStep(stepName=rolling_step_name, u1=rol_par['length'], 
                             ur3=rol_par['angle'] + ret_ang, u2=FREED)
     
-    fid = open('bc_python.txt', 'w')
-    fid.write('%u %25.15E %25.15E %25.15E\n' % (1, 0.0, u2_end, ret_ang))
     # Set values for wheel
     x_rp_old = rp_data['X'] + rp_data['U']
     x_rp_new = rp_data['X'] + np.array([0, u2_end])
@@ -158,11 +156,7 @@ def moveback_reapply_load(new_cycle_nr, last_step_in_old_job, lock_rail=True):
 
         # Free the prescribed displacements of the nodes in the general rolling step
         node_bc.deactivate(stepName=rolling_step_name)
-        fid.write('%u %25.15E %25.15E\n' % (wheel_nodes[new_node_id-1].label, unew[0], unew[1]))
         
-    fid.close()
-    
-    
     # Set values for rail
     if lock_rail:
         # Lock all rail contact node displacements
