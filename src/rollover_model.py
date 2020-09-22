@@ -258,7 +258,7 @@ def setup_remaining_rolling_cycles():
                                         createStepName=step_names[0],
                                         region=rail_contact_node_set)
     
-    for cycle_nr in range(2, user_settings.num_cycles+1):
+    for cycle_nr in range(2, user_settings.num_cycles+2):
         if cycle_nr > 2:
             step_names = setup_steps(the_model, cycle_nr, rol_par, inc_par)
         
