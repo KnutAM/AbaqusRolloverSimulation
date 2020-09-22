@@ -430,7 +430,7 @@ implicit none
     
 contains
 
-subroutine set_bc(node_n, node_u, node_c, rp_n, rp_u, angle_incr, kstep)
+subroutine set_bc(node_n, node_u, node_c, rp_n, rp_u, angle_incr, cycle_nr)
 implicit none
     integer, intent(in)             :: node_n(:)    ! Node numbers
     double precision, intent(in)    :: node_u(:,:)  ! Node displacements
@@ -438,11 +438,12 @@ implicit none
     integer, intent(in)             :: rp_n         ! Node number for reference point
     double precision, intent(in)    :: rp_u(:)      ! Reference point disp (incl. rot. at pos 3)
     double precision, intent(in)    :: angle_incr   ! Angular nodal spacing
-    integer, intent(in)             :: kstep        ! Current step
+    integer, intent(in)             :: cycle_nr     ! Current rollover cycle
     
     integer                         :: nnod             ! Number of nodes
     
     integer                         :: num_elem_roll    ! How many elements to roll back
+    double precision                :: roll_back_angle  ! What angle to roll to return back
     double precision                :: return_angle     ! What angle to return back to
     
     integer                         :: old_ind  ! Node indices for the old node from which the disp
@@ -453,7 +454,7 @@ implicit none
     double precision                :: x_old(2)         ! Current position of corresponding old node
     double precision                :: x_new(2)         ! New (cf. current) position of new node
     double precision                :: u_new(2)         ! Displacements applied to new nodes
-    double precision                :: u_new_rp(3)      ! Disp (and rot) applied to ref. point
+    double precision                :: u_new_rp(2)      ! Disp applied to ref. point
     
     integer                         :: cwd_length   ! Required when calling abaqus getoutdir
     character(len=256)              :: filename     ! Full path to file with boundary conditions
@@ -470,15 +471,15 @@ implicit none
         call xit()
     endif
     
-    ! Create filename, note that bc applied in the subsequent step, hence kstep+1
-    write(filename, "(A, A, I0, A)") trim(filename), '/bc_step', kstep+1, '.txt'
-    !file_id = 101
+    ! Create filename
+    write(filename, "(A, A, I0, A)") trim(filename), '/bc_step', cycle_nr, '.txt'
+    
     open(newunit=file_id, file=trim(filename), iostat=io_status)
     
     ! Calculate motion for the reference point
     num_elem_roll = nint(rp_u(3)/angle_incr)
-    
-    return_angle = rp_u(3) - num_elem_roll*angle_incr
+    roll_back_angle = - num_elem_roll*angle_incr
+    return_angle = rp_u(3) + roll_back_angle
     
     ! Equations that help understanding why we arrive at dx_rp and that being used later (Eq. 4)
     !x_rp_old = (rp_c - rp_u) + rp_u                (1)
@@ -486,9 +487,9 @@ implicit none
     !dx_rp = x_rp_new - x_rp_old                    (3)
     dx_rp = [-rp_u(1), 0.d0]
     
-    ! Save reference point prescribed displacements to first row
-    u_new_rp = [0.d0, rp_u(2), return_angle]
-    write(file_id, "(I0, 3ES25.15)", iostat=io_status) rp_n, u_new_rp(1), u_new_rp(2), u_new_rp(3)
+    ! Save reference point prescribed displacements to first row. Rotation is the incremental value
+    u_new_rp = [0.d0, rp_u(2)]
+    write(file_id, "(I0, 3ES25.15)", iostat=io_status) rp_n, u_new_rp(1), u_new_rp(2), roll_back_angle
     
     ! Save remaining node prescribed displacements to subsequent rows
     nnod = size(node_n)
@@ -513,8 +514,8 @@ subroutine urdfil(lstop,lovrwrt,kstep,kinc,dtime,time)
 use urdfil_mod
 use bc_mod
 implicit none
-    integer, parameter  :: N_STEP_INITIAL = 3   ! Number of steps including first rollover
-    integer, parameter  :: N_STEP_BETWEEN = 3   ! Number of steps between rollover simulations
+    integer, parameter  :: N_STEP_INITIAL = 2   ! Number of steps including first rollover
+    integer, parameter  :: N_STEP_BETWEEN = 4   ! Number of steps between rollover simulations
     ! Variables to be defined
     integer             :: lstop        ! Flag, set to 1 to stop analysis
     integer             :: lovrwrt      ! Flag, set to 1 to allow overwriting of
@@ -531,11 +532,12 @@ implicit none
     integer                         :: rp_n                 ! Reference point node number
     double precision                :: rp_u(3)              ! Reference point displacements
     double precision                :: angle_incr           ! Angular nodal spacing (wheel)
+    integer                         :: cycle_nr             ! Rollover cycle nr
     
-    ! There are 
     if (mod(kstep-N_STEP_INITIAL, N_STEP_BETWEEN) == 0) then
+        cycle_nr = (kstep-N_STEP_INITIAL)/N_STEP_BETWEEN + 1
         call get_data(node_n, node_u, node_c, rp_n, rp_u, angle_incr, kstep, kinc)
-        call set_bc(node_n, node_u, node_c, rp_n, rp_u, angle_incr, kstep)
+        call set_bc(node_n, node_u, node_c, rp_n, rp_u, angle_incr, cycle_nr)
     endif
     
     lstop = 0   ! Continue analysis (set lstop=1 to stop analysis)

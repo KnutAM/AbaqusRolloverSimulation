@@ -48,11 +48,6 @@ reload(get)
 reload(next_rollover)
 
 
-def save_node_info():
-    assy = get.assy()
-    
-
-
 def main():
     apt.setup_log_file()
     usub.setup()
@@ -61,8 +56,6 @@ def main():
     if user_settings.use_restart:
         setup_initial_model()
         #return None
-        usub.generate()
-        save_node_info()
         setup_time = time.time() - t0
         if num_cycles > 0:
             # If debugging continuation, can comment run_cycle(..) and uncomment run_time = -1.0
@@ -173,6 +166,9 @@ def setup_initial_model():
     
     # Setup output requests
     loadmod.setup_outputs()
+    
+    # Generate user subroutine
+    usub.generate()
     
     # Direct editing of input file (should be done last)
     the_model.keywordBlock.synchVersions(storeNodesAndElements=True)

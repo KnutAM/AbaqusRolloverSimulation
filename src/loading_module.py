@@ -126,8 +126,10 @@ def initial_bc():
     lpar = user_settings.load_parameters
     ntpar = user_settings.numtrick
     ipar = user_settings.time_incr_param
-    
-    the_model.StaticStep(name=names.step1, previous=names.step0, nlgeom=ON)
+    step1_time = 1.0
+    the_model.StaticStep(name=names.step1, previous=names.step0, nlgeom=ON, timePeriod=step1_time,
+                         initialInc=step1_time, minInc=step1_time/100, maxInc=step1_time,
+                         maxNumInc=101)
     
     # BC for rail (bottom)
     rail_contact_nodes = rail_inst.sets[names.rail_bottom_nodes]
@@ -136,13 +138,25 @@ def initial_bc():
     
     # BC for wheel
     distribution = UNIFORM if user_settings.use_restart else USER_DEFINED
+    
     ctrl_bc = the_model.DisplacementBC(name=names.rp_ctrl_bc, createStepName=names.step1, 
                                        region=wheel_refpoint, u1=0.0, ur3=0.0, 
                                        u2=-lpar['initial_depression'],
                                        distributionType=distribution)
     
     rpar = get_rolling_parameters()
-        
+    
+    if not user_settings.use_restart:
+        # Save initial depression and time for that cycle
+        with open('initial_depression.txt', 'w') as fid:
+            fid.write('%25.15e %25.15e' % (step1_time, -lpar['initial_depression']))
+            
+        # Save rolling parameters for each cycle to file. The user subroutine DISP will read this file
+        # and use the data for the previous step number if current not defined. 
+        with open('rolling_parameters.txt', 'w') as fid:
+            fid.write('%10.0f %25.15e %25.15e %25.15e\n' % 
+                      (1, rpar['time'], rpar['length'], rpar['angle']))
+    
     rolling_step_name = names.get_step_rolling(1)
     time = rpar['time']
     dt0 = time/ipar['nom_num_incr_rolling']

@@ -3,8 +3,18 @@
 # the current working directory. A usub.for/.f file is then included that includes all the 
 # subroutines put in that folder. 
 from __future__ import print_function
-import os
+import os, sys, inspect
 import shutil
+
+# Custom imports (need to append project path to python path)
+# __file__ not found when calling from abaqus, 
+# used solution from "https://stackoverflow.com/a/53293924":
+
+src_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
+if not src_path in sys.path:
+    sys.path.append(src_path)
+
+import abaqus_python_tools as apt
 
 # These parameters can be accessed via user_subroutine.* to facilitate copying
 folder = 'usub'
@@ -27,6 +37,8 @@ def generate():
     # necessary fortran files and compile these into a library
     shutil.copyfile('C:/Users/knutan/Documents/Work/ProjectsWorkFolders/MU34/Project_2020_C_RolloverSimulation/AbaqusRolloverSimulation/src/bc_usub/urdfil_2d.for',
                     folder + '/urdfil.for')
+    shutil.copyfile('C:/Users/knutan/Documents/Work/ProjectsWorkFolders/MU34/Project_2020_C_RolloverSimulation/AbaqusRolloverSimulation/src/bc_usub/disp_2d.for',
+                    folder + '/disp.for')
     create_file()
     make()
     check_abaqus_env()
@@ -91,4 +103,4 @@ def check_abaqus_env():
     # - And if it doesn't contain usub_lib_dir, add the cwd.
     # - Or, if it contains usub_lib_dir pointing to another folder, comment out that line and add a 
     #   new line with the correct path. (Note, should eval expression in python to get result)
-    print('Warning: No check for abaqus_v6.env implemented in user_subroutine.py')
+    apt.log('Warning: No check for abaqus_v6.env implemented in user_subroutine.py')
