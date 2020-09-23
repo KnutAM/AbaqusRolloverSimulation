@@ -9,7 +9,7 @@ Script to setup rollover simulation in Abaqus for CHARMEC
 
 ## Running for the first time 
 ### Requirements
-* Abaqus Standard setup to compile fortran user subroutines
+* Abaqus Standard setup to compile fortran user subroutines. Note special requirements below if ifort version higher than 16
 * Python 2.7 or higher
 
 ### Steps
@@ -24,6 +24,11 @@ Script to setup rollover simulation in Abaqus for CHARMEC
 To use a material subroutine see the material `chaboche_umat` in `user_settings_example.py` for inspiration. Furthermore, the variable the `material_model_folder` must  be set, pointing to a folder containing folders with sources for different material models. The field `'material_model'` must be set to  `'user'` and the field `'mpar'` must contain a dictionary with the following fields:
 
 * `'nstatv'`: Give an int for how many state variables the material model requires
+
 * `'src_folder'`: Give the name of the folder in `material_model_folder` containing a file named `umat.for`/`umat.f`. The folder must contain all required files such that calling `abaqus make library=umat` (or `umat.f` ) would work in that folder (This will not be done however, the content will be copied)
+
 * `'user_mpar_array'`: A tuple containing the material parameter that should be supplied to the user material routine
 
+## ifort version > 16
+
+As Abaqus (up to at least 2020) is compiled with ifort 16.0 or lower, some new compiler features are not available. If you have a later compiler this can cause problems. One common problem is that automatic allocation of lhs assignments was introduced in ifort 17.0, and this will cause undefined symbol error when used with Abaqus. To circumvent this issue, it is possible to add a compiler option `nostandard-realloc-lhs` using the `abaqus_v6.env ` file. This file must be located either in your home directory or in the current directory. An example of such a modification has been provided in this repository, but note that this file must be manually moved for it to have any effect. 
