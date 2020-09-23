@@ -37,7 +37,7 @@ contact_parameters = {'penalty_stiffness': 1.e6,    # N/mm
 
 # Material settings
 material_model_folder = None
-#material_model_folder = 'C:/Users/knutan/Documents/Work/MySoftwares/MaterialModels/compiled_abaqus/'
+#material_model_folder = 'C:/Users/knutan/Documents/Work/MySoftwares/MaterialModels/compiled_abaqus'
 # Only dictionary "materials" required, the remaining are only support variables to facilitate
 # creating the "materials" dictionary
 

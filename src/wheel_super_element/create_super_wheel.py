@@ -62,6 +62,9 @@ def create_super_element(**kwargs):
     create_uel(Kred, coords)
     save_wheel_data_to_json(wheel_settings)
     
+    if not os.path.exists(wheel_settings['output_directory']):
+        os.mkdir(wheel_settings['output_directory'])
+        
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
         
