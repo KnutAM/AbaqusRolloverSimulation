@@ -9,10 +9,11 @@ import material
 # Custom imports (need to append project path to python path)
 # __file__ not found when calling from abaqus, 
 # used solution from "https://stackoverflow.com/a/53293924":
-src_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
-if not src_path in sys.path:
-    sys.path.append(src_path)
+this_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
+if not this_path in sys.path:
+    sys.path.append(this_path)
 from user_settings import materials
+import abaqus_python_tools as apt
 import get_utils as get
 import naming_mod as names
 import user_subroutine as usub
@@ -52,7 +53,11 @@ def material(fe_model, matmod, mpar, name):
     elif matmod=='user':
         the_material.UserMaterial(type=MECHANICAL, unsymm=OFF, mechanicalConstants=mpar['user_mpar_array'])
         the_material.Depvar(n=mpar['nstatv'])
-        usub.copy_all_files_and_folders_from_folder(mpar['src_folder'])
+        if user_settings.material_model_folder:
+            usub.copy_all_files_and_folders_from_folder(user_settings.material_model_folder + 
+                                                        '/' + mpar['src_folder'])
+        else:
+            apt.log('material_model_folder must be specified in user_settings to use umats')
     else:
-        print('Material model ' + matmod + ' is not supported')
+        apt.log('Material model ' + matmod + ' is not supported')
     

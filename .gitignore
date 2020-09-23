@@ -2,4 +2,5 @@
 
 # Project specific ignores
 ## User settable settings should not part of commits
-src/user_settings.py
+src/rollover/user_settings.py
+super_wheels/

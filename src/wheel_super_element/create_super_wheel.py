@@ -1,6 +1,8 @@
+from __future__ import print_function
 import numpy as np
-import os, inspect, sys, json
+import os, inspect, sys, json, shutil
 from datetime import datetime
+
 
 this_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
 if not this_path in sys.path:
@@ -8,10 +10,10 @@ if not this_path in sys.path:
     
 import wheel_mesh_tb
 
-default_wheel_settings = {'dimensionality': '2d',
-                          'mesh_size': 1.0,
+default_wheel_settings = {'mesh_size': 6.0,
                           'outer_diameter': 400.0,
                           'inner_diameter': 200.0,
+                          'output_directory': this_path + '/../../super_wheels'
                           }
 
 # Set default rolling_angle such that max rolling length (incl. slip) is 40 mm
@@ -26,18 +28,49 @@ def set_default_options(wheel_settings):
             wheel_settings[key] = default_wheel_settings[key]
     
 
-def create_super_element(wheel_settings = {}):
+def create_super_element(**kwargs):
+    wheel_settings = {}
+    for key, value in kwargs.items():
+        if key in default_wheel_settings:
+            wheel_settings[key] = value
+        else:
+            print('WARNING: the key ' + key + ' is not understood and will be ignored')
+            
     set_default_options(wheel_settings)
-    job_name = 'super_wheel'
-    delete_all_old_files(job_name)
+    # Setup names and directories
+    job_name = 'super_wheel_sim'
+    tempdir = 'temporary_super_wheel_simulation_directory'
+    od, id, ms = [wheel_settings[key] for key in ['outer_diameter', 'inner_diameter', 'mesh_size']]
+    save_dir = (wheel_settings['output_directory'] + 
+                'OD%u_ID%u_M%02up%03u' % (od, id, int(ms), 1000*int(ms-int(ms))) )
+    
+    # Setup temporary folder to run simulation in 
+    if os.path.exists(tempdir):
+        shutil.rmtree(tempdir)
+    os.mkdir(tempdir)
+    
+    # Run abaqus substructure simulation
+    os.chdir(tempdir)
     create_input_file_2d(job_name + '.inp', wheel_settings)
     cmd = 'abaqus' + ' job=' + job_name + ' ask_delete=OFF' + ' interactive'
     os.system(cmd)
+    # Postprocess results
     Kred, coords = get_stiffness_from_substructure_mtx_file(job_name)
+    os.chdir('..')
+    
+    # Save results
     create_uel(Kred, coords)
     save_wheel_data_to_json(wheel_settings)
-    clean_files(job_name)
+    
+    if not os.path.exists(save_dir):
+        os.mkdir(save_dir)
         
+    for file in ['uel.for', 'uel_coords.npy', 'uel_info.json']:
+        os.rename(file, save_dir + '/' + file)
+    
+    # Clean up temporary directory
+    shutil.rmtree(tempdir)
+    
     
 def save_wheel_data_to_json(wheel_settings):
     with open('uel_info.json', 'w') as fid:

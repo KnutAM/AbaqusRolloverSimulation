@@ -16,9 +16,9 @@ import regionToolset
 # Custom imports (need to append project path to python path)
 # __file__ not found when calling from abaqus, 
 # used solution from "https://stackoverflow.com/a/53293924":
-src_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
-if not src_path in sys.path:
-    sys.path.append(src_path)
+this_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
+if not this_path in sys.path:
+    sys.path.append(this_path)
 
 import naming_mod as names
 import user_settings
@@ -82,7 +82,11 @@ def setup_wheel():
 
 
 def move_super_element_to_cwd():
-    se_path = user_settings.super_element_path
+    if user_settings.custom_super_wheel_directory:
+        se_path = user_settings.custom_super_wheel_directory + '/' + user_settings.super_wheel
+    else:
+        src_path = os.path.dirname(this_path)
+        se_path = src_path + '/../super_wheels/' + user_settings.super_wheel
     
     # Move uel.for / uel.f to user subroutine directory
     uel_lib = 'uel.for' if os.name=='nt' else 'uel.f'

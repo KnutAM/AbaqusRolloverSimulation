@@ -10,9 +10,9 @@ import shutil
 # __file__ not found when calling from abaqus, 
 # used solution from "https://stackoverflow.com/a/53293924":
 
-src_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
-if not src_path in sys.path:
-    sys.path.append(src_path)
+this_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
+if not this_path in sys.path:
+    sys.path.append(this_path)
 
 import abaqus_python_tools as apt
 
@@ -35,10 +35,11 @@ def setup():
 def generate():
     # Before submitting the first abaqus job, the generate routine should be called to create the 
     # necessary fortran files and compile these into a library
-    shutil.copyfile('C:/Users/knutan/Documents/Work/ProjectsWorkFolders/MU34/Project_2020_C_RolloverSimulation/AbaqusRolloverSimulation/src/bc_usub/urdfil_2d.for',
-                    folder + '/urdfil.for')
-    shutil.copyfile('C:/Users/knutan/Documents/Work/ProjectsWorkFolders/MU34/Project_2020_C_RolloverSimulation/AbaqusRolloverSimulation/src/bc_usub/disp_2d.for',
-                    folder + '/disp.for')
+    src_path = os.path.dirname(this_path)   # src folder is parent to the rollover folder
+    shutil.copyfile(src_path + '/bc_usub/urdfil_2d.for',
+                    folder + '/urdfil' + fortran_suffix)
+    shutil.copyfile(src_path + '/bc_usub/disp_2d.for',
+                    folder + '/disp' + fortran_suffix)
     create_file()
     make()
     check_abaqus_env()
