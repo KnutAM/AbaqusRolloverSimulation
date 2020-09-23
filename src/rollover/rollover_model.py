@@ -113,10 +113,11 @@ def run_cycle(cycle_nr, n_proc=1, run=True):
     if job_name in mdb.jobs:
         del(mdb.jobs[job_name])
     
+    usub_path = 'usub/usub-std.' + ('obj' if os.name == 'nt' else 'o')
     job = mdb.Job(getMemoryFromAnalysis=True, memory=90, memoryUnits=PERCENTAGE,
                   model=model_name, name=job_name, nodalOutputPrecision=SINGLE,
                   multiprocessingMode=THREADS, numCpus=n_proc, numDomains=n_proc,
-                  type=job_type)
+                  type=job_type, userSubroutine=usub_path)
     
     time_before = time.time()
     if run:

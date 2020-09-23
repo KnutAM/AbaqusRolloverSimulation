@@ -42,7 +42,6 @@ def generate():
                     folder + '/disp' + fortran_suffix)
     create_file()
     make()
-    check_abaqus_env()
 
 
 def copy_all_files_and_folders_from_folder(input_folder):
@@ -96,12 +95,3 @@ def make():
     shutil.copy(shared_lib, '..')
         
     os.chdir('..')
-
-
-def check_abaqus_env():
-    # Function to check that the env file contains usub_lib_dir pointing to the working directory.
-    # -If the abaqus_v6.env doesn't exist in cwd, create an empty one
-    # - And if it doesn't contain usub_lib_dir, add the cwd.
-    # - Or, if it contains usub_lib_dir pointing to another folder, comment out that line and add a 
-    #   new line with the correct path. (Note, should eval expression in python to get result)
-    apt.log('Warning: No check for abaqus_v6.env implemented in user_subroutine.py')
