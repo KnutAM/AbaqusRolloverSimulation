@@ -88,9 +88,8 @@ def move_super_element_to_cwd():
         src_path = os.path.dirname(this_path)
         se_path = src_path + '/../super_wheels/' + user_settings.super_wheel
     
-    # Move uel.for / uel.f to user subroutine directory
-    uel_lib = 'uel.for' if os.name=='nt' else 'uel.f'
-    usub.copy_to_usub_dir(se_path + '/' + uel_lib)
+    # Move uel.for to user subroutine directory
+    usub.copy_to_usub_dir(se_path + '/uel.for')
     
     # Move information files to current working directory
     filenames = ['uel_coords.npy', 'uel_info.json']

@@ -19,7 +19,7 @@ import abaqus_python_tools as apt
 # These parameters can be accessed via user_subroutine.* to facilitate copying
 folder = 'usub'
 name = 'usub'
-fortran_suffix = '.for' if os.name == 'nt' else '.f'
+
 # If they exist, the following files (excluding suffix), will be made into one subroutine
 supported_usubs = ['umat', 'uel', 'disp', 'urdfil'] 
 
@@ -37,9 +37,9 @@ def generate():
     # necessary fortran files and compile these into a library
     src_path = os.path.dirname(this_path)   # src folder is parent to the rollover folder
     shutil.copyfile(src_path + '/bc_usub/urdfil_2d.for',
-                    folder + '/urdfil' + fortran_suffix)
+                    folder + '/urdfil.for')
     shutil.copyfile(src_path + '/bc_usub/disp_2d.for',
-                    folder + '/disp' + fortran_suffix)
+                    folder + '/disp.for')
     create_file()
     make()
 
@@ -60,8 +60,8 @@ def copy_to_usub_dir(file_path):
 
 
 def create_file():
-    usubs = [sub + fortran_suffix for sub in supported_usubs]
-    usub_name = name + fortran_suffix
+    usubs = [sub + suff for sub in supported_usubs for suff in ['.f', '.for']]
+    usub_name = name + ('.for' if os.name == 'nt' else '.f')
     all_files_and_folders = os.listdir(folder)
     usub_str = '!DEC$ FREEFORM\n'
     usub_str = usub_str + '! User subroutines for Abaqus Rollover Simulation\n'
@@ -82,7 +82,7 @@ def create_file():
 def make():
     os.chdir(folder)
     
-    shared_lib = 'standardU.dll' if os.name == 'nt' else 'libstandard.so'
+    shared_lib = 'standardU.dll' if os.name == 'nt' else 'libstandardU.so'
     object_file = (name + '-std.obj') if os.name == 'nt' else (name + '-std.o')
     
     # Remove any old compiled files
@@ -92,6 +92,6 @@ def make():
     
     # Compile new files and move shared library to simulation directory
     os.system('abaqus make library=' + name)
-    shutil.copy(shared_lib, '..')
+    #shutil.copy(shared_lib, '..')
         
     os.chdir('..')
