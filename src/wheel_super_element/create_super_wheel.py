@@ -10,7 +10,7 @@ if not this_path in sys.path:
     
 import wheel_mesh_tb
 
-default_wheel_settings = {'mesh_size': 6.0,
+default_wheel_settings = {'mesh_size': 2.0,
                           'outer_diameter': 400.0,
                           'inner_diameter': 200.0,
                           'output_directory': this_path + '/../../super_wheels'
@@ -41,7 +41,7 @@ def create_super_element(**kwargs):
     job_name = 'super_wheel_sim'
     tempdir = 'temporary_super_wheel_simulation_directory'
     od, id, ms = [wheel_settings[key] for key in ['outer_diameter', 'inner_diameter', 'mesh_size']]
-    save_dir = (wheel_settings['output_directory'] + 
+    save_dir = (wheel_settings['output_directory'] + '/' +
                 'OD%u_ID%u_M%02up%03u' % (od, id, int(ms), 1000*int(ms-int(ms))) )
     
     # Setup temporary folder to run simulation in 
