@@ -10,7 +10,7 @@ if not this_path in sys.path:
     
 import wheel_mesh_tb
 
-default_wheel_settings = {'mesh_size': 2.0,
+default_wheel_settings = {'mesh_size': 4.0,
                           'outer_diameter': 400.0,
                           'inner_diameter': 200.0,
                           'output_directory': this_path + '/../../super_wheels'
