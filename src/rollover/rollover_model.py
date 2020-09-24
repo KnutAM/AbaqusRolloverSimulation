@@ -58,13 +58,7 @@ def main():
         #return None
         setup_time = time.time() - t0
         if num_cycles > 0:
-            # If debugging continuation, can comment run_cycle(..) and uncomment run_time = -1.0
-            # to avoid simulating the first cycle if result files already exist. 
-            #run_time = -1.0
-            run_time = run_cycle(cycle_nr=1)
-        else:
-            run_time = run_cycle(cycle_nr=1, n_proc=1, run=False)
-            return
+            run_time = run_cycle(cycle_nr=1, run=user_settings.run_simulation)
         
         t0 = time.time()
         save_results(cycle_nr=1)
@@ -88,7 +82,7 @@ def main():
     else:
         setup_full_model()
         setup_time = time.time() - t0
-        run_time = run_cycle(cycle_nr=1)
+        run_time = run_cycle(cycle_nr=1, run=user_settings.run_simulation)
         
         apt.log('Setup time: ' + str(setup_time) + 's \n' + 
                 'Run time:   ' + str(run_time) + 's')
@@ -169,8 +163,11 @@ def setup_initial_model():
     # Setup output requests
     loadmod.setup_outputs()
     
-    # Generate user subroutine
-    usub.generate()
+    # Generate user subroutine unless object file given in input
+    if user_settings.usub_object_path:
+        usub.copy_to_usub_dir(user_settings.usub_object_path)
+    else:
+        usub.generate()
     
     # Direct editing of input file (should be done last)
     the_model.keywordBlock.synchVersions(storeNodesAndElements=True)
@@ -260,7 +257,7 @@ def setup_remaining_rolling_cycles():
                                         createStepName=step_names[0],
                                         region=rail_contact_node_set)
     
-    for cycle_nr in range(2, user_settings.num_cycles+2):
+    for cycle_nr in range(2, user_settings.num_cycles+1):
         if cycle_nr > 2:
             step_names = setup_steps(the_model, cycle_nr, rol_par, inc_par)
         

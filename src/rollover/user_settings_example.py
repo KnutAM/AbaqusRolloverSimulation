@@ -2,6 +2,8 @@
 max_contact_length = 16.0
 num_cycles = 3
 use_restart = False
+usub_object_path = None
+run_simulation = False
 
 # Numerical "trick" settings
 numtrick = {'dummy_stiffness': 1.e-6,   # MPa   (Stiffness for dummy materials extending contact 
