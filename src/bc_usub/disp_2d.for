@@ -59,7 +59,11 @@ implicit none
     else    
         node_type = 2
         do while (read_node/=node)
-            read(file_id, *) read_node, read_dbl(1:2)
+            read(file_id, *, iostat=io_status) read_node, read_dbl(1:2)
+            if (io_status /= 0) then
+                write(*,"(A,I0,A,I0,A)") 'disp cannot find node nr ', node, ' in bc_step', cycle_nr, '.txt'
+                call xit()
+            endif
         enddo
         bc_val = read_dbl(jdof)
     endif
