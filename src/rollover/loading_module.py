@@ -56,6 +56,15 @@ def setup_outputs(is_3d=False):
     the_model.HistoryOutputRequest(name='rail', createStepName=step_name, 
                                    region=rail_contact_region, variables=vars_nods,
                                    frequency=LAST_INCREMENT)
+                                   
+    for fo in the_model.fieldOutputRequests.keys():
+        del the_model.fieldOutputRequests[fo]
+        
+   #the_model.FieldOutputRequest(createStepName=step_name, name='FieldOutputs',
+   #                             frequency=1, region=rail_contact_region,
+   #                             variables=('LE', 'UT'))
+    the_model.FieldOutputRequest(name='FieldOutputs', createStepName=step_name, 
+                                 variables=('U', 'S'))
     
     
 def get_preposition_motion():
@@ -90,10 +99,10 @@ def get_rolling_parameters():
     w_contact_angle = wheel_info['contact_angle']
     w_rolling_angle = wheel_info['rolling_angle']
     
-    if np.abs(rolling_angle) > w_contact_angle:
+    if np.abs(rolling_angle) > w_rolling_angle:
         apt.log('Rolling angle (abs value) too large for chosen wheel')
         apt.log('Rolling angle = %6.2f deg' % (rolling_angle*180/np.pi))
-        apt.log('Contact angle = %6.2f deg (max abs rolling angle)' % (w_contact_angle*180/np.pi))
+        apt.log('Wheel rolling angle = %6.2f deg' % (w_rolling_angle*180/np.pi))
         raise ValueError
     
     max_contact_length_as_angle = 0.5*user_settings.max_contact_length/nominal_radius

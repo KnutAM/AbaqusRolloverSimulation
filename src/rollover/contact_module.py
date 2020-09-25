@@ -31,14 +31,14 @@ def setup_contact():
     contact_prop = the_model.ContactProperty('Contact')
     contact_prop.NormalBehavior(pressureOverclosure=LINEAR, 
                                 contactStiffness=cpar['penalty_stiffness'])
-    # contact_prop.TangentialBehavior(formulation=PENALTY, directionality=ISOTROPIC, 
-                                    # slipRateDependency=OFF, pressureDependency=OFF, 
-                                    # temperatureDependency=OFF, dependencies=0, 
-                                    # table=((cpar['friction'], ), ), shearStressLimit=None, 
-                                    # maximumElasticSlip=FRACTION, fraction=0.005, 
-                                    # elasticSlipStiffness=None)
-    contact_prop.TangentialBehavior(formulation=LAGRANGE, directionality=ISOTROPIC, 
-                                    table=((cpar['friction'], ), ))
+    contact_prop.TangentialBehavior(formulation=PENALTY, directionality=ISOTROPIC, 
+                                    slipRateDependency=OFF, pressureDependency=OFF, 
+                                    temperatureDependency=OFF, dependencies=0, 
+                                    table=((cpar['friction'], ), ), shearStressLimit=None, 
+                                    maximumElasticSlip=FRACTION, fraction=0.005, 
+                                    elasticSlipStiffness=None)
+    # contact_prop.TangentialBehavior(formulation=LAGRANGE, directionality=ISOTROPIC, 
+    #                                 table=((cpar['friction'], ), ))
 
     the_model.SurfaceToSurfaceContactStd(name=names.get_contact(cycle_nr=1), 
                                          createStepName=create_step_name, 

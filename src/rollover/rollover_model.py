@@ -194,22 +194,20 @@ def setup_steps(the_model, cycle_nr, rol_par, inc_par):
     return_step_name = names.get_step_return(cycle_nr)
     time = user_settings.numtrick['move_back_time']
     the_model.StaticStep(name=return_step_name, previous=previous_step_name, 
-                     maxNumInc=2, timePeriod=time, initialInc=time,
-                     amplitude=STEP
-                     )
+                         initialInc=time, maxNumInc=11, timePeriod=time, minInc=time/10,
+                         amplitude=STEP
+                         )
     
     reapply_step_name = 'reapply' + names.cycle_str(cycle_nr)
     the_model.StaticStep(name=reapply_step_name, previous=return_step_name,
-                         timeIncrementationMethod=FIXED, initialInc=time, 
-                         maxNumInc=2, timePeriod=time, 
+                         initialInc=time, maxNumInc=11, timePeriod=time, minInc=time/10,
                          amplitude=STEP
                          )
                          
     release_nodes_step_name = 'release' + names.cycle_str(cycle_nr)
     the_model.StaticStep(name=release_nodes_step_name, previous=reapply_step_name,
-                         timeIncrementationMethod=FIXED, initialInc=time, 
-                         maxNumInc=2, timePeriod=time, 
-                         amplitude=STEP
+                         initialInc=time, maxNumInc=11, timePeriod=time, minInc=time/10,
+                        #amplitude=STEP
                          )
     
     rolling_step_name = names.get_step_rolling(cycle_nr)
@@ -233,15 +231,20 @@ def setup_remaining_rolling_cycles():
     # returns: return_step_name, reapply_step_name, release_nodes_step_name, rolling_step_name
     
     # Determine which nodes that should be controlled by moving back boundary conditions
-    assy = get.assy()
     winst = get.inst(names.wheel_inst)
-    wpart = get.part(names.wheel_part)
-    rp_node = assy.sets[names.wheel_rp_set].nodes[0]
-    #rp_x = rp_node.coordinates[0]
-    rp_x = loadmod.get_preposition_motion()[0]  # For some unknown reason, rp_node has no coords???
-    wheel_nodes = winst.sets['CONTACT_NODES'].nodes
-    bc_nodes = wheel_nodes.sequenceFromLabels([node.label for node in wheel_nodes 
-                if (np.abs(node.coordinates[0]-rp_x) < (user_settings.max_contact_length/2.0))])
+    w_info = wheelmod.get_wheel_info()
+    wheel_contact_region_angle = w_info['contact_angle'] - w_info['rolling_angle']
+    
+    rp = loadmod.get_preposition_motion()  # For some unknown reason, rp_node has no coords?
+    
+    # To ensure correct node numbers, we use the coordinates from the node set. This is as the node 
+    # label order could be different the order in the coordinate list from wheel_info
+    wn = winst.sets[names.wheel_contact_nodes].nodes
+    wn_rel_coords = np.array([np.array(n.coordinates[0:2])-np.array(rp[0:2]) for n in wn])
+    wn_angels = np.arctan2(wn_rel_coords[:,0], -wn_rel_coords[:,1])
+    
+    bc_nodes = wn.sequenceFromLabels([n.label for a, n in zip(wn_angels, wn)
+                                      if np.abs(a) < wheel_contact_region_angle/2.0])
     
     # Setup boundary condition for those nodes
     bc_cnod_region = regionToolset.Region(nodes=bc_nodes)
@@ -252,7 +255,8 @@ def setup_remaining_rolling_cycles():
     ctrl_bc = the_model.boundaryConditions[names.rp_ctrl_bc]
     
     # Setup boundary condition for rail contact nodes
-    rail_contact_node_set = the_model.rootAssembly.instances['RAIL'].sets['CONTACT_NODES']
+    rinst = get.inst(names.rail_inst)
+    rail_contact_node_set = rinst.sets[names.rail_contact_nodes]
     lock_rail_bc = the_model.VelocityBC(name='lock_rail_contact_surface',
                                         createStepName=step_names[0],
                                         region=rail_contact_node_set)
