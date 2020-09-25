@@ -12,7 +12,7 @@ import material
 this_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
 if not this_path in sys.path:
     sys.path.append(this_path)
-from user_settings import materials
+import user_settings
 import abaqus_python_tools as apt
 import get_utils as get
 import naming_mod as names
@@ -20,7 +20,7 @@ import user_subroutine as usub
 
 def setup_sections():
     the_model = get.model()
-    
+    materials = user_settings.materials
     # Rail
     rail_material = materials['rail']
     material(the_model, matmod=rail_material['material_model'], mpar=rail_material['mpar'], 
