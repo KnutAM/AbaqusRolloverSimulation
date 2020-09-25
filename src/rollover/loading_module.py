@@ -60,11 +60,11 @@ def setup_outputs(is_3d=False):
     for fo in the_model.fieldOutputRequests.keys():
         del the_model.fieldOutputRequests[fo]
         
-   #the_model.FieldOutputRequest(createStepName=step_name, name='FieldOutputs',
-   #                             frequency=1, region=rail_contact_region,
-   #                             variables=('LE', 'UT'))
-    the_model.FieldOutputRequest(name='FieldOutputs', createStepName=step_name, 
-                                 variables=('U', 'S'))
+    the_model.FieldOutputRequest(createStepName=step_name, name='FieldOutputs',
+                                 frequency=1, region=rail_contact_region,
+                                 variables=('LE', 'U', 'S'))
+   #the_model.FieldOutputRequest(name='FieldOutputs', createStepName=step_name, 
+   #                             variables=('U', 'S'))
     
     
 def get_preposition_motion():

@@ -194,19 +194,19 @@ def setup_steps(the_model, cycle_nr, rol_par, inc_par):
     return_step_name = names.get_step_return(cycle_nr)
     time = user_settings.numtrick['move_back_time']
     the_model.StaticStep(name=return_step_name, previous=previous_step_name, 
-                         initialInc=time, maxNumInc=11, timePeriod=time, minInc=time/10,
+                         initialInc=time, maxNumInc=101, timePeriod=time, minInc=time/100,
                          amplitude=STEP
                          )
     
     reapply_step_name = 'reapply' + names.cycle_str(cycle_nr)
     the_model.StaticStep(name=reapply_step_name, previous=return_step_name,
-                         initialInc=time, maxNumInc=11, timePeriod=time, minInc=time/10,
+                         initialInc=time, maxNumInc=101, timePeriod=time, minInc=time/100,
                          amplitude=STEP
                          )
                          
     release_nodes_step_name = 'release' + names.cycle_str(cycle_nr)
     the_model.StaticStep(name=release_nodes_step_name, previous=reapply_step_name,
-                         initialInc=time, maxNumInc=11, timePeriod=time, minInc=time/10,
+                         initialInc=time, maxNumInc=101, timePeriod=time, minInc=time/100,
                         #amplitude=STEP
                          )
     
