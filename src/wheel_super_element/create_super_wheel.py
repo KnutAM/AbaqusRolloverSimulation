@@ -10,13 +10,20 @@ if not this_path in sys.path:
     
 import wheel_mesh_tb
 
-default_wheel_settings = {'mesh_size': 4.0,
-                          'outer_diameter': 400.0,
+default_wheel_settings = {'mesh_size': 2.0,             # Element size along outer perifery
+                          'outer_diameter': 666.0,      #
                           'inner_diameter': 200.0,
+                          'rolling_length': 60.0,       # Rolling length accounting for slip 
+                                                        # (used to calculate rolling angle)
+                          'max_contact_size': 30.0,     # Maximum length of contact zone
+                                                        # (used to calculate total wheel angle)
+                          'rolling_angle': None,        # Expected wheel rolling angle
+                          'contact_angle': None,        # Tot wheel ang (port. with contact nodes)
                           'output_directory': this_path + '/../../super_wheels'
                           }
 
 # Set default rolling_angle such that max rolling length (incl. slip) is 40 mm
+
 default_wheel_settings['rolling_angle'] = 40.0/(default_wheel_settings['outer_diameter']/2.0)
 # Set default contact_angle such that max contact size is 20 mm
 default_wheel_settings['contact_angle'] = (default_wheel_settings['rolling_angle'] +
@@ -26,6 +33,11 @@ def set_default_options(wheel_settings):
     for key in default_wheel_settings:
         if not key in wheel_settings:
             wheel_settings[key] = default_wheel_settings[key]
+            
+    wheel_radius = wheel_settings['outer_diameter']/2.0
+    wheel_settings['rolling_angle'] = wheel_settings['rolling_length']/wheel_radius
+    wheel_settings['contact_angle'] = (wheel_settings['rolling_angle'] +
+                                       wheel_settings['max_contact_size']/wheel_radius)
     
 
 def create_super_element(**kwargs):
@@ -40,9 +52,10 @@ def create_super_element(**kwargs):
     # Setup names and directories
     job_name = 'super_wheel_sim'
     tempdir = 'temporary_super_wheel_simulation_directory'
-    od, id, ms = [wheel_settings[key] for key in ['outer_diameter', 'inner_diameter', 'mesh_size']]
+    od, id, rl, ms = [wheel_settings[key] for key in 
+                      ['outer_diameter', 'inner_diameter', 'rolling_length', 'mesh_size']]
     save_dir = (wheel_settings['output_directory'] + '/' +
-                'OD%u_ID%u_M%02up%03u' % (od, id, int(ms), 1000*int(ms-int(ms))) )
+                'OD%u_ID%u_RL%u_M%02up%03u' % (od, id, rl, int(ms), 1000*int(ms-int(ms))) )
     
     # Setup temporary folder to run simulation in 
     if os.path.exists(tempdir):

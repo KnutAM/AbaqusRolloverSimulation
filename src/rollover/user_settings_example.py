@@ -1,9 +1,9 @@
 # Overall simulation settings
-max_contact_length = 16.0
+max_contact_length = 25.0
 num_cycles = 3
+run_simulation = True
 use_restart = False
-usub_object_path = None
-run_simulation = False
+usub_object_path = None     # 'C:/Work/Abaqus/2017/usub-std.obj'
 
 # Numerical "trick" settings
 numtrick = {'dummy_stiffness': 1.e-6,   # MPa   (Stiffness for dummy materials extending contact 
@@ -12,29 +12,31 @@ numtrick = {'dummy_stiffness': 1.e-6,   # MPa   (Stiffness for dummy materials e
            }
 
 # Rail settings
-rail_geometry = {'length': 30.0, 'height': 30.0, 'max_contact_length': max_contact_length}
-rail_mesh = {'fine': 2.0, 'coarse': 5.0}
+rail_geometry = {'length': 50.0, 'height': 80.0, 'max_contact_length': max_contact_length}
+rail_mesh = {'fine': 2.0, 'coarse': 10.0}
 
 # Wheel settings: Give name of folder in 'super_wheels' from which to take user wheel element
-super_wheel = 'OD400_ID200_M04p000'
+super_wheel = 'OD666_ID200_RL60_M02p000'
 custom_super_wheel_directory = None     # Specify to use another directory than src/../super_wheels
 
 
 # Time increment settings
-time_incr_param = {'nom_num_incr_rolling': 50,      # Nominal number of increments during rolling
-                   'max_num_incr_rolling': 200,     # Maximum number of increments during rolling
+time_incr_param = {'nom_num_incr_rolling': 200,     # Nominal number of increments during rolling
+                   'max_num_incr_rolling': 1000,    # Maximum number of increments during rolling
                   }
+time_incr_param['nom_num_incr_rolling'] = 10*int(rail_geometry['length']/rail_mesh['fine'])
+time_incr_param['max_num_incr_rolling'] = 100*time_incr_param['nom_num_incr_rolling']
              
 # Load settings
 load_parameters = {'initial_depression': 0.01,      # mm
-                   'normal_load': 5000,             # N
-                   'slip': 0.02,                    # -
+                   'normal_load': 18.2e3,           # N/mm
+                   'slip': 0.015,                   # -
                    'speed': 30e3,                   # mm/s
                    }
 
 # Contact settings
 contact_parameters = {'penalty_stiffness': 1.e6,    # N/mm
-                      'friction': 0.2,              # -
+                      'friction': 0.5,              # -
                       }
 
 # Material settings
@@ -44,7 +46,7 @@ material_model_folder = None
 # creating the "materials" dictionary
 
 elastic_steel = {'material_model': 'elastic', 'mpar': {'E': 210.e3, 'nu': 0.3}}
-plastic_steel = {'material_model': 'chaboche', 'mpar': {'E': 210.e3, 'nu': 0.3, 'Y0': 200., 
+plastic_steel = {'material_model': 'chaboche', 'mpar': {'E': 210.e3, 'nu': 0.3, 'Y0': 500., 
                                                         'Hkin': 5.e3, 'binf': 500., 'Hiso': 1.e3, 
                                                         'kinf': 100.}
                 }
@@ -59,6 +61,6 @@ chaboche_umat = {'material_model': 'user',
 dummy_elastic = {'material_model': 'elastic', 'mpar': {'E': numtrick['dummy_stiffness'], 'nu': 0.3}
                 }
 
-materials = {'rail': elastic_steel, 'wheel': elastic_steel, 
+materials = {'rail': plastic_steel, 'wheel': elastic_steel, 
              'shadow_rail': dummy_elastic, 
              'contact_trusses_wheel': dummy_elastic}
