@@ -59,8 +59,17 @@ def get_inp_str_element_connectivity():
     num_nodes = winfo['num_nodes']
     inp_str = '*Element, type=U1, ELSET=WHEEL_SUPER_ELEMENT\n'
     con_parts = ['%u' % num_nodes]*2
-    inp_str = inp_str + ', '.join(['%u' % num_nodes]*2 + ['%u' % i for i in range(1, num_nodes)])
-    return inp_str
+    inp_str = inp_str + ', '.join(['%u' % num_nodes]*2) + ', '
+    num_per_line = 2    # Already 2 items placed
+    for i in range(1, num_nodes):
+        if num_per_line >= 16:
+            inp_str = inp_str + '\n'
+            num_per_line = 0
+            
+        inp_str = inp_str + '%u, ' % i
+        num_per_line = num_per_line + 1
+        
+    return inp_str[:-2] # Remove last comma and space
     
 
 def get_inp_str_element_property():
