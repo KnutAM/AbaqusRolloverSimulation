@@ -69,3 +69,4 @@ def find_strings_in_iterable(iterable, find_strings, min_ind=0):
     apt.log(log_str)
     
     raise ValueError
+

@@ -174,10 +174,6 @@ def setup_initial_model():
     ## Add user element 
     wheelmod.add_wheel_super_element_to_inp()
     
-    if not user_settings.use_restart:            
-        ## Add output to .fil file
-        movebackmod.add_output(cycle_nr=1)
-    
     return the_model
     
 def setup_full_model():
@@ -189,6 +185,9 @@ def setup_full_model():
     
     # Setup output requests
     loadmod.setup_outputs()
+    # Add output to .fil file
+    get.model().keywordBlock.synchVersions(storeNodesAndElements=True)
+    movebackmod.add_output(cycle_nr=1)
 
 
 def setup_steps(the_model, cycle_nr, rol_par, inc_par):

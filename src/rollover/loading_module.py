@@ -88,7 +88,7 @@ def setup_outputs(is_3d=False):
                 fout_obj.move(fromStepName=prev_step_active, toStepName=names.get_step_rolling(cnr))
                 try:
                     fout_obj.deactivate(names.get_step_return(cnr+1))
-                except KeyError:
+                except:
                     pass    # This is ok if it is the last cycle, then no subsequent step exists
                 
                 prev_step_active = names.get_step_rolling(cnr)
