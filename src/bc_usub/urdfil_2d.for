@@ -440,6 +440,11 @@ implicit none
     double precision, intent(in)    :: angle_incr   ! Angular nodal spacing
     integer, intent(in)             :: cycle_nr     ! Current rollover cycle
     
+    double precision, allocatable   :: ubc(:)       ! Degree of freedom vector to be prescribed
+    double precision, allocatable   :: uf(:)        ! Degree of freedom vector to be determined
+    integer, allocatable            :: cdofs(:)     ! Dof numbers of constrained dofs
+    integer                         :: nfdofs       ! Number of dofs that are "free"
+    integer                         :: dofind           ! Temp variable for current dof number
     integer                         :: nnod             ! Number of nodes
     
     integer                         :: num_elem_roll    ! How many elements to roll back
@@ -493,6 +498,10 @@ implicit none
     
     ! Save remaining node prescribed displacements to subsequent rows
     nnod = size(node_n)
+    allocate(ubc(3+2*(nnod-num_elem_roll)), cdofs(3+2*(nnod-num_elem_roll)))
+    ubc(1:2) = u_new_rp
+    ubc(3) = return_angle
+    cdofs(1:3) = [1,2,3]
     do old_ind=1,(nnod-num_elem_roll)
         new_ind = old_ind + num_elem_roll
         x0_new = node_c(:, new_ind) - node_u(:, new_ind)
@@ -502,12 +511,65 @@ implicit none
         x_new = x_old + dx_rp
         u_new = x_new - x0_new
         write(file_id, "(I0, 2ES25.15)") node_n(new_ind), u_new(1), u_new(2)
+        ! Add calculated constrained dofs
+        dofind = 3 + (old_ind-1)*2 + 1
+        ubc(dofind:(dofind+1)) = u_new
+        cdofs(dofind:(dofind+1)) = 3 + (new_ind-1)*2 + [1, 2]
+    enddo
+    
+    nfdofs = 2*num_elem_roll
+    call get_fdofs(uf, nfdofs, ubc, cdofs)
+    
+    do old_ind=1,num_elem_roll
+        dofind = 2*(old_ind-1) + 1
+        write(file_id, "(I0, 2ES25.15)") node_n(old_ind), uf(dofind), uf(dofind+1)
     enddo
     
     close(file_id)
     
 end subroutine
+
+subroutine get_fdofs(uf, nfdofs, ubc, cdofs)
+use wheel_super_element_mod
+implicit none
+    double precision, allocatable, intent(out)  :: uf(:)    ! Displacements to be calculated
+    integer, intent(in)                         :: nfdofs   ! Number of displcements to be calculated
+    double precision, intent(in)                :: ubc(:)   ! Displacements already calculated
+    integer, intent(in)                         :: cdofs(:) ! Location of ubc in stiffness matrix
     
+    double precision, allocatable               :: kprim(:,:), kstiff(:,:), kff(:,:)
+    double precision                            :: rotation
+    integer                                     :: ndof
+    integer                                     :: f1, f2   ! First and last "free" dof
+    integer, allocatable                        :: ipiv(:)  ! Pivot indices for LU decomposition
+    integer                                     :: info     ! Check of dgesv success
+    
+    ndof = size(ubc) + nfdofs
+    allocate(kprim(ndof,ndof), kstiff(ndof,ndof), uf(nfdofs), ipiv(nfdofs), kff(nfdofs,nfdofs))
+    
+    rotation = ubc(3)
+    
+    ! Call routines from wheel_super_element_mod
+    call get_unrotated_stiffness(kprim)
+    call rotate_stiffness(rotation, kprim, kstiff)
+    
+    ! |ff| = |Kff Kfc| |uf| = | 0|
+    ! |fc| = |Kcf Kcc| |uc| = |fc|
+    ! Kff*uf = -Kfc*uc
+    f1 = 4
+    f2 = 3 + nfdofs
+    uf = -matmul(kstiff(f1:f2, cdofs), ubc)  !Input b in dgesv is overwritten to answer x
+    kff = kstiff(f1:f2, f1:f2)
+    !    dgesv(     n, nrhs,   a,    lda, ipiv,  b,    ldb, info )
+    call dgesv(nfdofs,    1, kff, nfdofs, ipiv, uf, nfdofs, info)
+
+    if (info /= 0) then
+        write(*,*) 'Could not solve for wheel displacements'
+        call xit()
+    endif
+    
+end subroutine
+
 end module bc_mod
 
 subroutine urdfil(lstop,lovrwrt,kstep,kinc,dtime,time)

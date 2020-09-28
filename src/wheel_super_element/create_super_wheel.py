@@ -78,8 +78,9 @@ def create_super_element(**kwargs):
     if not os.path.exists(wheel_settings['output_directory']):
         os.mkdir(wheel_settings['output_directory'])
         
-    if not os.path.exists(save_dir):
-        os.mkdir(save_dir)
+    if os.path.exists(save_dir):
+        shutil.rmtree(save_dir)
+    os.mkdir(save_dir)
         
     for file in ['uel.for', 'uel_coords.npy', 'uel_info.json']:
         os.rename(file, save_dir + '/' + file)
@@ -240,8 +241,8 @@ def write_input_file(filename, info, nodes, elem_nods, inner_node_nrs, contact_n
         inp.write('1.0, %0.5f\n' % nu)
         
         # Step definition
-        inp.write('*Step, name=Step-1, nlgeom=NO\n')
-        inp.write('*Substructure Generate, overwrite, type=Z1, recovery matrix=YES\n')
+        inp.write('*Step, name=Step-1\n')
+        inp.write('*Substructure Generate, overwrite, type=Z1, recovery matrix=NO\n')
         inp.write('*Damping Controls, structural=COMBINED, viscous=COMBINED\n')
         inp.write('*Retained Nodal Dofs\n')
         inp.write('SUPER_WHEEL_CONTACT_NODES, 1, 2\n')

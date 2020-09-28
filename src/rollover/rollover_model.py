@@ -247,7 +247,8 @@ def setup_remaining_rolling_cycles():
                                       if np.abs(a) < wheel_contact_region_angle/2.0])
     
     # Setup boundary condition for those nodes
-    bc_cnod_region = regionToolset.Region(nodes=bc_nodes)
+    # bc_cnod_region = regionToolset.Region(nodes=bc_nodes)
+    bc_cnod_region = regionToolset.Region(nodes=wn)
     cnod_bc = get.model().DisplacementBC(name='contact_node_bc', createStepName=step_names[0], 
                                          region=bc_cnod_region, distributionType=USER_DEFINED)
     

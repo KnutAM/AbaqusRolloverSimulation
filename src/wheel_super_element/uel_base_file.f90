@@ -325,53 +325,16 @@ implicit none
 
 end subroutine
     
-subroutine get_stiffness(u, Kprim, coords, amatrx)
+subroutine rotate_stiffness(rotation, Kprim, amatrx)
 implicit none
-    double precision, intent(in)    :: u(:), Kprim(:,:), coords(:,:)
+    double precision, intent(in)    :: rotation, Kprim(:,:)
     double precision, intent(inout) :: amatrx(:,:)
     
-    double precision                :: rotation
-    double precision, allocatable   :: QK(:,:), xi_minus_x0(:), xi_init_minus_x0_init(:)
-    double precision, allocatable   :: rotation_matrix(:,:), rotation_matrix_diff(:,:)
-    integer, allocatable            :: du0m_du(:,:)
-    integer                         :: ndofel, k1
+    double precision, allocatable   :: rotation_matrix(:,:)
 
-    ndofel = size(u)
-    allocate(QK(ndofel, ndofel))
+    call get_rotation_matrix(rotation, size(Kprim,1), rotation_matrix)
     
-    call get_u_diff(du0m_du, ndofel)
-    call get_x_diff(u, coords, xi_minus_x0, xi_init_minus_x0_init)
-        
-    rotation = u(3)
-    call get_rotation_matrix(rotation, ndofel, rotation_matrix)
-    call get_rotation_matrix_derivative(rotation, ndofel, rotation_matrix_diff)
-    
-    
-    QK = matmul(rotation_matrix, Kprim)
-    amatrx = matmul(QK, transpose(rotation_matrix))
-    ! write(*,*) '|QKQ^T - K|/|K|:'
-    ! write(*,*) norm(Kprim-amatrx)/norm(Kprim)
-    ! write(*,*) '|QKQ^T - (QKQ^T)^T|/|K|:'
-    ! write(*,*) norm(amatrx-transpose(amatrx))/norm(Kprim)
-    
-    ! amatrx(:, 1:2) = amatrx(:, 1:2) - matmul(amatrx, du0m_du)
-    ! write(*,*) 'after du0_m/du0x and du0_m/du0y added'
-    ! write(*,*) '|amat - K|/|K|:'
-    ! write(*,*) norm(Kprim-amatrx)/norm(Kprim)
-    ! write(*,*) '|amat - amat^T|/|K|:'
-    ! write(*,*) norm(amatrx-transpose(amatrx))/norm(Kprim)
-    
-    ! amatrx(:, 3) = amatrx(:, 3) - matmul(QK, rotation_matrix(:,3))
-    ! amatrx(:, 3) = amatrx(:, 3) &
-                 ! + matmul(matmul(rotation_matrix_diff, transpose(QK)),xi_minus_x0) &
-                 ! - matmul(matmul(rotation_matrix_diff,Kprim),xi_init_minus_x0_init)
-    ! amatrx(:, 3) = amatrx(:, 3) + matmul(matmul(QK, rotation_matrix_diff), xi_minus_x0)
-    
-    ! write(*,*) 'after amat(:,3) modified'
-    ! write(*,*) '|amat - K|/|K|:'
-    ! write(*,*) norm(Kprim-amatrx)/norm(Kprim)
-    ! write(*,*) '|amat - amat^T|/|K|:'
-    ! write(*,*) norm(amatrx-transpose(amatrx))/norm(Kprim)
+    amatrx = matmul(matmul(rotation_matrix, Kprim), transpose(rotation_matrix))
     
 end subroutine
 
@@ -457,7 +420,7 @@ subroutine uel(rhs,amatrx,svars,energy,ndofel,nrhs,nsvars,&
     rhs(1:ndofel,1) = -Fint
     
     ! Calculate stiffness
-    call get_stiffness(u, Kprim, coords, amatrx)
+    call rotate_stiffness(u(3), Kprim, amatrx)
     
     !call uel_output(lflags, kinc, kstep, time(2))
     
