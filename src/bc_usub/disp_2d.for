@@ -45,7 +45,7 @@ implicit none
     integer                         :: file_id      ! File identifier for bc-file written by urdfil
     integer                         :: io_status    ! I/O status
     
-    write(filename, "(A, I0, A)") 'bc_step', cycle_nr, '.txt'
+    write(filename, "(A, I0, A)") 'bc_cycle', cycle_nr, '.txt'
     call get_fid(filename, file_id)
     
     read(file_id, *) read_node, read_dbl

@@ -477,7 +477,7 @@ implicit none
     endif
     
     ! Create filename
-    write(filename, "(A, A, I0, A)") trim(filename), '/bc_step', cycle_nr, '.txt'
+    write(filename, "(A, A, I0, A)") trim(filename), '/bc_cycle', cycle_nr, '.txt'
     
     open(newunit=file_id, file=trim(filename), iostat=io_status)
     
