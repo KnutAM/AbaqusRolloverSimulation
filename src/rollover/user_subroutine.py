@@ -61,19 +61,35 @@ def copy_to_usub_dir(file_path):
 
 def create_file():
     usubs = [sub + suff for sub in supported_usubs for suff in ['.f', '.for']]
+    mandatory_usubs = ['uel', 'urdfil', 'disp'] # Note that uel must come before urdfil!
     usub_name = name + ('.for' if os.name == 'nt' else '.f')
     all_files_and_folders = os.listdir(folder)
     usub_str = '!DEC$ FREEFORM\n'
     usub_str = usub_str + '! User subroutines for Abaqus Rollover Simulation\n'
     usub_str = usub_str + '! Compile with "abaqus make library=' + usub_name + '\n'
-    for file in all_files_and_folders:
-        if file in usubs:
-            with open(folder + '/' + file, 'r') as fid:
+    usub_strs = {}
+    for fname in all_files_and_folders:
+        if fname in usubs:
+            with open(folder + '/' + fname, 'r') as fid:
                 file_str = fid.read()
                 # Following line requried? Is it a problem to have multiple of "!DEC$ FREEFORM"?
-                file_str = file_str.replace('!DEC$ FREEFORM', '!')  
-                usub_str = usub_str + file_str + '\n'
+                key = fname.split('.')[0]
+                usub_strs[key] = file_str.replace('!DEC$ FREEFORM', '!')  
                 
+    if not all([key in usub_strs for key in mandatory_usubs]):
+        apt.log('uel, urdfil and disp are required subroutines that must be available. The following are found:')
+        for key in usub_strs:
+            apt.log(key)
+        raise IOError
+    
+    # Need to ensure that uel comes before urdfil
+    for key in mandatory_usubs:   
+        usub_str = usub_str + usub_strs[key] + '\n'
+
+    for key in usub_strs:
+        if key not in mandatory_usubs:
+            usub_str = usub_str + usub_strs[key] + '\n'
+
             
     with open(folder + '/' + usub_name, 'w') as fid:
         fid.write(usub_str)
