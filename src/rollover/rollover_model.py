@@ -55,6 +55,8 @@ def main():
     t0 = time.time()
     if user_settings.use_restart:
         setup_initial_model()
+        # Setup output requests
+        loadmod.setup_outputs()
         #return None
         setup_time = time.time() - t0
         if num_cycles > 0:
@@ -160,9 +162,6 @@ def setup_initial_model():
     # Setup contact conditions
     contactmod.setup_contact()
     
-    # Setup output requests
-    loadmod.setup_outputs()
-    
     # Generate user subroutine unless object file given in input
     if user_settings.usub_object_path:
         usub.copy_to_usub_dir(user_settings.usub_object_path)
@@ -187,6 +186,9 @@ def setup_full_model():
     
     if user_settings.num_cycles > 1:
         setup_remaining_rolling_cycles()
+    
+    # Setup output requests
+    loadmod.setup_outputs()
 
 
 def setup_steps(the_model, cycle_nr, rol_par, inc_par):

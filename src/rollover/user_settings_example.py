@@ -19,6 +19,29 @@ rail_mesh = {'fine': 2.0, 'coarse': 10.0}
 super_wheel = 'OD666_ID200_RL60_M02p000'
 custom_super_wheel_directory = None     # Specify to use another directory than src/../super_wheels
 
+# Field_outputs (assumes rail instance except for special keywords: FULL_MODEL, WHEEL_RP)
+# Provide a dict containing the name of the field outputs as keys. Each item should be a dict with 
+# the following keys:
+# set   Name of rail instance set from which the variables should be saved. Note special names
+#       FULL_MODEL and WHEEL_RP that are not rail exclusive, but rather self explanatory
+# var   Give a tuple of Abaqus output variables, e.g. ('LE', 'U', 'S')
+# freq  Output frequency. Set to -1 to have LAST_INCREMENT option invoked
+# cycle How often (in terms of cycles) the output should be active. If 1, then each cycle will be 
+#       saved. Otherwise, the name will be suffixed by the cycle number and one output per outputted
+#       cycle will be created. 
+field_outputs = {'full_field': {'set': 'FULL_MODEL',
+                                'var': ('LE', 'U', 'S'),
+                                'freq': 1,
+                                'cycle': 10},
+                'wheel_rp': {'set': 'WHEEL_RP',
+                             'var': ('RM', 'U', 'UR'),
+                             'freq': 1,
+                             'cycle': 1},
+                'contact_surf': {'set': 'CONTACT_NODES',
+                                 'var': ('LE', 'U', 'S'),
+                                 'freq': 1,
+                                 'cycle': 1}
+                }   
 
 # Time increment settings
 time_incr_param = {'nom_num_incr_rolling': 200,     # Nominal number of increments during rolling

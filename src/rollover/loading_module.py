@@ -40,31 +40,60 @@ def setup_outputs(is_3d=False):
         
     step_name = names.step1
     
-    # WHEEL CONTROL POINT
-    the_model.HistoryOutputRequest(name='RP', createStepName=step_name, 
-                                   region=wheel_refpoint, variables=vars_rp,
-                                   frequency=LAST_INCREMENT)
-    
-    # WHEEL CONTACT AREA
-    wheel_contact_region = wheel_inst.sets[names.wheel_contact_nodes]
-    the_model.HistoryOutputRequest(name='wheel', createStepName=step_name, 
-                                   region=wheel_contact_region, variables=vars_nods,
-                                   frequency=LAST_INCREMENT)
-                        
-    # RAIL CONTACT AREA
-    rail_contact_region = rail_inst.sets[names.rail_contact_nodes]
-    the_model.HistoryOutputRequest(name='rail', createStepName=step_name, 
-                                   region=rail_contact_region, variables=vars_nods,
-                                   frequency=LAST_INCREMENT)
-                                   
+    # Delete default outputs
     for fo in the_model.fieldOutputRequests.keys():
         del the_model.fieldOutputRequests[fo]
+    
+    # Regions
+    rail_contact_region = rail_inst.sets[names.rail_contact_nodes]
+    wheel_contact_region = wheel_inst.sets[names.wheel_contact_nodes]
+    
+    if user_settings.use_restart:        
+        # WHEEL CONTROL POINT
+        the_model.HistoryOutputRequest(name='RP', createStepName=step_name, 
+                                       region=wheel_refpoint, variables=vars_rp,
+                                       frequency=LAST_INCREMENT)
         
-    the_model.FieldOutputRequest(createStepName=step_name, name='FieldOutputs',
-                                 frequency=1, region=rail_contact_region,
-                                 variables=('LE', 'U', 'S'))
-   #the_model.FieldOutputRequest(name='FieldOutputs', createStepName=step_name, 
-   #                             variables=('U', 'S'))
+        # WHEEL CONTACT AREA
+        the_model.HistoryOutputRequest(name='wheel', createStepName=step_name, 
+                                       region=wheel_contact_region, variables=vars_nods,
+                                       frequency=LAST_INCREMENT)
+                            
+        # RAIL CONTACT AREA
+        the_model.HistoryOutputRequest(name='rail', createStepName=step_name, 
+                                       region=rail_contact_region, variables=vars_nods,
+                                       frequency=LAST_INCREMENT)
+        
+    fouts = user_settings.field_outputs
+    for foname in fouts:
+        fout = fouts[foname]
+        if fout['set'] == 'FULL_MODEL':
+            region = MODEL
+        elif fout['set'] == 'WHEEL_RP':
+            region = wheel_refpoint
+        else:
+            region = rail_inst.sets[fout['set']]
+    
+        fout_obj = the_model.FieldOutputRequest(createStepName=names.step1, name=foname,
+                                                    frequency=fout['freq'], variables=fout['var'],
+                                                    region=region)
+        if fout['cycle'] > 1:
+            fout_obj.deactivate(names.get_step_return(2))
+            prev_step_deactive = names.get_step_return(2)
+            prev_step_active = names.step1
+            for cnr in range(1, user_settings.num_cycles+1, fout['cycle'])[1:]:
+                fout_obj = the_model.FieldOutputRequest(name=foname + names.cycle_str(cnr),
+                                                        objectToCopy=fout_obj)
+                fout_obj.reset(prev_step_deactive)
+                fout_obj.move(fromStepName=prev_step_active, toStepName=names.get_step_rolling(cnr))
+                try:
+                    fout_obj.deactivate(names.get_step_return(cnr+1))
+                except KeyError:
+                    pass    # This is ok if it is the last cycle, then no subsequent step exists
+                
+                prev_step_active = names.get_step_rolling(cnr)
+                prev_step_deactive = names.get_step_return(cnr+1)
+                
     
     
 def get_preposition_motion():
