@@ -43,6 +43,8 @@ def setup_outputs(is_3d=False):
     # Delete default outputs
     for fo in the_model.fieldOutputRequests.keys():
         del the_model.fieldOutputRequests[fo]
+    for ho in the_model.historyOutputRequests.keys():
+        del the_model.historyOutputRequests[ho]
     
     # Regions
     rail_contact_region = rail_inst.sets[names.rail_contact_nodes]
@@ -209,4 +211,5 @@ def initial_bc():
     ctrl_bc.setValuesInStep(stepName=rolling_step_name, 
                             u1=rpar['length'], u2=FREED, ur3=rpar['angle'])
     
-    the_model.steps[rolling_step_name].Restart(numberIntervals=1)
+    if user_settings.use_restart:
+        the_model.steps[rolling_step_name].Restart(numberIntervals=1)
