@@ -199,13 +199,13 @@ def setup_steps(the_model, cycle_nr, rol_par, inc_par):
                          amplitude=STEP
                          )
     
-    reapply_step_name = 'reapply' + names.cycle_str(cycle_nr)
+    reapply_step_name = names.get_step_reapply(cycle_nr)
     the_model.StaticStep(name=reapply_step_name, previous=return_step_name,
                          initialInc=time, maxNumInc=101, timePeriod=time, minInc=time/100,
                          amplitude=STEP
                          )
                          
-    release_nodes_step_name = 'release' + names.cycle_str(cycle_nr)
+    release_nodes_step_name = names.get_step_release(cycle_nr)
     the_model.StaticStep(name=release_nodes_step_name, previous=reapply_step_name,
                          initialInc=time, maxNumInc=101, timePeriod=time, minInc=time/100,
                         #amplitude=STEP

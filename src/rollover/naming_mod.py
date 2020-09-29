@@ -45,11 +45,15 @@ step2 = 'Loading'   # Apply the contact normal load
 def get_step_rolling(cycle_nr=1):
     return 'rolling_' + cycle_str(cycle_nr)
     
-    
 def get_step_return(cycle_nr=2):
     return 'return_' + cycle_str(cycle_nr)
     
-
+def get_step_reapply(cycle_nr=2):
+    return 'reapply_' + cycle_str(cycle_nr)
+    
+def get_step_release(cycle_nr=2):
+    return 'release_' + cycle_str(cycle_nr)
+    
 # BC and interactions
 fix_rail_bc = 'FIX_BOTTOM'
 rp_ctrl_bc = 'RP_CTRL'
