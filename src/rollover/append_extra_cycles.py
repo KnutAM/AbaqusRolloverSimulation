@@ -23,7 +23,6 @@ def get_step_def_str(inp_fname):
                 if not line.startswith('** '):
                     if line.startswith('*Step, name=return_'):
                         num_cycles = num_cycles + 1
-                        print(line)
                     step_def_str = step_def_str + line
     
     return step_def_str, num_cycles
