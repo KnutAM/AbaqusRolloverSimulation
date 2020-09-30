@@ -144,10 +144,10 @@ def define_sections():
 def get_shadow_rail_length_and_nel():
     rail_length = user_settings.rail_geometry['length']
     fine_mesh = user_settings.rail_mesh['fine']
-    max_contact_length = user_settings.rail_geometry['max_contact_length']
+    dummy_length = user_settings.rail_geometry['dummy_length']
     
     number_of_top_elements = int(rail_length/fine_mesh)
-    number_of_shadow_elements = int(max_contact_length/fine_mesh)
+    number_of_shadow_elements = int(dummy_length/fine_mesh)
     shadow_line_length = (rail_length/number_of_top_elements) * number_of_shadow_elements
     return shadow_line_length, number_of_shadow_elements
     
@@ -262,9 +262,13 @@ def connect_nodes(node_pairs_lists):
         for node_pair in node_pairs_list:
             node_pairs.append(node_pair)
             
+    num_digits = len(str(len(node_pairs)))
+    def get_set_names(nr):
+        return ['NODE_CONNECT_SET_' + str(nr).zfill(num_digits) + '_' + side for side in ['LEFT', 'RIGHT']]
+
     set_nr = 1
     for np in node_pairs:
-        set_names = ['NodeConnectSet' + side + '-' + str(set_nr) for side in ['Left', 'Right']]
+        set_names = get_set_names(set_nr)
         node_seq_left = rail_part.nodes.sequenceFromLabels((np[0].label,))
         node_seq_right = rail_part.nodes.sequenceFromLabels((np[1].label,))
         rail_part.Set(nodes=node_seq_left, name=set_names[0])
@@ -272,8 +276,8 @@ def connect_nodes(node_pairs_lists):
         set_nr = set_nr + 1
     
     the_assy.regenerate()
-    for set_nr in range(len(node_pairs)):
-        eq_names = ['NodeConnectSet' + side + '-' + str(set_nr+1) for side in ['Left', 'Right']]
+    for set_nr in range(1, len(node_pairs)+1):
+        eq_names = get_set_names(set_nr)
         # Link x-degree of freedom
         the_model.Equation(name='NodeConnectConstraintX-'+str(set_nr), terms=((1.0, 
         'RAIL.'+eq_names[0], 1), (-1.0, 'RAIL.'+eq_names[1], 1)))
