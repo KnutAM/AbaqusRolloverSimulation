@@ -103,7 +103,7 @@ def get_preposition_motion():
     radius = rolling_par['radius']
     rgeom = user_settings.rail_geometry
     
-    vector = ((rgeom['length'] - rgeom['max_contact_length'])/2.0, radius, 0.0)
+    vector = ((rgeom['length'] - user_settings.max_contact_length)/2.0, radius, 0.0)
     
     return vector
     

@@ -12,7 +12,7 @@ numtrick = {'dummy_stiffness': 1.e-6,   # MPa   (Stiffness for dummy materials e
            }
 
 # Rail settings
-rail_geometry = {'length': 50.0, 'height': 80.0, 'max_contact_length': max_contact_length}
+rail_geometry = {'length': 50.0, 'height': 80.0, 'dummy_length': max_contact_length}
 rail_mesh = {'fine': 2.0, 'coarse': 10.0}
 
 # Wheel settings: Give name of folder in 'super_wheels' from which to take user wheel element
