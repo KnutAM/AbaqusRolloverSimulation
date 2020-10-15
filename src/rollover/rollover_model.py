@@ -7,6 +7,7 @@ import time
 import pickle
 import subprocess
 from shutil import copyfile
+from importlib import reload
 
 # Abaqus imports 
 from abaqus import mdb

@@ -4,3 +4,5 @@
 ## User settable settings should not part of commits
 src/rollover/user_settings.py
 super_wheels/
+
+doc/build/*

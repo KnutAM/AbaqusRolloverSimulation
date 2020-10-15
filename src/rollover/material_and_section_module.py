@@ -1,5 +1,5 @@
 # System imports
-import inspect
+import sys, os, inspect
 
 # Abaqus imports
 from abaqusConstants import *

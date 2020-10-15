@@ -4,6 +4,7 @@ import os
 import numpy as np
 import inspect
 import pickle
+from importlib import reload
 
 # Abaqus imports 
 from abaqus import mdb
