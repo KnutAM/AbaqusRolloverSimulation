@@ -22,12 +22,6 @@ rollover_model.py
    :members:
    :undoc-members:
 
-sketch_from_file.py
--------------------
-.. automodule:: sketch_from_file
-   :members:
-   :undoc-members:
-
 Indices and tables
 ==================
 

@@ -1,3 +1,29 @@
+src folder structure
+3d/
+.rail/
+..create_basic_rail.py
+..mesh_rail.py
+..rail_constraints.py
+.wheel/
+..create_super_wheel.py
+..import_super_wheel.py
+..uel_base_file.f90
+.utils/
+..symmetric_mesh_module.py
+.usub/
+..disp.for
+..urdfil.for
+2d/
+.rail/
+.wheel/
+.usub/
+utils/
+.naming_mod.py
+.get_utils.py
+.abaqus_python_tools.py
+.append_extra_cycles.py
+
+Other notes
 Contact using substructure:
 
 Master/slave
