@@ -10,6 +10,7 @@ import numpy as np
 # Abaqus imports
 from abaqusConstants import *
 from abaqus import mdb
+import part
 
 # Project imports
 import naming_mod as names
@@ -141,8 +142,40 @@ def create_partition(rail_model, rail_part, refine_region):
     
     point_on_partitioned_face = (np.array(refine_region[0]) + np.array(refine_region[1]))/2.0
     point_on_partitioned_face = np.append(point_on_partitioned_face, 0.0)
-    partition_edge_ids = rail_part.faces.findAt(tuple(point_on_partitioned_face)).getEdges()
+    partition_face = get_partition_face(rail_part, refine_region)
+    partition_edge_ids = partition_face.getEdges()
     partition_edges = [rail_part.edges[i] for i in partition_edge_ids]
     
+    
+    rail_part.Set(name='partition_edges', edges=part.EdgeArray(edges=partition_edges))
     rail_part.PartitionCellByExtrudeEdge(line=extrude_axis, cells=rail_cell, edges=partition_edges, 
                                          sense=FORWARD)
+
+
+def get_partition_face(rail_part, refine_region):
+    rel_length = 0.001
+    def get_face(pa, pb):
+        point = p1 + rel_length*(p2-p1)
+        return rail_part.faces.findAt(tuple(point))
+        
+    p1, p2 = [np.array([refine_region[i][0], refine_region[i][1], 0.0]) for i in [0, 1]]
+    
+    face = get_face(p1, p2)
+    if face is not None:
+        return face
+    
+    face = get_face(p2, p1)
+    if face is not None:
+        return face
+        
+    p1, p2 = [np.array([refine_region[i][0], refine_region[1-i][1], 0.0]) for i in [0, 1]]
+    
+    face = get_face(p1, p2)
+    if face is not None:
+        return face
+        
+    face = get_face(p2, p1)
+    if face is not None:
+        return face
+    
+    raise ValueError('Could not find the partition face')

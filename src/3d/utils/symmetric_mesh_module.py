@@ -38,7 +38,13 @@ def make_periodic_meshes(the_part, source_sets, target_sets):
         add_mesh_to_faces(the_part, s_set, sh_regions, ref_pts_s)
         add_mesh_to_faces(the_part, t_set, sh_regions, ref_pts_s, tf_orders)
         for sh_region in sh_regions:
+            delete_set_keys = []
             the_part.deleteElement(elements=sh_region.elements)
+            for set_key in the_part.sets.keys():
+                if sh_region == the_part.sets[set_key]:
+                    delete_set_keys.append(set_key)
+            for delete_set_key in delete_set_keys:
+                del the_part.sets[delete_set_key]
         
 
 # Start of create_shadow_mesh related functions
@@ -69,7 +75,7 @@ def getref_points(the_part, source_face, offset_vector):
     return [np.array(n.coordinates) + offset_vector for n in nodes]
 
 
-def getsource_region(source_face):
+def get_source_region(source_face):
     # Create a "surface-like" region, source_region, of elements on source_face
     # Input
     # source_face    Face object 
@@ -129,7 +135,6 @@ def order_target_set_faces(source_set, target_set):
     normal_vector = np.array(source_set.faces[0].getNormal())
     inbetween_vector = np.array(target_set.faces[0].pointOn[0]) - np.array(source_set.faces[0].pointOn[0])
     offset_vector = normal_vector * np.dot(normal_vector, inbetween_vector)
-    
     tar_face_inds = []
     for src_face in source_set.faces:
         tar_face_inds.append(find_matching_face(the_face=src_face, search_faces=target_set.faces, 

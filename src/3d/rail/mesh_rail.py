@@ -12,9 +12,13 @@ from abaqusConstants import *
 from abaqus import mdb
 import mesh, part
 
+# Project imports
 import naming_mod as names
 import get_utils as get
 import abaqus_python_tools as apt
+
+import symmetric_mesh_module as sm
+
 
 
 def create_basic_mesh(rail_part, point_in_refine_cell, fine_mesh, coarse_mesh):
@@ -42,19 +46,23 @@ def create_basic_mesh(rail_part, point_in_refine_cell, fine_mesh, coarse_mesh):
     
     mesh_parameters = [{'point': None,
                         'size': coarse_mesh,
-                        'mc': {'elemShape': HEX_DOMINATED,
-                               'technique': SWEEP,
-                               'algorithm': ADVANCING_FRONT},
+                        'mc': {'elemShape': TET,
+                               'technique': FREE,
+                               #'algorithm': ADVANCING_FRONT
+                              },
                         'et': {'element_order': 1,
-                               'reduced_integration': False}
+                               'reduced_integration': False
+                              }
                         },
                         {'point': point_in_refine_cell,
                          'size': fine_mesh,
                          'mc': {'elemShape': HEX_DOMINATED,
                                 'technique': SWEEP,
-                                'algorithm': ADVANCING_FRONT},
+                                #'algorithm': ADVANCING_FRONT
+                               },
                          'et': {'element_order': 1,
-                                'reduced_integration': False}
+                                'reduced_integration': False
+                               }
                          }
                         ]
     create_mesh(rail_part, mesh_parameters)
@@ -99,7 +107,6 @@ def create_mesh(rail_part, mesh_parameters):
         rail_part.seedPart(size=mp['size'])
         
     for mp in mesh_parameters:
-        print(mp['point'])
         # Get region to be set parameters for
         if mp['point'] is None:
             cells = [c for c in rail_part.cells]
@@ -117,10 +124,21 @@ def create_mesh(rail_part, mesh_parameters):
                                     
         rail_part.setElementType(regions=cells, elemTypes=elem_types)
         
-        if mp['point'] is not None:
-            edges = [rail_part.edges[enr] for enr in cells[0].getEdges()]
+#        if mp['point'] is not None:
+#            edges = [rail_part.edges[enr] for enr in cells[0].getEdges()]
+#            rail_part.seedEdgeBySize(edges=part.EdgeArray(edges=edges), size=mp['size'])
+        for c in cells:
+            edges = [rail_part.edges[enr] for enr in c.getEdges()]
             rail_part.seedEdgeBySize(edges=part.EdgeArray(edges=edges), size=mp['size'])
+            
+    rail_part.generateMesh()
     
+    sm.make_periodic_meshes(rail_part, 
+                            source_sets=[rail_part.sets[names.rail_side_sets[0]]], 
+                            target_sets=[rail_part.sets[names.rail_side_sets[1]]])
+    
+    rail_part.generateMesh()
+    # Adding an additional generation seem to solve some issues. This should be investigated!
     rail_part.generateMesh()
         
 
