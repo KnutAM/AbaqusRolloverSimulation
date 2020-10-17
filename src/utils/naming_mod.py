@@ -25,6 +25,7 @@ rail_contact_nodes = 'CONTACT_NODES'
 rail_contact_surf = 'RAIL_CONTACT_SURFACE'
 rail_bottom_nodes = 'BOTTOM_NODES'
 rail_set = 'RAIL_SET'
+rail_side_sets = ['SIDE1_SET', 'SIDE2_SET']
 
 # BC and interactions
 fix_rail_bc = 'FIX_BOTTOM'

@@ -2,6 +2,7 @@ from __future__ import print_function
 import os, sys
 from datetime import datetime
 
+from abaqus import mdb
 from abaqusConstants import *
 
 

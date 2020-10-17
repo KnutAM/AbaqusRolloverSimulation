@@ -15,9 +15,17 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath('../../src/'))
-sys.path.insert(0, os.path.abspath('../../src/rollover/'))
-sys.path.insert(0, os.path.abspath('../../src/3d/utils/'))
+src = os.path.abspath('../../src')
+
+project_paths = [src,
+                 src + '/utils',
+                 src + '/3d',
+                 src + '/3d/rail',
+                 src + '/3d/wheel',
+                 src + '/3d/utils',
+                 ]
+for p in project_paths:
+    sys.path.insert(0, p)
 
 # -- Project information -----------------------------------------------------
 

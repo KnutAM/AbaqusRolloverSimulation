@@ -16,9 +16,9 @@ Welcome to abaqusrolloversimulation's documentation!
 Objects
 =======
 
-rollover_model.py
------------------
-.. automodule:: rollover_model
+create_basic_rail.py
+--------------------
+.. automodule:: create_basic_rail
    :members:
    :undoc-members:
 

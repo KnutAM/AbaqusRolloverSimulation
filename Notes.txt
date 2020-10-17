@@ -1,27 +1,34 @@
 src folder structure
 3d/
 .rail/
-..create_basic_rail.py
-..mesh_rail.py
-..rail_constraints.py
-.wheel/
-..create_super_wheel.py
-..import_super_wheel.py
-..uel_base_file.f90
-.utils/
-..symmetric_mesh_module.py
-.usub/
-..disp.for
-..urdfil.for
+  ..create_basic_rail.py
+  ..mesh_rail.py
+  ..rail_constraints.py
+ .wheel/
+  ..create_super_wheel.py
+  ..import_super_wheel.py
+  ..uel_mod.f90
+ .utils/
+  ..symmetric_mesh_module.py
 2d/
-.rail/
-.wheel/
-.usub/
+ .rail/
+ .wheel/
+  ..uel_mod.f90
 utils/
-.naming_mod.py
-.get_utils.py
-.abaqus_python_tools.py
-.append_extra_cycles.py
+ .naming_mod.py
+ .get_utils.py
+ .abaqus_python_tools.py
+ .append_extra_cycles.py
+usub/
+ .usub_mod.f90
+ .2d/
+  ..disp.f90
+  ..urdfil.f90
+  ..uel.f90
+ .3d/
+  ..disp.f90
+  ..urdfil.f90
+  ..uel.f90
 
 Other notes
 Contact using substructure:
