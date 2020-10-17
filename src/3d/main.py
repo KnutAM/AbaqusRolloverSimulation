@@ -25,13 +25,18 @@ add_subfolders_to_path(this_path)
 add_subfolders_to_path(src_path + '/utils')
 
 import create_basic_rail as cbr
+import mesh_rail as mr
 
 reload(cbr)
+reload(mr)
 
 def main():
     rail_sketch = src_path + '/../data/rail_profiles/BV50.sat'
-    rail_model = cbr.create_rail(rail_sketch, rail_length=50.0, refine_region=[[-20, 105],[20,160]])
+    rail_model = cbr.create_rail(rail_sketch, rail_length=50.0, refine_region=[[-20, 145],[20,160]])
     
+    mr.create_basic_mesh(rail_part=rail_model.parts['RAIL'], 
+                         point_in_refine_cell = [0.0, 150.0, 1.0], 
+                         fine_mesh=2.0, coarse_mesh=10.0)
     
 if __name__ == '__main__':
     main()

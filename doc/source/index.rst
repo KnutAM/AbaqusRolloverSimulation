@@ -22,6 +22,12 @@ create_basic_rail.py
    :members:
    :undoc-members:
 
+mesh_rail.py
+------------
+.. automodule:: mesh_rail
+   :members:
+   :undoc-members:
+
 Indices and tables
 ==================
 
