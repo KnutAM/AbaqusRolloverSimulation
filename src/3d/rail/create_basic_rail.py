@@ -18,7 +18,7 @@ import get_utils as get
 import abaqus_python_tools as apt
 
 
-def create_rail(rail_profile, rail_length, refine_region=None):
+def create_rail(rail_profile, rail_length, refine_region=None, sym_dir=None):
     """Create a new model containing a simple rail geometry.
     
     The model is named 'RAIL' and the profile is created by importing the sketch rail_profile and 
@@ -33,6 +33,9 @@ def create_rail(rail_profile, rail_length, refine_region=None):
     :param refine_region: Rectangle specifying partition with mesh refinement in contact region, 
                           defaults to None implying no refined region
     :type refine_region: list(list(float)), optional
+    
+    :param sym_dir: Vector specifying the normal direction if symmetry is used in the rail profile
+    :type sym_dir: list(float) (len=3)
         
     :returns: The model database containing the rail part
     :rtype: Model (Abaqus object)
@@ -45,7 +48,7 @@ def create_rail(rail_profile, rail_length, refine_region=None):
     if refine_region is not None:
         create_partition(rail_model, rail_part, refine_region)
     
-    create_sets(rail_part, rail_length)
+    create_sets(rail_part, rail_length, refine_region, sym_dir)
     
     return rail_model
 
@@ -67,14 +70,22 @@ def import_sketch(rail_model, rail_profile):
     return rail_model.ConstrainedSketchFromGeometryFile(name='profile', geometryFile=acis)
     
     
-def create_sets(rail_part, rail_length):
-    """Create a set on each side of the rail. Set names based on names.rail_side_sets
+def create_sets(rail_part, rail_length, refine_region=None, sym_dir=None):
+    """Create (1) a set on each side of the rail with names from names.rail_side_sets and (2) the 
+    contact surface on the top of the rail with name names.rail_contact_surf
     
     :param rail_part: The part in which the sets will be created
     :type rail_part: Part (Abaqus object)
     
     :param rail_length: Length of the extruded rail
     :type rail_length: float
+    
+    :param refine_region: Rectangle specifying partition with mesh refinement in contact region, 
+                          defaults to None implying no refined region
+    :type refine_region: list(list(float)), optional
+    
+    :param sym_dir: Vector specifying the normal direction if symmetry is used in the rail profile
+    :type sym_dir: list(float) (len=3)
     
     :returns: None
     :rtype: None
@@ -83,6 +94,45 @@ def create_sets(rail_part, rail_length):
     for z, set_name in zip([0, rail_length], names.rail_side_sets):
         faces = get_end_faces(rail_part, zpos=z)
         rail_part.Set(name=set_name, faces=faces)
+        
+    if refine_region is None:
+        contact_cell = rail_part.cells[0]
+    else:
+        partition_face, point_on_partition_face = get_partition_face(rail_part, refine_region)
+        contact_cell = rail_part.cells.findAt(point_on_partition_face)
+    
+    create_contact_face_set(rail_part, contact_cell, exclude_dir=sym_dir)
+    
+    
+def create_contact_face_set(rail_part, contact_cell, exclude_dir=None):
+    # Get all faces on the contact cell
+    contact_cell_faces = [rail_part.faces[f_ind] for f_ind in contact_cell.getFaces()]
+    
+    # Get all faces in the neighbouring cells
+    neighbouring_cells = contact_cell.getAdjacentCells()
+    if len(neighbouring_cells) > 0:        
+        neighbouring_faces = []
+        for nc in neighbouring_cells:
+            for f_ind in nc.getFaces():
+                neighbouring_faces.append(rail_part.faces[f_ind])
+                
+        # Get all faces in contact_cell that are external (i.e. not shared by neighbouring cells)
+        external_faces = []
+        for cf in contact_cell_faces:
+            if cf not in neighbouring_faces:
+                external_faces.append(cf)
+    else:
+        external_faces = contact_cell_faces
+            
+    # Get all external faces that do not have normal direction in z-direction
+    contact_faces = []
+    exclude_vec = np.array([0,0,0] if exclude_dir is None else exclude_dir)
+    for ef in external_faces:
+        n_vec = ef.getNormal()
+        if np.abs(n_vec[2]) < 0.99 and np.dot(np.array(n_vec), exclude_vec) < 0.99:
+            contact_faces.append(ef)
+    
+    rail_part.Surface(name=names.rail_contact_surf, side1Faces=part.FaceArray(contact_faces))
     
     
 def get_end_faces(rail_part, zpos):
@@ -140,42 +190,40 @@ def create_partition(rail_model, rail_part, refine_region):
     rail_part.PartitionFaceBySketch(faces=rail_face, sketch=partition_sketch,
                                     sketchUpEdge=vertical_axis, sketchOrientation=RIGHT)
     
-    point_on_partitioned_face = (np.array(refine_region[0]) + np.array(refine_region[1]))/2.0
-    point_on_partitioned_face = np.append(point_on_partitioned_face, 0.0)
-    partition_face = get_partition_face(rail_part, refine_region)
+    partition_face, point_on_partition_face = get_partition_face(rail_part, refine_region)
     partition_edge_ids = partition_face.getEdges()
     partition_edges = [rail_part.edges[i] for i in partition_edge_ids]
     
     
-    rail_part.Set(name='partition_edges', edges=part.EdgeArray(edges=partition_edges))
+    # rail_part.Set(name='partition_edges', edges=part.EdgeArray(edges=partition_edges))
     rail_part.PartitionCellByExtrudeEdge(line=extrude_axis, cells=rail_cell, edges=partition_edges, 
                                          sense=FORWARD)
-
-
+                                         
+    
 def get_partition_face(rail_part, refine_region):
     rel_length = 0.001
     def get_face(pa, pb):
         point = p1 + rel_length*(p2-p1)
-        return rail_part.faces.findAt(tuple(point))
+        return rail_part.faces.findAt(tuple(point)), point
         
     p1, p2 = [np.array([refine_region[i][0], refine_region[i][1], 0.0]) for i in [0, 1]]
     
-    face = get_face(p1, p2)
+    face, point = get_face(p1, p2)
     if face is not None:
-        return face
+        return face, point
     
-    face = get_face(p2, p1)
+    face, point = get_face(p2, p1)
     if face is not None:
-        return face
+        return face, point
         
     p1, p2 = [np.array([refine_region[i][0], refine_region[1-i][1], 0.0]) for i in [0, 1]]
     
-    face = get_face(p1, p2)
+    face, point = get_face(p1, p2)
     if face is not None:
-        return face
+        return face, point
         
-    face = get_face(p2, p1)
+    face, point = get_face(p2, p1)
     if face is not None:
-        return face
+        return face, point
     
     raise ValueError('Could not find the partition face')

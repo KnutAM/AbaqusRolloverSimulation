@@ -56,8 +56,8 @@ def create_basic_mesh(rail_part, point_in_refine_cell, fine_mesh, coarse_mesh):
                         },
                         {'point': point_in_refine_cell,
                          'size': fine_mesh,
-                         'mc': {'elemShape': HEX_DOMINATED,
-                                'technique': SWEEP,
+                         'mc': {'elemShape': TET,
+                                'technique': FREE,
                                 #'algorithm': ADVANCING_FRONT
                                },
                          'et': {'element_order': 1,
@@ -139,7 +139,7 @@ def create_mesh(rail_part, mesh_parameters):
     
     rail_part.generateMesh()
     # Adding an additional generation seem to solve some issues. This should be investigated!
-    rail_part.generateMesh()
+    # rail_part.generateMesh()
         
 
 def get_elem_types(order, reduced):
