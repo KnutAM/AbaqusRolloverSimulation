@@ -129,7 +129,8 @@ def create_mesh(rail_part, mesh_parameters):
 #            rail_part.seedEdgeBySize(edges=part.EdgeArray(edges=edges), size=mp['size'])
         for c in cells:
             edges = [rail_part.edges[enr] for enr in c.getEdges()]
-            rail_part.seedEdgeBySize(edges=part.EdgeArray(edges=edges), size=mp['size'])
+            rail_part.seedEdgeBySize(edges=part.EdgeArray(edges=edges), size=mp['size'],
+                                     constraint=FINER)
             
     rail_part.generateMesh()
     
