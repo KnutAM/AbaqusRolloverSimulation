@@ -5,22 +5,28 @@ import sys
 from abaqus import *
 from abaqusConstants import *
 import regionToolset, mesh, part
-import textRepr
 
 
 def make_periodic_meshes(the_part, source_sets, target_sets):
-    # Given an already meshed part, the_part: For each set source_set and target_set in source_sets and 
-    # target_sets, apply the mesh on the faces described by source_set to the faces described by 
-    # target_set. The mesh on the remaining of the part is removed and only the faces described by 
-    # the sets in source_sets and target_sets will have meshes. 
-    # Input
-    # the_part          Abaqus part object
-    # source_sets       List of geometric sets, each containing the faces with mesh to be copied
-    # source_sets       List of geometric sets, each containing the faces with mesh to be pasted
-    #
-    # Output
-    # None
-    # 
+    """Ensure that meshes are the same on the paired face sets on the_part. 
+    Given an already meshed part, the_part: For each set source_set and target_set in source_sets and 
+    target_sets, apply the mesh on the faces described by source_set to the faces described by 
+    target_set. The mesh on the remaining of the part is removed and only the faces described by 
+    the sets in source_sets and target_sets will have meshes. 
+    
+    :param the_part: The part to be meshed
+    :type the_part: Part (Abaqus object)
+    
+    :param source_sets: Sets containing faces from which meshes will be copied to target_sets
+    :type source_sets: list(Set (Abaqus object))
+    
+    :param target_sets: Sets containing faces to which meshes from source_sets will be copied
+    :type target_sets: list(Set (Abaqus object))
+        
+    :returns: None
+    :rtype: None
+
+    """
     shadow_regions_s = []
     ref_points_ss = []
     for source_set in source_sets:
@@ -49,6 +55,23 @@ def make_periodic_meshes(the_part, source_sets, target_sets):
 
 # Start of create_shadow_mesh related functions
 def create_shadow_mesh(the_part, source_set):
+    """Create an offsetted 2d-planar mesh for each face in source_set
+    
+    :param the_part: The part to be meshed
+    :type the_part: Part (Abaqus object)
+    
+    :param source_set: Set containing faces from which a copy of the meshes will be offsetted
+    :type source_sets: Set (Abaqus object)
+    
+    :returns: (shadow_regions, ref_points_s)
+    
+        - shadow_regions: List of sets containing the offsetted mesh corresponding to each face in 
+          source_set.faces
+        - ref_points_s: List of lists containing 3 points on edges of the offsetted face. The 
+          coordinates are described by numpy arrays with x, y, z coordinates. 
+    :rtype: tuple(list(Set (Abaqus object)), list(list(np.array)))
+
+    """
     shadow_regions = []
     ref_points_s = []
     for source_face in source_set.faces:
@@ -66,6 +89,21 @@ def create_shadow_mesh(the_part, source_set):
 
 
 def getref_points(the_part, source_face, offset_vector):
+    """Get reference points on the mesh on source_face offsetted by offset_vector
+    
+    The points are located on the edges of source_face.
+    
+    :param the_part: The part to be meshed
+    :type the_part: Part (Abaqus object)
+    
+    :param source_face: A meshed face
+    :type source_face: Face (Abaqus object)
+    
+    :returns: List of three reference points described by numpy arrays with x, y, z coordinates
+        
+    :rtype: list(np.array)
+
+    """
     # Given a meshed source Face, determine 3 node positions to be used for copying the mesh to face
     # later. These nodes will be located on the edges of the source_face
     
@@ -76,9 +114,17 @@ def getref_points(the_part, source_face, offset_vector):
 
 
 def get_source_region(source_face):
-    # Create a "surface-like" region, source_region, of elements on source_face
-    # Input
-    # source_face    Face object 
+    """Create a "surface-like" region, source_region, of elements on source_face
+    
+    :param source_face: A meshed face
+    :type source_face: Face (Abaqus object)
+    
+    :returns: The "surface-like" region describing the meshed surface
+        
+    :rtype: Region (Abaqus object)
+
+    """
+    
     f_elems = source_face.getElementFaces()
     elem_by_face_type = [[] for i in range(6)]
     for f_elem in f_elems:
@@ -96,6 +142,27 @@ def get_source_region(source_face):
 
 
 def create_offset_mesh(the_part, source_face, source_region, offset_distance=20.0):
+    """Create an offsetted orphan mesh
+    
+    :param the_part: The part
+    :type the_part: Part (Abaqus object)
+    
+    :param source_face: The meshed face whose mesh will be offset
+    :type source_face: Face (Abaqus object)
+    
+    :param source_region: A "surface-like" mesh region describing the face whose mesh will be offset
+    :type source_region: Region (Abaqus object)
+    
+    :param offset_distance: The distance to offset the mesh by, defaults to 20.0
+    :type offset_distance: float, optional
+    
+    :returns: (shadow_elems, offset_vector)
+        
+        - shadow_elems: The created offsetted orphan elements
+        - offset_vector: The vector with which the elements where offsetted
+    :rtype: tuple(MeshElementArray (Abaqus object), np.array)
+
+    """
     # Determine bounding box for offsetted mesh
     bounding_box = source_face.getNodes().getBoundingBox()
     offset_vector = offset_distance*np.array(source_face.getNormal())
@@ -124,6 +191,23 @@ def create_offset_mesh(the_part, source_face, source_region, offset_distance=20.
 
 # Start of face ordering functions
 def order_target_sets_faces(source_sets, target_sets):
+    """Determine the order of faces in each set in target_sets corresponding 
+    to the face order in each set in the corresponding set in source_sets. See also 
+    order_target_set_faces for description of how each set is handled. 
+    
+    :param source_sets: A list of sets that contain faces
+    :type source_sets: list(Set (Abaqus object))
+    
+    :param target_sets: A list of sets (containing faces) that corresponds to the sets in 
+                        source_sets. The faces must have equal geometry as those in the sets in 
+                        source_sets and be translated only in the face's normal directions. 
+    :type target_sets: list(Set (Abaqus object))
+    
+    :returns: A list of lists containing the order of faces in target_sets corresponding to 
+              source_sets. 
+    :rtype: list(list(int))
+
+    """
     face_order = []
     for src_set, tar_set in zip(source_sets, target_sets):
         face_order.append(order_target_set_faces(src_set, tar_set))
@@ -131,6 +215,22 @@ def order_target_sets_faces(source_sets, target_sets):
     return face_order
     
 def order_target_set_faces(source_set, target_set):
+    """Determine the order of faces in target_set corresponding to the face order source_set. See 
+    find_matching_face for how a matching face is determined. 
+    
+    :param source_set: A set containing faces
+    :type source_sets: Set (Abaqus object)
+    
+    :param target_set: A set containing faces that corresponds to the faces in source_set. The faces 
+                       must have equal geometry to the faces in source_set and be translated only in 
+                       the face's normal directions. See find_matching_face for details on how a 
+                       corresponding face is determined. 
+    :type target_sets: list(Set (Abaqus object))
+    
+    :returns: A list containing the order of faces in target_set corresponding to source_set.
+    :rtype: list(list(int))
+
+    """
     # Calculate offset vector from source to target faces
     normal_vector = np.array(source_set.faces[0].getNormal())
     inbetween_vector = np.array(target_set.faces[0].pointOn[0]) - np.array(source_set.faces[0].pointOn[0])
@@ -142,7 +242,31 @@ def order_target_set_faces(source_set, target_set):
         
     return tar_face_inds
     
+    
 def find_matching_face(the_face, search_faces, offset_vector):
+    """Determine the face in search_faces that is equal to the_face but offset by offset_vector. A 
+    matching face is determined by having the same
+    
+    - Area (Relative tolerance 1e-6)
+    - Centroid (norm(Error)/(sqrt(Area)+norm(centroid)) < 1e-6)
+    - Bounding_box (norm(Error)/(norm(offset_vector)) < 1e-3). This is calculated from the 
+      nodes, hence the larger tolerance
+    
+    :param the_face: The face that we want to find a match for in search_faces. The face must be 
+                     meshed.
+    :type the_face: Face (Abaqus object)
+    
+    :param search_faces: A list of faces from which we seek a match to the_face. The faces must be 
+                         meshed.
+    :type search_faces: list(Face (Abaqus object))
+    
+    :param offset_vector: The with which the search_faces are offset from the_face
+    :type offset_vector: np.array 
+    
+    :returns: A list containing the order of faces in target_set corresponding to source_set.
+    :rtype: list(list(int))
+
+    """
     GEOM_TOL = 1.e-6
     MESH_TOL = 1.e-3
     # Search for a face in search_faces that matches the size, centroid and bounding box
@@ -180,8 +304,33 @@ def find_matching_face(the_face, search_faces, offset_vector):
 
 # End of face ordering functions    
 
+
 # Start of add_mesh_to_faces functions
 def add_mesh_to_faces(the_part, face_set, add_regions, ref_points_s, face_order=None):
+    """Add offsetted orphan meshes specified by add_regions to the faces in face_set
+    
+    :param the_part: The part
+    :type the_part: Part (Abaqus object)
+    
+    :param face_set: The set containing faces that we want to add the orphan meshes to
+    :type face_set: Set (Abaqus object)
+    
+    :param add_regions: list of sets containing the orphan meshes to be added
+    :type add_regions: list(Set (Abaqus object))
+    
+    :param ref_points_s: List of lists containing 3 points on edges of the faces containing the 
+                         offsetted orphan mesh. The points are described by numpy arrays with x, y, 
+                         and z coordinates. 
+    :type ref_points_s: list(list(np.array))
+    
+    :param face_order: List of indices of faces in face_set such that the order corresponds to the 
+                       order in add_regions. If none, the order is unaltered., defaults to None
+    :type face_order: list(int)
+    
+    :returns: None
+    :rtype: None
+
+    """
     if face_order is not None:
         to_faces = [face_set.faces[i] for i in face_order]
     else:
@@ -192,6 +341,25 @@ def add_mesh_to_faces(the_part, face_set, add_regions, ref_points_s, face_order=
     
     
 def add_mesh_to_face(the_part, to_face, add_region, ref_points):
+    """Add an offsetted orphan mesh specified by add_region to the face to_face in face_set
+    
+    :param the_part: The part
+    :type the_part: Part (Abaqus object)
+    
+    :param to_face: The face that we want to add the orphan mesh to
+    :type face_set: Face (Abaqus object)
+    
+    :param add_region: Set containing the orphan mesh to be added
+    :type add_region: Set (Abaqus object)
+    
+    :param ref_points: List containing 3 points on edges of the face with the offsetted orphan mesh.
+                       The points are described by numpy arrays with x, y, and z coordinates. 
+    :type ref_points: list(np.array)
+    
+    :returns: None
+    :rtype: None
+
+    """
     add_ref_nodes, face_point_coords = get_copy_nodes_and_coord(to_face, add_region, ref_points)
         
     the_part.copyMeshPattern(elemFaces=add_region, targetFace=to_face, 
@@ -199,6 +367,28 @@ def add_mesh_to_face(the_part, to_face, add_region, ref_points):
     
     
 def get_copy_nodes_and_coord(to_face, add_region, ref_points):
+    """Find the nodes in the orphan mesh described by add_region corresponding to the coordinates in
+    ref_points. Also return the coordinates of the corresponding points on the face to_face. 
+    
+    :param to_face: The face on which we want the coordinates
+    :type face_set: Face (Abaqus object)
+    
+    :param add_region: Set containing the orphan mesh whose node corresponding to ref_points should
+                       be found.
+    :type add_region: Set (Abaqus object)
+    
+    :param ref_points: List containing 3 points on edges of the face with the offsetted orphan mesh.
+                       The points are described by numpy arrays with x, y, and z coordinates. 
+    :type ref_points: list(np.array)
+    
+    :returns: (add_ref_nodes, face_point_coords)
+        
+        - add_ref_nodes: list of nodes at the coordinates specified by ref_points
+        - face_point_coords: list of points on to_face corresponding to the nodes in 
+          add_ref_nodes
+    :rtype: tuple(list(Node (Abaqus object)), list(np.array))
+
+    """
     offset_vector = get_offset_vector(to_face, add_region)
     
     add_ref_nodes = get_ref_nodes(add_region, ref_points)
@@ -210,6 +400,18 @@ def get_copy_nodes_and_coord(to_face, add_region, ref_points):
    
    
 def get_offset_vector(to_face, add_region):
+    """Find the vector from add_region to to_face which is normal to to_face
+    
+    :param to_face: A face
+    :type face_set: Face (Abaqus object)
+    
+    :param add_region: Set describing a face containing an orphan mesh
+    :type add_region: Set (Abaqus object)
+    
+    :returns: A vector from add_region to to_face which is normal to to_face.               
+    :rtype: np.array
+
+    """
     normal_vector = np.array(to_face.getNormal())
     inbetween_vector = np.array(to_face.pointOn[0]) - np.array(add_region.nodes[0].coordinates)
     offset_vector = normal_vector * np.dot(normal_vector, inbetween_vector)
@@ -217,6 +419,19 @@ def get_offset_vector(to_face, add_region):
 
 
 def get_ref_nodes(add_region, ref_points):
+    """Find the nodes in add_region corresponding to ref_points. 
+    
+    :param add_region: Set describing a face containing an orphan mesh (or any other object 
+                       containing list of Node (Abaqus object) accessible via add_region.nodes
+    :type add_region: Set (Abaqus object)
+    
+    :param ref_points: List of points where we shall locate nodes.
+    :type ref_points: list(np.array)
+    
+    :returns: A list of nodes with coordinates corresponding to ref_points
+    :rtype: list(Node (Abaqus object))
+
+    """
     nodes = []
     pos_tol = 1.e-6
     
@@ -235,10 +450,20 @@ def get_ref_nodes(add_region, ref_points):
     
 # Utility functions
 def convert_bounding_box(bb_from_get):
-    # The method getBoundingBox returns dictionary with items 'low' and 'high'
-    # The method getByBoundingBox require input xMin, xMax, yMin, ..., zMax
-    # The present function returns a dictionary, bb_to_get_by, that can be used as input as 
-    # getByBoundingBox(**bb_to_get_by), i.e. using kwargs
+    """Convert bounding box specified by by {'low': (x_min, y_min, z_min), 'high': (x_max, y_max, 
+    z_max)} to {'xMin': x_min, 'yMin': y_min, ..., 'zMax': z_max}
+    
+    Input typically comes from Abaqus' function getBoundingBox. Output, bb_to_get_by, can be used in 
+    Abaqus' function getByBoundingBox as getByBoundingBox(\*\*bb_to_get_by) (i.e. using kwargs)
+    
+    :param bb_from_get: Dictionary describing a bounding box by points 'low' and 'high'
+    :type add_region: dict
+    
+    :returns: Dictionary describing a bounding box by values 'xMin', 'xMax', 'yMin', ..., 'zMax'
+    :rtype: dict
+
+    """
+    
     bb_to_get_by = {x + side: bb_from_get[lh][i] for i, x in enumerate(['x', 'y', 'z']) 
                  for side, lh in zip(['Min', 'Max'], ['low', 'high'])}
     return bb_to_get_by

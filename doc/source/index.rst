@@ -28,6 +28,12 @@ mesh_rail.py
    :members:
    :undoc-members:
 
+symmetric_mesh_module.py
+------------------------
+.. automodule:: symmetric_mesh_module
+   :members:
+   :undoc-members:
+
 Indices and tables
 ==================
 
