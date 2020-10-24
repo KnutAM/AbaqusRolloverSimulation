@@ -50,7 +50,7 @@ def create_basic_mesh(rail_part, point_in_refine_cell, fine_mesh, coarse_mesh):
                                'technique': FREE,
                                #'algorithm': ADVANCING_FRONT
                               },
-                        'et': {'element_order': 1,
+                        'et': {'element_order': 2,
                                'reduced_integration': False
                               }
                         },
@@ -60,7 +60,7 @@ def create_basic_mesh(rail_part, point_in_refine_cell, fine_mesh, coarse_mesh):
                                 'technique': FREE,
                                 #'algorithm': ADVANCING_FRONT
                                },
-                         'et': {'element_order': 1,
+                         'et': {'element_order': 2,
                                 'reduced_integration': False
                                }
                          }
