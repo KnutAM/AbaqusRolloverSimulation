@@ -71,8 +71,9 @@ def import_sketch(rail_model, rail_profile):
     
     
 def create_sets(rail_part, rail_length, refine_region=None, sym_dir=None):
-    """Create (1) a set on each side of the rail with names from names.rail_side_sets and (2) the 
-    contact surface on the top of the rail with name names.rail_contact_surf
+    """Create (1) a set on each side of the rail with names from names.rail_side_sets, (2) the 
+    contact surface and set on the top of the rail with name names.rail_contact_surf and (3) a set 
+    on the bottom of the rail
     
     :param rail_part: The part in which the sets will be created
     :type rail_part: Part (Abaqus object)
@@ -102,6 +103,37 @@ def create_sets(rail_part, rail_length, refine_region=None, sym_dir=None):
         contact_cell = rail_part.cells.findAt(point_on_partition_face)
     
     create_contact_face_set(rail_part, contact_cell, exclude_dir=sym_dir)
+    
+    bottom_faces = get_bottom_faces(rail_part)
+    rail_part.Set(name=names.rail_bottom_nodes, faces=part.FaceArray(faces=bottom_faces))
+    
+
+def get_bottom_faces(rail_part):
+    """Return a list of faces that are on the bottom of the rail profile. These are identified by 
+    having their pointOn with an y-coordinate equal to the minimum of all faces and a normal 
+    direction [0, -1, 0]
+    
+    :param rail_part: The part in which the sets will be created
+    :type rail_part: Part object (Abaqus)
+    
+    :returns: A list of faces that are located in the bottom of the rail
+    :rtype: list[ Face object (Abaqus) ]
+
+    """
+    TOL_YMIN = 1.e-6
+    TOL_YDIR = 1.e-3
+    
+    ymin = np.inf
+    for face in rail_part.faces:
+        ymin = min(ymin, face.pointOn[0][1])
+    
+    bottom_faces = []
+    for face in rail_part.faces:
+        if face.pointOn[0][1] < ymin + TOL_YMIN:
+            if face.getNormal()[1] < -1.0 + TOL_YDIR:
+                bottom_faces.append(face)
+                
+    return bottom_faces
     
     
 def create_contact_face_set(rail_part, contact_cell, exclude_dir=None):
@@ -133,6 +165,7 @@ def create_contact_face_set(rail_part, contact_cell, exclude_dir=None):
             contact_faces.append(ef)
     
     rail_part.Surface(name=names.rail_contact_surf, side1Faces=part.FaceArray(contact_faces))
+    rail_part.Set(name=names.rail_contact_surf, faces=part.FaceArray(contact_faces))
     
     
 def get_end_faces(rail_part, zpos):
