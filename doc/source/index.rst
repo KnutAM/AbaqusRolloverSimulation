@@ -39,6 +39,13 @@ symmetric_mesh_module.py
 .. automodule:: symmetric_mesh_module
    :members:
    :undoc-members:
+   
+create_shadow_regions.py
+------------------------
+.. automodule:: create_shadow_regions
+   :members:
+   :undoc-members:
+
 
 Indices and tables
 ==================

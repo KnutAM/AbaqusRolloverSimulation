@@ -54,7 +54,7 @@ def main():
     rail_model.materials['ShadowElastic'].Elastic(table=((1.0, 0.3), ))
     rail_model.MembraneSection(name=names.rail_shadow_sect, material='ShadowElastic', thickness=0.01)
     
-    csr.create_shadow_mesh(rail_part)
+    csr.create_shadow_region(rail_part, extend_lengths=[30, 10])
     
     mdb.saveAs(pathName='rail')
     # mdb.close()
