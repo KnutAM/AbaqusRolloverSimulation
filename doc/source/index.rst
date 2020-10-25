@@ -15,7 +15,12 @@ Welcome to abaqusrolloversimulation's documentation!
 
 Objects
 =======
-
+rail_constraints.py
+-------------------
+.. automodule:: rail_constraints
+   :members:
+   :undoc-members:
+   
 create_basic_rail.py
 --------------------
 .. automodule:: create_basic_rail

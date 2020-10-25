@@ -29,6 +29,18 @@ To use a material subroutine see the material `chaboche_umat` in `user_settings_
 
 * `'user_mpar_array'`: A tuple containing the material parameter that should be supplied to the user material routine
 
-## ifort version > 16
+### ifort version > 16
 
 As Abaqus (up to at least 2020) is compiled with ifort 16.0 or lower, some new compiler features are not available. If you have a later compiler this can cause problems. One common problem is that automatic allocation of lhs assignments was introduced in ifort 17.0, and this will cause undefined symbol error when used with Abaqus. To circumvent this issue, it is possible to add a compiler option `nostandard-realloc-lhs` using the `abaqus_v6.env ` file. This file must be located either in your home directory or in the current directory. An example of such a modification has been provided in this repository, but note that this file must be manually moved for it to have any effect. 
+
+## Coding guidelines
+All functions and modules should be documented with docstrings according to the Sphinx's autodoc format, see e.g. [Sphinx RTD Tutorial](https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html). 
+
+### Inclusive language
+
+#### Master/slave terminology
+
+Traditionally master/slave are used to describe contact sides in finite elements, and this is still used by Abaqus. In the present project this terminology shall be avoided when possible (i.e., except when the Abaqus API require the use of master/slave). 
+
+- Contact: Replace by primary/secondary
+- Linear constraints: Replace by retained/constrained
