@@ -4,6 +4,7 @@
 # System imports
 from __future__ import print_function
 import sys, os, inspect
+import numpy as np
 
 if sys.version_info.major == 3:
     if sys.version_info.minor < 4:
@@ -53,7 +54,12 @@ def main():
 def setup_wheel():
     wheel_profile = src_path + '/../data/wheel_profiles/rs200_ro460_ri300.sat'
     
-    wheel.generate_2d_mesh(wheel_profile, mesh_sizes=[1.0, 10.0], partition_line= -450.0)
+    mesh_2d = wheel.generate_2d_mesh(wheel_profile, mesh_sizes=[1.0, 10.0], 
+                                                           wheel_contact_pos = [-10.0, 1.0],
+                                                           partition_line= -450.0)
+                           
+    node_coords, tri_elems, quad_elems, contact_nodes, inner_nodes = mesh_2d
+    
     
 
 def setup_rail():
