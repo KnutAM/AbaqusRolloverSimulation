@@ -106,7 +106,7 @@ def add_constraint(the_model, rail_length, c_set_name, rp_set_name, rp_coord, r_
     :type rp_set_name: str
     
     :param rp_coord: The coordinates of the rail reference point. (For some reason this is not 
-    included in the node properties)
+                     included in the node properties)
     :type rp_coord: list[ float ] (len=3)
     
     :param r_set_name: The name of the set in rail_part containing the node participating in the 

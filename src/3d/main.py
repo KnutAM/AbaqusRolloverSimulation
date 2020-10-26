@@ -44,15 +44,16 @@ reload(rc)
 
 
 def main():
+    rail_material = {'material_model': 'elastic', 'mpar': {'E': 210.e3, 'nu': 0.3}}
     rail_sketch = src_path + '/../data/rail_profiles/BV50_half.sat'
     rail_length = 50.0
     rail_model = cbr.create_rail(rail_sketch, rail_length, refine_region=[[-20, 145],[20,160]],
-                                 sym_dir = [1, 0, 0])
+                                 sym_dir = [1, 0, 0], material=rail_material)
     rail_part = rail_model.parts[names.rail_part]
     mr.create_basic_mesh(rail_part=rail_part, 
                          point_in_refine_cell = [0.0, 150.0, 1.0], 
                          fine_mesh=1.0, coarse_mesh=10.0)
-    
+    return
     # Need to setup material and section
     
     # Done creating the part. It should be saved to file and user can edit the file at will

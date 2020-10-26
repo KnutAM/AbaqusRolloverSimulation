@@ -10,15 +10,19 @@ import numpy as np
 # Abaqus imports
 from abaqusConstants import *
 from abaqus import mdb
-import part
+import part, regionToolset
 
 # Project imports
 import naming_mod as names
 import get_utils as get
 import abaqus_python_tools as apt
+import setup_material_mod as setup_material
+
+default_material = {'material_model': 'elastic', 'mpar': {'E': 210.e3, 'nu': 0.3}}
 
 
-def create_rail(rail_profile, rail_length, refine_region=None, sym_dir=None):
+def create_rail(rail_profile, rail_length, refine_region=None, sym_dir=None, 
+                material=default_material):
     """Create a new model containing a simple rail geometry.
     
     The model is named 'RAIL' and the profile is created by importing the sketch rail_profile and 
@@ -36,6 +40,11 @@ def create_rail(rail_profile, rail_length, refine_region=None, sym_dir=None):
     
     :param sym_dir: Vector specifying the normal direction if symmetry is used in the rail profile
     :type sym_dir: list(float) (len=3)
+    
+    :param material: Dictionary specifying the rail material model, containing the fields 
+                     'material_model' and 'mpar'. See :py:mod:`setup_material_mod` for detailed 
+                     requirements
+    :type material: dict
         
     :returns: The model database containing the rail part
     :rtype: Model (Abaqus object)
@@ -49,6 +58,8 @@ def create_rail(rail_profile, rail_length, refine_region=None, sym_dir=None):
         create_partition(rail_model, rail_part, refine_region)
     
     create_sets(rail_part, rail_length, refine_region, sym_dir)
+    
+    add_material_and_section(rail_model, rail_part, material)
     
     return rail_model
 
@@ -260,3 +271,11 @@ def get_partition_face(rail_part, refine_region):
         return face, point
     
     raise ValueError('Could not find the partition face')
+
+
+def add_material_and_section(rail_model, rail_part, material):
+    setup_material.add_material(rail_model, material_spec=material, name='RAIL_MATERIAL')
+    rail_model.HomogeneousSolidSection(name=names.rail_sect, material='RAIL_MATERIAL')
+    region = regionToolset.Region(cells=rail_part.cells)
+    rail_part.SectionAssignment(region=region, sectionName=names.rail_sect)
+
