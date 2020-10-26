@@ -33,6 +33,8 @@ import mesh_rail as mr
 import symmetric_mesh_module as sm
 import create_shadow_regions as csr
 import rail_constraints as rc
+import sketch_tools as st
+import create_wheel_mod as wheel
 
 # Reload should only be used here, so need to import any module used down the import directory here if reload is required (i.e. when developing via abaqus cae)
 reload(names)
@@ -41,9 +43,20 @@ reload(mr)
 reload(sm)
 reload(csr)
 reload(rc)
+reload(st)
+reload(wheel)
 
 
 def main():
+    setup_wheel()
+
+def setup_wheel():
+    wheel_profile = src_path + '/../data/wheel_profiles/rs200_ro460_ri300.sat'
+    
+    wheel.generate_2d_mesh(wheel_profile, mesh_sizes=[1.0, 10.0], partition_line= -450.0)
+    
+
+def setup_rail():
     rail_material = {'material_model': 'elastic', 'mpar': {'E': 210.e3, 'nu': 0.3}}
     rail_sketch = src_path + '/../data/rail_profiles/BV50_half.sat'
     rail_length = 50.0

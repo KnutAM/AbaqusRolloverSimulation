@@ -8,6 +8,18 @@
 
 .. codeauthor:: Knut Andreas Meyer
 """
+# Python imports
+import numpy as np
+
+# Abaqus imports
+from abaqusConstants import *
+import part
+import sketch
+
+# Project imports
+import sketch_tools
+import abaqus_python_tools as apt
+
 
 def create_wheel(wheel_profile, mesh_sizes, wheel_angles, wheel_contact_pos, sym_dir=None):
     """Create a wheel super element
@@ -35,7 +47,7 @@ def create_wheel(wheel_profile, mesh_sizes, wheel_angles, wheel_contact_pos, sym
     pass
     
     
-def generate_2d_mesh(wheel_profile, mesh_sizes):
+def generate_2d_mesh(wheel_profile, mesh_sizes, partition_line, fine_mesh_edge_bb=None):
     """Generate a 2d-mesh of the wheel profile
     
     :param wheel_profile: Path to an Abaqus sketch profile saved as .sat file (acis)
@@ -44,12 +56,60 @@ def generate_2d_mesh(wheel_profile, mesh_sizes):
     :param mesh_sizes: Mesh sizes, mesh_sizes[0]=fine mesh in contact, mesh_sizes[1] coarse mesh
     :type mesh_sizes: list[ float ] (len=2)
     
+    :param partition_line: y-value for the line where the wheel profile will be partitioned to 
+                           give a better mesh value.
+    
+    :param fine_mesh_edge_bb: Dictionary with bounding box parameters for determining which edges 
+                              the fine mesh should be applied to. Keys are 'xMin', 'yMax', etc. 
+                              If None, set h = partition_line*(1+1.e-6) and set 'yMax' to h if
+                              partition_line < 0 or 'yMin' to h if partition_line > 0. The 
+                              adjustment ensures that the partition line is not included amongst the 
+                              fine mesh edges.
+    :type fine_mesh_edge_bb: dict
+    
     :returns: Node coordinates (num_nodes x 3) and 
               element node numbers (num_elements x num_element_nodes)
     :rtype: list[ np.array(dtype=np.float), np.array(dtype=np.int) ]
 
     """
-    pass
+    wheel_2d_model = apt.create_model('WHEEL_2D')
+    wheel_2d_part = wheel_2d_model.Part(name='WHEEL_2D', dimensionality=TWO_D_PLANAR, 
+                                        type=DEFORMABLE_BODY)
+    # Create profile
+    profile_sketch = sketch_tools.import_sketch(wheel_2d_model, wheel_profile, 
+                                                name='wheel_2d_profile')
+    wheel_2d_part.BaseShell(sketch=profile_sketch)
+    # Create part
+    partition_sketch = wheel_2d_model.ConstrainedSketch(name='partition', sheetSize=1.0)
+    partition_sketch.Line(point1=(-1000.0, partition_line), point2=(1000.0, partition_line))
+    wheel_2d_part.PartitionFaceBySketch(faces=wheel_2d_part.faces[0:1], sketch=partition_sketch)
+    
+    # Find edges to have fine mesh constraint
+    if fine_mesh_edge_bb is None:
+        fine_mesh_edge_bb = {('yMin' if partition_line > 0 else 'yMax'): partition_line*(1+1.e-6)}
+    
+    print fine_mesh_edge_bb
+    fine_mesh_edges = wheel_2d_part.edges.getByBoundingBox(**fine_mesh_edge_bb)
+    wheel_2d_part.Set(name='fine_mesh_edges', edges=fine_mesh_edges)
+    wheel_2d_part.seedEdgeBySize(edges=fine_mesh_edges, size=mesh_sizes[0], constraint=FIXED)
+    
+    # Find edges to have coarse mesh constraint
+    max_y = np.max([e.pointOn[0][1] for e in wheel_2d_part.edges])
+    coarse_mesh_edges = []
+    for e in wheel_2d_part.edges:
+        if all([wheel_2d_part.vertices[n].pointOn[0][1] > (max_y - 1.e-3) 
+                for n in e.getVertices()]):
+            coarse_mesh_edges.append(e)
+    partition_line_edge = wheel_2d_part.edges.getByBoundingBox(yMin=partition_line - 1.e-5,
+                                                               yMax=partition_line + 1.e-5)[0]
+    coarse_mesh_edges.append(partition_line_edge)
+    wheel_2d_part.Set(name='coarse_mesh_edges', edges=part.EdgeArray(edges=coarse_mesh_edges))
+    wheel_2d_part.seedEdgeBySize(edges=coarse_mesh_edges, size=mesh_sizes[1], constraint=FIXED)
+    
+    # Mesh wheel
+    wheel_2d_part.generateMesh()
+    
+    
     
 
 def get_2d_mesh(meshed_wheel_part):

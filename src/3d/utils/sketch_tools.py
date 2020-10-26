@@ -3,10 +3,11 @@
 .. codeauthor:: Knut Andreas Meyer
 """
 from abaqusConstants import *
+from abaqus import mdb
 
 
 def import_sketch(the_model, sketch_profile, name='profile'):
-    """Import the sketch rail_profile and add it to the_model.
+    """Import the sketch sketch_profile and add it to the_model.
     
     :param the_model: The model to which the sketch will be added
     :type the_model: Model (Abaqus object)
@@ -21,5 +22,5 @@ def import_sketch(the_model, sketch_profile, name='profile'):
     :rtype: ConstrainedSketch (Abaqus object)
 
     """
-    acis = mdb.openAcis(rail_profile, scaleFromFile=OFF)
+    acis = mdb.openAcis(sketch_profile, scaleFromFile=OFF)
     return the_model.ConstrainedSketchFromGeometryFile(name=name, geometryFile=acis)
