@@ -37,21 +37,21 @@ def create_shadow_region(rail_part, extend_lengths):
     cs_bounding_box = contact_surface.nodes.getBoundingBox()
     rail_length = cs_bounding_box['high'][2] - cs_bounding_box['low'][2]
     
-    shadow_elems = create_shadow_mesh(rail_part, contact_surface, z_shift=rail_length, 
-                                      shadow_size=extend_lengths[0])
+    create_shadow_mesh(rail_part, contact_surface, z_shift=rail_length, 
+                       shadow_size=extend_lengths[0], set_name=names.rail_shadow_sets[0])
                                       
-    shadow_eltmp = create_shadow_mesh(rail_part, contact_surface, z_shift=-rail_length, 
-                                      shadow_size=extend_lengths[1])
-    for etmp in shadow_eltmp:
-        shadow_elems.append(etmp)
-    
-    shadow_region = regionToolset.Region(elements=mesh.MeshElementArray(elements=shadow_elems))
+    create_shadow_mesh(rail_part, contact_surface, z_shift=-rail_length, 
+                       shadow_size=extend_lengths[1], set_name=names.rail_shadow_sets[1])
+                                  
+    shadow_region = rail_part.SetByBoolean(name=names.rail_shadow_set, 
+                                           sets=tuple([rail_part.sets[name] 
+                                                       for name in names.rail_shadow_sets]))
     
     rail_part.SectionAssignment(region=shadow_region, sectionName=names.rail_shadow_sect)
     
     
     
-def create_shadow_mesh(rail_part, contact_surface, z_shift, shadow_size=None):
+def create_shadow_mesh(rail_part, contact_surface, z_shift, shadow_size=None, set_name=None):
     """Create dummy elements by extending the rail on one side. 
     
     :param rail_part: The part containing the rail geometry with a surface: names.rail_contact_surf
@@ -70,8 +70,11 @@ def create_shadow_mesh(rail_part, contact_surface, z_shift, shadow_size=None):
                         it to rail_length, but ensures no miss due to numerical tolerances. 
     :type shadow_size: float
     
-    :returns: A list of elements in the shadow mesh
-    :rtype: list[ Element object (Abaqus) ]
+    :param set_name: Name of set containing the created mesh. If None no set is created
+    :type set_name: str
+    
+    :returns: None
+    :rtype: None
 
     """
     shadow_elems = []
@@ -86,11 +89,12 @@ def create_shadow_mesh(rail_part, contact_surface, z_shift, shadow_size=None):
     else:
         zmax, zmin = (None, None)
         
+    delete_elems = []
+    tmpname = '1' if z_shift > 0 else '0'
     for source_face in contact_surface.faces:
         source_region = mt.get_source_region(source_face)
         shadow_elems_tmp, offset_vector = mt.create_offset_mesh(rail_part, source_face, source_region, 
                                                                 offset_distance=0.0)
-        delete_elems = []
         for shadow_elem in shadow_elems_tmp:
             if zmax is not None:
                 append_element = all([n.coordinates[2] < zmax for n in shadow_elem.getNodes()])
@@ -105,10 +109,19 @@ def create_shadow_mesh(rail_part, contact_surface, z_shift, shadow_size=None):
                         shadow_nodes.append(node)
             else:
                 delete_elems.append(shadow_elem)
-        
-        rail_part.deleteElement(elements=mesh.MeshElementArray(elements=delete_elems))
-                    
+    
+    if set_name is not None:
+        rail_part.Set(name=set_name, elements=mesh.MeshElementArray(elements=shadow_elems))
+    
+    delete_nodes = []
+    for elem in delete_elems:
+        for node in elem.getNodes():
+            if node not in shadow_nodes:
+                if node not in delete_nodes:
+                    delete_nodes.append(node)
+    
     rail_part.editNode(nodes=shadow_nodes, offset3=z_shift)
+    rail_part.deleteNode(nodes=mesh.MeshNodeArray(nodes=delete_nodes))
     
     return shadow_elems
     

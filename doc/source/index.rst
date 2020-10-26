@@ -15,6 +15,13 @@ Welcome to abaqusrolloversimulation's documentation!
 
 Objects
 =======
+
+setup_material_mod.py
+---------------------
+.. automodule:: setup_material_mod
+   :members:
+   :undoc-members:
+
 rail_constraints.py
 -------------------
 .. automodule:: rail_constraints

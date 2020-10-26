@@ -47,7 +47,8 @@ def make_periodic_meshes(the_part, source_sets, target_sets):
         add_mesh_to_faces(the_part, t_set, sh_regions, ref_pts_s, tf_orders)
         for sh_region in sh_regions:
             delete_set_keys = []
-            the_part.deleteElement(elements=sh_region.elements)
+            the_part.deleteNode(nodes=sh_region.nodes)
+            
             for set_key in the_part.sets.keys():
                 if sh_region == the_part.sets[set_key]:
                     delete_set_keys.append(set_key)

@@ -10,15 +10,19 @@ import numpy as np
 # Abaqus imports
 from abaqusConstants import *
 from abaqus import mdb
-import part
+import part, regionToolset
 
 # Project imports
 import naming_mod as names
 import get_utils as get
 import abaqus_python_tools as apt
+import setup_material_mod as setup_material
+
+default_material = {'material_model': 'elastic', 'mpar': {'E': 210.e3, 'nu': 0.3}}
 
 
-def create_rail(rail_profile, rail_length, refine_region=None, sym_dir=None):
+def create_rail(rail_profile, rail_length, refine_region=None, sym_dir=None, 
+                material=default_material):
     """Create a new model containing a simple rail geometry.
     
     The model is named 'RAIL' and the profile is created by importing the sketch rail_profile and 
@@ -36,6 +40,11 @@ def create_rail(rail_profile, rail_length, refine_region=None, sym_dir=None):
     
     :param sym_dir: Vector specifying the normal direction if symmetry is used in the rail profile
     :type sym_dir: list(float) (len=3)
+    
+    :param material: Dictionary specifying the rail material model, containing the fields 
+                     'material_model' and 'mpar'. See :py:mod:`setup_material_mod` for detailed 
+                     requirements
+    :type material: dict
         
     :returns: The model database containing the rail part
     :rtype: Model (Abaqus object)
@@ -49,6 +58,8 @@ def create_rail(rail_profile, rail_length, refine_region=None, sym_dir=None):
         create_partition(rail_model, rail_part, refine_region)
     
     create_sets(rail_part, rail_length, refine_region, sym_dir)
+    
+    add_material_and_section(rail_model, rail_part, material)
     
     return rail_model
 
@@ -71,8 +82,9 @@ def import_sketch(rail_model, rail_profile):
     
     
 def create_sets(rail_part, rail_length, refine_region=None, sym_dir=None):
-    """Create (1) a set on each side of the rail with names from names.rail_side_sets and (2) the 
-    contact surface on the top of the rail with name names.rail_contact_surf
+    """Create (1) a set on each side of the rail with names from names.rail_side_sets, (2) the 
+    contact surface and set on the top of the rail with name names.rail_contact_surf and (3) a set 
+    on the bottom of the rail
     
     :param rail_part: The part in which the sets will be created
     :type rail_part: Part (Abaqus object)
@@ -102,6 +114,37 @@ def create_sets(rail_part, rail_length, refine_region=None, sym_dir=None):
         contact_cell = rail_part.cells.findAt(point_on_partition_face)
     
     create_contact_face_set(rail_part, contact_cell, exclude_dir=sym_dir)
+    
+    bottom_faces = get_bottom_faces(rail_part)
+    rail_part.Set(name=names.rail_bottom_nodes, faces=part.FaceArray(faces=bottom_faces))
+    
+
+def get_bottom_faces(rail_part):
+    """Return a list of faces that are on the bottom of the rail profile. These are identified by 
+    having their pointOn with an y-coordinate equal to the minimum of all faces and a normal 
+    direction [0, -1, 0]
+    
+    :param rail_part: The part in which the sets will be created
+    :type rail_part: Part object (Abaqus)
+    
+    :returns: A list of faces that are located in the bottom of the rail
+    :rtype: list[ Face object (Abaqus) ]
+
+    """
+    TOL_YMIN = 1.e-6
+    TOL_YDIR = 1.e-3
+    
+    ymin = np.inf
+    for face in rail_part.faces:
+        ymin = min(ymin, face.pointOn[0][1])
+    
+    bottom_faces = []
+    for face in rail_part.faces:
+        if face.pointOn[0][1] < ymin + TOL_YMIN:
+            if face.getNormal()[1] < -1.0 + TOL_YDIR:
+                bottom_faces.append(face)
+                
+    return bottom_faces
     
     
 def create_contact_face_set(rail_part, contact_cell, exclude_dir=None):
@@ -133,6 +176,7 @@ def create_contact_face_set(rail_part, contact_cell, exclude_dir=None):
             contact_faces.append(ef)
     
     rail_part.Surface(name=names.rail_contact_surf, side1Faces=part.FaceArray(contact_faces))
+    rail_part.Set(name=names.rail_contact_surf, faces=part.FaceArray(contact_faces))
     
     
 def get_end_faces(rail_part, zpos):
@@ -227,3 +271,11 @@ def get_partition_face(rail_part, refine_region):
         return face, point
     
     raise ValueError('Could not find the partition face')
+
+
+def add_material_and_section(rail_model, rail_part, material):
+    setup_material.add_material(rail_model, material_spec=material, name='RAIL_MATERIAL')
+    rail_model.HomogeneousSolidSection(name=names.rail_sect, material='RAIL_MATERIAL')
+    region = regionToolset.Region(cells=rail_part.cells)
+    rail_part.SectionAssignment(region=region, sectionName=names.rail_sect)
+
