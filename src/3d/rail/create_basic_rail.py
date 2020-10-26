@@ -17,6 +17,7 @@ import naming_mod as names
 import get_utils as get
 import abaqus_python_tools as apt
 import setup_material_mod as setup_material
+import sketch_tools
 
 default_material = {'material_model': 'elastic', 'mpar': {'E': 210.e3, 'nu': 0.3}}
 
@@ -51,7 +52,7 @@ def create_rail(rail_profile, rail_length, refine_region=None, sym_dir=None,
 
     """
     rail_model = apt.create_model('RAIL')
-    profile_sketch = import_sketch(rail_model, rail_profile)
+    profile_sketch = sketch_tools.import_sketch(rail_model, rail_profile, name='rail_profile')
     rail_part = rail_model.Part(name=names.rail_part, dimensionality=THREE_D, type=DEFORMABLE_BODY)
     rail_part.BaseSolidExtrude(sketch=profile_sketch, depth=rail_length)
     if refine_region is not None:
@@ -64,23 +65,6 @@ def create_rail(rail_profile, rail_length, refine_region=None, sym_dir=None,
     return rail_model
 
 
-def import_sketch(rail_model, rail_profile):
-    """Import the sketch rail_profile and add it to the rail_model.
-    
-    :param rail_model: The model to which the sketch will be added
-    :type rail_model: Model (Abaqus object)
-    
-    :param rail_profile: Path to an Abaqus sketch profile saved as .sat file (acis)
-    :type rail_profile: str
-    
-    :returns: The added sketch
-    :rtype: ConstrainedSketch (Abaqus object)
-
-    """
-    acis = mdb.openAcis(rail_profile, scaleFromFile=OFF)
-    return rail_model.ConstrainedSketchFromGeometryFile(name='profile', geometryFile=acis)
-    
-    
 def create_sets(rail_part, rail_length, refine_region=None, sym_dir=None):
     """Create (1) a set on each side of the rail with names from names.rail_side_sets, (2) the 
     contact surface and set on the top of the rail with name names.rail_contact_surf and (3) a set 
