@@ -3,8 +3,10 @@ Constraints between points in the same position in the xy-plane are added by the
 
 .. math::
 
-    u_x^{(\\mathrm{c})} &= u_x^{(\\mathrm{r})} \\
-    u_y^{(\\mathrm{c})} &= u_y^{(\\mathrm{r})} \\
+    u_x^{(\\mathrm{c})} &= u_x^{(\\mathrm{r})} 
+
+    u_y^{(\\mathrm{c})} &= u_y^{(\\mathrm{r})}
+
     u_z^{(\\mathrm{c})} &= u_z^{(\\mathrm{r})} + 
     u_z^{(\\mathrm{rp})} \\frac{(z^{(\\mathrm{c})} - z^{(\\mathrm{r})})}{L_\\mathrm{rail}} + 
     (y-y^{(\\mathrm{rp})})\\phi_x^{(\\mathrm{rp})}
@@ -23,18 +25,7 @@ around the :math:`x,y,z` axes. Finally, :math:`L_\\mathrm{rail}` is the length o
 
 The nodes at the bottom of the rail are constrained according to above, but with 
 :math:`u_x^{(\\mathrm{r})} = u_y^{(\\mathrm{r})} = u_z^{(\\mathrm{r})} = 0` and 
-:math:`z^{(\\mathrm{r})} = 0`
-
-
-Test of documentation, including example from 
-https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#math. Only the inline 
-math environment seem to work properly. 
-
-.. math::
-
-   (a + b)^2  &=  (a + b)(a + b) \\
-              &=  a^2 + 2ab + b^2
-    
+:math:`z^{(\\mathrm{r})} = 0`    
 
 .. codeauthor:: Knut Andreas Meyer
 """
