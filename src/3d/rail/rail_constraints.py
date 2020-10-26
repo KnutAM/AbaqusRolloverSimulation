@@ -3,8 +3,10 @@ Constraints between points in the same position in the xy-plane are added by the
 
 .. math::
 
-    u_x^{(\\mathrm{c})} &= u_x^{(\\mathrm{r})} \\
-    u_y^{(\\mathrm{c})} &= u_y^{(\\mathrm{r})} \\
+    u_x^{(\\mathrm{c})} &= u_x^{(\\mathrm{r})} 
+
+    u_y^{(\\mathrm{c})} &= u_y^{(\\mathrm{r})}
+
     u_z^{(\\mathrm{c})} &= u_z^{(\\mathrm{r})} + 
     u_z^{(\\mathrm{rp})} \\frac{(z^{(\\mathrm{c})} - z^{(\\mathrm{r})})}{L_\\mathrm{rail}} + 
     (y-y^{(\\mathrm{rp})})\\phi_x^{(\\mathrm{rp})}
@@ -30,16 +32,6 @@ up to the user to set, and then the load can be set accordingly. E.g. putting it
 rail will give zero normal strains in the surface when prescribing the bending. Putting it in the 
 neutral line of the rail profile will give a more natural bending and normal prescribation. 
 
-
-Test of documentation, including example from 
-https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#math. Only the inline 
-math environment seem to work properly. 
-
-.. math::
-
-   (a + b)^2  &=  (a + b)(a + b) \\
-              &=  a^2 + 2ab + b^2
-    
 
 .. codeauthor:: Knut Andreas Meyer
 """
