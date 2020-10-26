@@ -16,6 +16,12 @@ Welcome to abaqusrolloversimulation's documentation!
 Objects
 =======
 
+create_wheel_mod.py
+-------------------
+.. automodule:: create_wheel_mod
+   :members:
+   :undoc-members:
+
 setup_material_mod.py
 ---------------------
 .. automodule:: setup_material_mod
