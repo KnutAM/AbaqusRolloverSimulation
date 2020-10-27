@@ -55,11 +55,11 @@ def setup_wheel():
     wheel_profile = src_path + '/../data/wheel_profiles/rs200_ro460_ri300.sat'
     
     mesh_2d = wheel.generate_2d_mesh(wheel_profile, mesh_sizes=[1.0, 10.0], 
-                                                           wheel_contact_pos = [-10.0, 1.0],
-                                                           partition_line= -450.0)
+                                     wheel_contact_pos = [-10.0, 1.0], partition_line= -450.0)
                            
     node_coords, tri_elems, quad_elems, contact_nodes, inner_nodes = mesh_2d
-    
+    for output in [node_coords, tri_elems, quad_elems, contact_nodes, inner_nodes]:
+        print(output.shape)
     
 
 def setup_rail():

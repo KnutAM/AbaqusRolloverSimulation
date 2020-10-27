@@ -15,6 +15,12 @@ Welcome to abaqusrolloversimulation's documentation!
 
 Objects
 =======
+create_wheel_2d_profile.py
+--------------------------
+.. automodule:: create_wheel_2d_profile
+   :members:
+   :undoc-members:
+
 sketch_tools.py
 ---------------
 .. automodule:: sketch_tools
