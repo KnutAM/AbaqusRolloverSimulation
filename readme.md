@@ -1,7 +1,7 @@
 [//]: # "To preview markdown file in Emacs type C-c C-c p"
 
 # Abaqus Rollover Simulation
-Script to setup rollover simulation in Abaqus for CHARMEC
+Python library to setup rollover simulation in Abaqus for CHARMEC
 
 ## Contributors
 * Knut Andreas Meyer 
@@ -9,14 +9,18 @@ Script to setup rollover simulation in Abaqus for CHARMEC
 
 ## Project structure
 
+The following top-level folders and file are provided
+
 - `rollover`: The python library used to setup and run the Abaqus rollover simulations (imported, but not run directly)
 - `scripts`: Scripts that are designed to be called as `abaqus cae noGUI=<script.py>`
 - `usub`: Fortran code for user subroutines required for the rollover simulations
 - `doc`: Documentation
 - `tests`: ***To be completed*** 
-- `data`: Folder containing user input data. Everything in this folder, apart from some example input, is gitignored.
+- `data`: Folder containing user data (e.g. profile sketches). Everything in this folder, apart from example data, should be ignored by git.
+- `abaqus_v6.env`: Abaqus environment file that allows the user to setup their local environment. See "Abaqus environment file".
 
 ## Running for the first time 
+
 ### Requirements
 * Abaqus Standard setup to compile fortran user subroutines. Note special requirements below if ifort version higher than 16
 * Python 2.7 or higher
@@ -38,18 +42,25 @@ To use a material subroutine see the material `chaboche_umat` in `user_settings_
 
 * `'user_mpar_array'`: A tuple containing the material parameter that should be supplied to the user material routine
 
-### ifort version > 16
+### Abaqus environment file
 
-As Abaqus (up to at least 2020) is compiled with ifort 16.0 or lower, some new compiler features are not available. If you have a later compiler this can cause problems. One common problem is that automatic allocation of lhs assignments was introduced in ifort 17.0, and this will cause undefined symbol error when used with Abaqus. To circumvent this issue, it is possible to add a compiler option `nostandard-realloc-lhs` using the `abaqus_v6.env ` file. This file must be located either in your home directory or in the current directory. An example of such a modification has been provided in this repository, but note that this file must be manually moved for it to have any effect. 
+`abaqus_v6.env`, *explain the addition of path!*
+
+As Abaqus (up to at least 2020) is compiled with ifort 16.0 or lower, some new compiler features are not available. If you have a later compiler this can cause problems. One common problem is that automatic allocation of lhs assignments was introduced in ifort 17.0, and this will cause undefined symbol error when used with Abaqus. To circumvent this issue, it is possible to add a compiler option `nostandard-realloc-lhs` using the `abaqus_v6.env ` file. This file must be located either in your home directory or in the current working directory. An example of such a modification has been provided in this repository, but note that this file must be manually moved for it to have any effect. 
 
 ## Coding guidelines
 All functions and modules should be documented with docstrings according to the Sphinx's autodoc format, see e.g. [Sphinx RTD Tutorial](https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html). 
 
+### PEP 8
+The [PEP 8 standard](https://www.python.org/dev/peps/pep-0008) should be complied to, with the following exceptions:
+- Line length up to 99 chars allowed (as opposed to 79 chars) (Note that docstrings or comments are limited to 72 chars)
+
+
 ### Inclusive language
 
-#### Master/slave terminology
+#### Contact and constraint terminology
 
-Traditionally master/slave are used to describe contact sides in finite elements, and this is still used by Abaqus. In the present project this terminology shall be avoided when possible (i.e., except when the Abaqus API require the use of master/slave). 
+Traditionally master/slave are used to describe contact sides in finite elements, and this is still used by Abaqus. In the present project this terminology shall be avoided when possible (i.e., except when required by the Abaqus API). 
 
 - Contact: Replace by primary/secondary
 - Linear constraints: Replace by retained/constrained
