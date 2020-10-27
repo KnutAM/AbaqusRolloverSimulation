@@ -19,10 +19,10 @@ src = os.path.abspath('../../src')
 
 project_paths = [src,
                  src + '/utils',
-                 src + '/3d',
-                 src + '/3d/rail',
-                 src + '/3d/wheel',
-                 src + '/3d/utils',
+                 src + '/three_d',
+                 src + '/three_d/rail',
+                 src + '/three_d/wheel',
+                 src + '/three_d/utils',
                  ]
 for p in project_paths:
     sys.path.insert(0, p)
