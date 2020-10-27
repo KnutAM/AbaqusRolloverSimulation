@@ -1,9 +1,0 @@
-{
-    "wheel_name": "wheel",
-    "wheel_profile": "C:/MyWork/ProjectsWorkFolders/MU34/Project_2020_C_RolloverSimulation/AbaqusRolloverSimulation/data/wheel_profiles",
-    "mesh_sizes": [1.0, 10.0],
-    "wheel_contact_pos": [-10.0, 1.0],
-    "partition_line": -450.0,
-    "fine_mesh_edge_bb": null,
-    "quadratic_order": true
-}
