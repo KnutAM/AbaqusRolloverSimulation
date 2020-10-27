@@ -7,6 +7,15 @@ Script to setup rollover simulation in Abaqus for CHARMEC
 * Knut Andreas Meyer 
 * Rostyslav Skrypnyk
 
+## Project structure
+
+- `rollover`: The python library used to setup and run the Abaqus rollover simulations (imported, but not run directly)
+- `scripts`: Scripts that are designed to be called as `abaqus cae noGUI=<script.py>`
+- `usub`: Fortran code for user subroutines required for the rollover simulations
+- `doc`: Documentation
+- `tests`: ***To be completed*** 
+- `data`: Folder containing user input data. Everything in this folder, apart from some example input, is gitignored.
+
 ## Running for the first time 
 ### Requirements
 * Abaqus Standard setup to compile fortran user subroutines. Note special requirements below if ifort version higher than 16

@@ -1,0 +1,10 @@
+# Ignore everything in this directory
+*
+# Except this file
+!.gitignore
+# And except the example data provided:
+#  Rail profiles
+!.rail_profiles/BV50.sat
+!.rail_profiles/BV50_half.sat
+#  Wheel profiles
+!.wheel_profiles/rs200_ro460_ri300.sat

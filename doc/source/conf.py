@@ -15,7 +15,7 @@
 import os
 import sys
 
-src = os.path.abspath('../../src')
+src = os.path.abspath('../../rollover')
 
 project_paths = [src,
                  src + '/utils',
