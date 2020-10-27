@@ -116,16 +116,13 @@ def get_2d_mesh(meshed_wheel_part):
     
     :returns: A dictionary with mesh specifications with the following fields:
     
-              - `'node_coords'`: Node coordinates (num_nodes x 2)
-              - `'elements'`: Dictionary with node indices for each element:
-                
-                - `'TRI'`: 3 or 6 nodes per element (linear or quadratic)
-                - `'QUAD'`: 4 or 8 nodes per element (linear or quadratic)
-                
-              - `'node_sets'`: np.array of node indices for each set:
-                
-                - `'contact_nodes'`
-                - `'inner_nodes'`.
+              - `'node_coords'`: np.array with node coordinates (num_nodes x 2)
+              - `'TRI_elements'`: np.array (nel,nen) node indices. nen=3(linear) or nen=6 
+                                  (quadratic)
+              - `'QUAD_elements'`: np.array (nel,nen) node indices. nen=4(linear) or nen=8
+                                   (quadratic)
+              - `'contact_nodes'`: np.array (num_contact_nodes) node indices for contact nodes
+              - `'inner_nodes'`: np.array (num_inner_nodes) node indices for inner nodes
               
     :rtype: dict
 
@@ -171,8 +168,10 @@ def get_2d_mesh(meshed_wheel_part):
     quad_elems = np.array(quad_elems, dtype=np.int)
     
     mesh_2d = {'node_coords': node_coords,
-               'elements': {'TRI': tri_elems, 'QUAD': quad_elems},
-               'node_sets': {'contact': contact_nodes, 'inner': inner_nodes}
+               'TRI_elements': tri_elems, 
+               'QUAD_elements': quad_elems,
+               'contact_nodes': contact_nodes, 
+               'inner_nodes': inner_nodes
                }
     
     return mesh_2d
@@ -185,4 +184,8 @@ if __name__ == '__main__':
                    generate_2d_mesh.__code__.co_varnames}
                    
     mesh_2d = generate_2d_mesh(**input_param)
+    
+    save_data = [mesh_2d[key] for key in mesh_2d]
+    headers = [key for key in mesh_2d]
+    np.savez(file=wheel_param['wheel_name'], args=save_data, kwds=headers)
     
