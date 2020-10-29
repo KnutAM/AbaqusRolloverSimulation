@@ -6,7 +6,7 @@ from abaqus import *
 from abaqusConstants import *
 import regionToolset, mesh, part
 
-import mesh_tools as mt
+from rollover.three_d.utils import mesh_tools as mt
 
 
 def make_periodic_meshes(the_part, source_sets, target_sets):

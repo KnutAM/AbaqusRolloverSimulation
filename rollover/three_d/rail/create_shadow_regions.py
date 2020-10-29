@@ -9,8 +9,8 @@ import abaqus
 from abaqusConstants import *
 import regionToolset, mesh
 
-import naming_mod as names
-import mesh_tools as mt
+from rollover.utils import naming_mod as names
+from rollover.three_d.utils import mesh_tools as mt
 
 
 def create_shadow_region(rail_part, extend_lengths):

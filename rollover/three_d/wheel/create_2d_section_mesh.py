@@ -12,11 +12,6 @@ import json
 from abaqusConstants import *
 import part, sketch, mesh
 
-# This should not be necessary, use abaqus_v6.env to add repo to path
-this_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
-repo_path = os.path.dirname(os.path.dirname(this_path))
-sys.path.insert(0, repo_path)
-
 # Project imports
 from rollover.three_d.utils import sketch_tools
 import rollover.utils.abaqus_python_tools as apt
@@ -180,17 +175,4 @@ def get_2d_mesh(meshed_wheel_part):
                }
     
     return mesh_2d
-    
- 
-if __name__ == '__main__':
-    with open(repo_path + '/data/wheel_settings/wheel_param.json', 'r') as fid:
-        wheel_param = json.load(fid)
-    input_param = {key: wheel_param[key] for key in wheel_param if key in 
-                   generate_2d_mesh.__code__.co_varnames}
-                   
-    mesh_2d = generate_2d_mesh(**input_param)
-    
-    save_data = [mesh_2d[key] for key in mesh_2d]
-    headers = [key for key in mesh_2d]
-    np.savez(file=wheel_param['wheel_name'], args=save_data, kwds=headers)
     

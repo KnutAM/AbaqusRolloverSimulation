@@ -13,11 +13,11 @@ from abaqus import mdb
 import part, regionToolset
 
 # Project imports
-import naming_mod as names
-import get_utils as get
-import abaqus_python_tools as apt
-import setup_material_mod as setup_material
-import sketch_tools
+from rollover.utils import naming_mod as names
+from rollover.utils import get_utils as get
+from rollover.utils import abaqus_python_tools as apt
+from rollover.utils import setup_material_mod as setup_material
+from rollover.three_d.utils import sketch_tools
 
 default_material = {'material_model': 'elastic', 'mpar': {'E': 210.e3, 'nu': 0.3}}
 

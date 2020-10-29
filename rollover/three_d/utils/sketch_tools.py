@@ -2,6 +2,7 @@
 
 .. codeauthor:: Knut Andreas Meyer
 """
+from __future__ import print_function
 from abaqusConstants import *
 from abaqus import mdb
 

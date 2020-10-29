@@ -43,7 +43,7 @@ import abaqus
 from abaqusConstants import *
 import regionToolset, mesh
 
-import naming_mod as names
+from rollover.utils import naming_mod as names
 
 def add_rail_constraints(rail_part):
     rail_rp = add_ctrl_point(rail_part)

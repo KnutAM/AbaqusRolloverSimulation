@@ -12,31 +12,21 @@ if sys.version_info.major == 3:
     else:
         from importlib import reload
 
+# Abaqus imports
 from abaqus import mdb
 
-# Add all paths here, should not be required in called modules
-def add_subfolders_to_path(folder):
-    if not folder in sys.path:
-        sys.path.append(folder)
-    for f in os.listdir(folder):
-        if os.path.isdir(folder + '/' + f):
-            add_subfolders_to_path(folder + '/' + f)
-        
-this_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
-src_path = os.path.dirname(this_path)
-add_subfolders_to_path(this_path)
-add_subfolders_to_path(src_path + '/utils')
+# Project library imports
+from rollover.utils import naming_mod as names
+from rollover.three_d.rail import create_basic_rail as cbr
+from rollover.three_d.rail import mesh_rail as mr
+from rollover.three_d.utils import symmetric_mesh_module as sm
+from rollover.three_d.rail import create_shadow_regions as csr
+from rollover.three_d.rail import rail_constraints as rc
+from rollover.three_d.utils import sketch_tools as st
+from rollover.three_d.wheel import create_wheel_mod as wheel
 
-
-import naming_mod as names
-import create_basic_rail as cbr
-import mesh_rail as mr
-import symmetric_mesh_module as sm
-import create_shadow_regions as csr
-import rail_constraints as rc
-import sketch_tools as st
-import create_wheel_mod as wheel
-
+# Script imports
+import create_3d_wheel_2d_section as wheel_script
 # Reload should only be used here, so need to import any module used down the import directory here if reload is required (i.e. when developing via abaqus cae)
 reload(names)
 reload(cbr)
@@ -46,6 +36,10 @@ reload(csr)
 reload(rc)
 reload(st)
 reload(wheel)
+reload(wheel_script)
+
+this_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
+src_path = os.path.dirname(this_path)
 
 
 def main():
@@ -54,7 +48,7 @@ def main():
 def setup_wheel():
     wheel_profile = src_path + '/../data/wheel_profiles/rs200_ro460_ri300.sat'
     
-    mesh_2d = wheel.generate_2d_mesh(wheel_profile, mesh_sizes=[1.0, 10.0], 
+    mesh_2d = wheel_script.generate_2d_mesh(wheel_profile, mesh_sizes=[1.0, 10.0], 
                                      wheel_contact_pos = [-10.0, 1.0], partition_line= -450.0)
                            
     node_coords, tri_elems, quad_elems, contact_nodes, inner_nodes = mesh_2d

@@ -13,11 +13,11 @@ from abaqus import mdb
 import mesh, part
 
 # Project imports
-import naming_mod as names
-import get_utils as get
-import abaqus_python_tools as apt
+from rollover.utils import naming_mod as names
+from rollover.utils import get_utils as get
+from rollover.utils import abaqus_python_tools as apt
 
-import symmetric_mesh_module as sm
+from rollover.three_d.utils import symmetric_mesh_module as sm
 
 
 

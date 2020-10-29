@@ -12,7 +12,8 @@ Python library to setup rollover simulation in Abaqus for CHARMEC
 The following top-level folders and file are provided
 
 - `rollover`: The python library used to setup and run the Abaqus rollover simulations (imported, but not run directly)
-- `scripts`: Scripts that are designed to be called as `abaqus cae noGUI=<script.py>`
+- `scripts_abq`: Abaqus python scripts that are designed to be called as `abaqus cae noGUI=<script.py>`
+- `scripts_py`: Python scripts that should be called by `python <script.py>`
 - `usub`: Fortran code for user subroutines required for the rollover simulations
 - `doc`: Documentation
 - `tests`: ***To be completed*** 

@@ -8,7 +8,7 @@ from abaqus import mdb
 import assembly, regionToolset, odbAccess
 from abaqusConstants import *
 
-import naming_mod as names
+from rollover.utils import naming_mod as names
 
 def model():
 	return mdb.models[names.model]
