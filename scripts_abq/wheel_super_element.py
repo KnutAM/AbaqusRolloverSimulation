@@ -49,7 +49,7 @@ def main():
     possible_section_param.remove('wheel_model')
     wheel_section_param = {key: wheel_param[key] for key in wheel_param 
                            if key in possible_section_param}
-    wheel.generate_2d_mesh(wheel_model, **wheel_section_param)
+    section_bb = wheel.generate_2d_mesh(wheel_model, **wheel_section_param)
     
     # Revolve 2d mesh to obtain 3d mesh
     wheel.generate_3d_mesh(wheel_model, wheel_param['mesh_sizes'])
@@ -57,29 +57,11 @@ def main():
     # Create retained node set
     wheel.create_retained_set(wheel_part, wheel_param['wheel_angles'])
     
-    # Create assembly
-    assy = wheel_model.rootAssembly
-    wheel_inst = assy.Instance(name=names.wheel_inst, part=wheel_part, dependent=ON)
+    # Create inner node set
+    wheel.create_inner_set(wheel_part, section_bb)
     
-    wheel_model.SubstructureGenerateStep(name='SUBSTRUCTURE', previous='Initial', 
-                                         substructureIdentifier=1, recoveryMatrix=NONE)
-    contact_set = wheel_inst.sets[names.wheel_contact_nodes]
-    wheel_model.RetainedNodalDofsBC(name='BC-1', createStepName='SUBSTRUCTURE', region=contact_set, 
-                                    u1=ON, u2=ON, u3=ON, ur1=OFF, ur2=OFF, ur3=OFF)
+    job = wheel.setup_substructure_simulation(wheel_model)
     
-    assy.ReferencePoint(point=(0.0, 0.0, 0.0))
-    ref_point_tuple = (assy.referencePoints[assy.referencePoints.keys()[0]],)
-    rp_set = assy.Set(referencePoints=ref_point_tuple, name=names.wheel_rp_set)
-    
-    wheel_model.RetainedNodalDofsBC(name='BC-2', createStepName='SUBSTRUCTURE', region=rp_set, 
-                                    u1=ON, u2=ON, u3=ON, ur1=ON, ur2=ON, ur3=ON)
-
-    inner_set = contact_set     # Should be changed!!!
-    wheel_model.Tie(name='Constraint-1', master=rp_set, slave=inner_set, 
-                    positionToleranceMethod=COMPUTED, adjust=ON, 
-                    tieRotations=ON, constraintEnforcement=NODE_TO_SURFACE, thickness=ON)
-                    
-    mdb.Job(name='Job-1', model='WHEEL_SUBSTRUCTURE', type=ANALYSIS, numCpus=1)
         
     
 if __name__ == '__main__':

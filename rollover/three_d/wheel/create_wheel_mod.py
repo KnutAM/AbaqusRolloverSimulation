@@ -15,12 +15,19 @@ import uuid
 
 # Abaqus imports
 from abaqusConstants import *
-import part, sketch, mesh
+from abaqus import mdb
+import part, sketch, mesh, job
 
 # Project imports
 from rollover.three_d.utils import sketch_tools
 from rollover.utils import abaqus_python_tools as apt
 from rollover.utils import naming_mod as names
+
+
+# Constants
+BB_TOL = 1.e-2 # Tolerance for generating bounding boxes. It must be 
+               # smaller than node spacing. However, tolerances are not 
+               # so good for bounding boxes...
                  
 
 def generate_2d_mesh(wheel_model, wheel_profile, mesh_sizes, wheel_contact_pos, partition_line, 
@@ -30,30 +37,40 @@ def generate_2d_mesh(wheel_model, wheel_profile, mesh_sizes, wheel_contact_pos, 
     :param wheel_model: The model containing the wheel part
     :type wheel_model: Model object (Abaqus)
     
-    :param wheel_profile: Path to an Abaqus sketch profile saved as .sat file (acis)
+    :param wheel_profile: Path to an Abaqus sketch profile saved as .sat 
+                          file (acis)
     :type wheel_profile: str
     
-    :param mesh_sizes: Mesh sizes, mesh_sizes[0]=fine mesh in contact, mesh_sizes[1] coarse mesh
+    :param mesh_sizes: Mesh sizes, mesh_sizes[0]=fine mesh in contact, 
+                       mesh_sizes[1] coarse mesh
     :type mesh_sizes: list[ float ] (len=2)
     
-    :param wheel_contact_pos: min and max x-coordinate for the wheel contact region (retained dofs)
+    :param wheel_contact_pos: min and max x-coordinate for the wheel 
+                              contact region (retained dofs)
     :type wheel_contact_pos: list[ float ] (len=2)
     
-    :param partition_line: y-value for the line where the wheel profile will be partitioned to 
-                           give a better mesh value.
+    :param partition_line: y-value for the line where the wheel profile 
+                           will be partitioned to give a better mesh 
+                           value.
     
-    :param fine_mesh_edge_bb: Dictionary with bounding box parameters for determining which edges 
-                              the fine mesh should be applied to. Keys are 'xMin', 'yMax', etc. 
-                              If None, set h = partition_line*(1+1.e-6) and set 'yMax' to h if
-                              partition_line < 0 or 'yMin' to h if partition_line > 0. The 
-                              adjustment ensures that the partition line is not included amongst the 
-                              fine mesh edges.
+    :param fine_mesh_edge_bb: Dictionary with bounding box parameters 
+                              for determining which edges the fine mesh 
+                              should be applied to. Keys are 'xMin', 
+                              'yMax', etc. If None, set 
+                              h = partition_line*(1+1.e-6) and set 
+                              'yMax' to h if partition_line < 0 or 
+                              'yMin' to h if partition_line > 0. The 
+                              adjustment ensures that the partition line 
+                              is not included amongst the fine mesh 
+                              edges.
     :type fine_mesh_edge_bb: dict
     
-    :param quadratic_order: Should quadratic elements be used, default is True
+    :param quadratic_order: Should quadratic elements be used, default 
+                            is True
     :type quadratic_order: bool
     
-    :returns: None
+    :returns: Bounding box for the generated mesh, given by points with 
+              keys 'low' and 'high'
     :rtype: None
 
     """
@@ -103,6 +120,8 @@ def generate_2d_mesh(wheel_model, wheel_profile, mesh_sizes, wheel_contact_pos, 
     
     # Mesh wheel
     wheel_part.generateMesh()
+    
+    return wheel_part.nodes.getBoundingBox()
 
 
 def generate_3d_mesh(wheel_model, mesh_sizes):
@@ -198,20 +217,17 @@ def get_nodes_in_ang_int(wheel_part, wheel_angles, x0, considered_nodes=None):
     if wheel_angles[0] >= wheel_angles[1]:
         raise ValueError('The second wheel angle must be greater than the first')
         
-    TOL = 1.e-2 # Tolerance, must be smaller than node spacing. But 
-                # tolerances are not so good for bounding box...
-    
     all_nodes = wheel_part.nodes if considered_nodes is None else considered_nodes
     
-    c1 = (x0[0]-TOL, 0.0, 0.0)
-    c2 = (x0[0]+TOL, 0.0, 0.0)
+    c1 = (x0[0]-BB_TOL, 0.0, 0.0)
+    c2 = (x0[0]+BB_TOL, 0.0, 0.0)
     r = np.sqrt(x0[1]**2 + x0[2]**2)
     
     sp = wheel_part.Set(name='_plane_nodes', 
                         nodes=all_nodes.getByBoundingCylinder(center1=c1, center2=c2, 
-                                                              radius=r+TOL))
+                                                              radius=r+BB_TOL))
                                                               
-    inner_nodes = all_nodes.getByBoundingCylinder(center1=c1, center2=c2, radius=r-TOL)
+    inner_nodes = all_nodes.getByBoundingCylinder(center1=c1, center2=c2, radius=r-BB_TOL)
     if len(inner_nodes) > 0:
         si = wheel_part.Set(name='_inner_nodes', nodes=inner_nodes)
         so = wheel_part.SetByBoolean(name='_outer_nodes', sets=(sp, si), operation=DIFFERENCE)
@@ -235,8 +251,75 @@ def get_nodes_in_ang_int(wheel_part, wheel_angles, x0, considered_nodes=None):
             del wheel_part.sets[help_set]
             
     return sc
+   
+   
+def create_inner_set(wheel_part, section_bb):
     
+    """Create a set for the nodes on the inner shaft with name
+    names.wheel_inner_set. This function assumes that the inner surface 
+    is cylindrical.
     
+    :param wheel_part: The wheel part containing the orphan 3d mesh
+    :type wheel_part: Part object (Abaqus)
     
+    :param section_bb: The bounding box for the section mesh in the 
+                       xy-plane. Contains x, y, z coordinates given by 
+                       keys 'low' and 'high'. 
+    :type section_bb: dict
     
+    :returns: None
+    :rtype: None
+
+    """
     
+    r_inner = np.min(np.abs([section_bb['low'][1], section_bb['high'][1]]))
+    x_min = section_bb['low'][0]
+    x_max = section_bb['high'][0]
+    
+    inner_nodes = wheel_part.nodes.getByBoundingCylinder(center1=(x_min-1.0, 0.0, 0.0), 
+                                                         center2=(x_max+1.0, 0.0, 0.0),
+                                                         radius=r_inner + BB_TOL)
+                                                         
+    wheel_part.Set(name=names.wheel_inner_set, nodes=inner_nodes)
+    
+
+def setup_substructure_simulation(wheel_model):
+
+    wheel_part = wheel_model.parts[names.wheel_part]
+    
+    # Setup material with unit elasticity modulus
+    unit_elastic_material = wheel_model.Material(name='UnitElastic')
+    unit_elastic_material.Elastic(table=((1.0, 0.3), ))
+    # Setup section for all elements
+    wheel_model.HomogeneousSolidSection(name='SolidWheel', material='UnitElastic')
+    
+    all_elements = wheel_part.Set(name='ALL_ELEMENTS', elements=wheel_part.elements)
+    
+    wheel_part.SectionAssignment(region=all_elements, sectionName='SolidWheel')
+    
+    # Create assembly
+    assy = wheel_model.rootAssembly
+    wheel_inst = assy.Instance(name=names.wheel_inst, part=wheel_part, dependent=ON)
+    
+    # Create substructure step
+    wheel_model.SubstructureGenerateStep(name='SUBSTRUCTURE', previous='Initial', 
+                                         substructureIdentifier=1, recoveryMatrix=NONE)
+    
+    # Setup retained nodes (contact and reference point)
+    contact_set = wheel_inst.sets[names.wheel_contact_nodes]
+    wheel_model.RetainedNodalDofsBC(name='BC-1', createStepName='SUBSTRUCTURE', region=contact_set, 
+                                    u1=ON, u2=ON, u3=ON, ur1=OFF, ur2=OFF, ur3=OFF)
+    
+    assy.ReferencePoint(point=(0.0, 0.0, 0.0))
+    ref_point_tuple = (assy.referencePoints[assy.referencePoints.keys()[0]],)
+    rp_set = assy.Set(referencePoints=ref_point_tuple, name=names.wheel_rp_set)
+    
+    wheel_model.RetainedNodalDofsBC(name='BC-2', createStepName='SUBSTRUCTURE', region=rp_set, 
+                                    u1=ON, u2=ON, u3=ON, ur1=ON, ur2=ON, ur3=ON)
+
+    inner_set = wheel_inst.sets[names.wheel_inner_set]
+    wheel_model.Tie(name='Constraint-1', master=rp_set, slave=inner_set, 
+                    positionToleranceMethod=COMPUTED, adjust=ON, 
+                    tieRotations=ON, constraintEnforcement=NODE_TO_SURFACE, thickness=ON)
+                    
+    return mdb.Job(name='WHEEL_SUBSTRUCTURE', model='WHEEL_SUBSTRUCTURE', type=ANALYSIS, numCpus=1)

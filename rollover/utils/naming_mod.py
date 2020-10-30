@@ -20,6 +20,7 @@ wheel_dummy_contact_sect = 'WHEEL_DUMMY_CONTACT'
 # Sets
 wheel_contact_surf = 'WHEEL_CONTACT_SURFACE'
 wheel_rp_set = 'WHEEL_RP'
+wheel_inner_set = 'WHEEL_SHAFT'
 rail_rp_set = 'RAIL_RP'
 wheel_contact_nodes = 'CONTACT_NODES'
 rail_contact_nodes = 'CONTACT_NODES'
