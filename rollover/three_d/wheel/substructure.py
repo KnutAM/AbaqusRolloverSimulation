@@ -28,7 +28,53 @@ from rollover.utils import naming_mod as names
 BB_TOL = 1.e-2 # Tolerance for generating bounding boxes. It must be 
                # smaller than node spacing. However, tolerances are not 
                # so good for bounding boxes...
-                 
+   
+def generate(wheel_param):
+    """Create the wheel substructure for a 3d wheel and return the job
+    object. The job is not submitted. 
+    
+    :param wheel_param: The model containing the wheel part. The 
+                        dictionary should contain arguments to
+                        :py:func:`generate_2d_mesh`, except 
+                        `wheel_model`. It should also contain
+                        `wheel_angles`, see 
+                        :py:func:`create_retained_set`. 
+    :type wheel_param: dict
+    
+    :returns: The job object, allowing submission of job or writing to 
+              input file if desired. 
+    :rtype: Job object (Abaqus)
+
+    """
+    # Setup the wheel model and part
+    wheel_model = apt.create_model('WHEEL_SUBSTRUCTURE')
+    wheel_part = wheel_model.Part(name=names.wheel_part, dimensionality=THREE_D, 
+                                  type=DEFORMABLE_BODY)
+    
+    # Create the 2d section mesh
+    possible_section_param = list(wheel.generate_2d_mesh.__code__.co_varnames)
+    possible_section_param.remove('wheel_model')
+    wheel_section_param = {key: wheel_param[key] for key in wheel_param 
+                           if key in possible_section_param}
+    section_bb = wheel.generate_2d_mesh(wheel_model, **wheel_section_param)
+    
+    # Revolve 2d mesh to obtain 3d mesh
+    wheel.generate_3d_mesh(wheel_model, wheel_param['mesh_sizes'])
+    
+    # Create retained node set
+    wheel.create_retained_set(wheel_part, wheel_param['wheel_angles'])
+    
+    # Create inner node set
+    wheel.create_inner_set(wheel_part, section_bb)
+    
+    # Setup mtx file output
+    
+    
+    # Create job
+    job = setup_simulation(wheel_model)
+    
+    return job
+    
 
 def generate_2d_mesh(wheel_model, wheel_profile, mesh_sizes, wheel_contact_pos, partition_line, 
                      fine_mesh_edge_bb=None, quadratic_order=True):
@@ -283,7 +329,7 @@ def create_inner_set(wheel_part, section_bb):
     wheel_part.Set(name=names.wheel_inner_set, nodes=inner_nodes)
     
 
-def setup_substructure_simulation(wheel_model):
+def setup_simulation(wheel_model):
 
     wheel_part = wheel_model.parts[names.wheel_part]
     
@@ -323,3 +369,4 @@ def setup_substructure_simulation(wheel_model):
                     tieRotations=ON, constraintEnforcement=NODE_TO_SURFACE, thickness=ON)
                     
     return mdb.Job(name='WHEEL_SUBSTRUCTURE', model='WHEEL_SUBSTRUCTURE', type=ANALYSIS, numCpus=1)
+

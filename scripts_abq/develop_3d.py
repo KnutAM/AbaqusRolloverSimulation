@@ -1,4 +1,5 @@
 """This module is used to test during development
+
 .. codeauthor:: Knut Andreas Meyer
 """
 # System imports
@@ -23,10 +24,8 @@ from rollover.three_d.utils import symmetric_mesh_module as sm
 from rollover.three_d.rail import create_shadow_regions as csr
 from rollover.three_d.rail import rail_constraints as rc
 from rollover.three_d.utils import sketch_tools as st
-from rollover.three_d.wheel import create_wheel_mod as wheel
 
-# Script imports
-import create_3d_wheel_2d_section as wheel_script
+
 # Reload should only be used here, so need to import any module used down the import directory here if reload is required (i.e. when developing via abaqus cae)
 reload(names)
 reload(cbr)
@@ -35,26 +34,13 @@ reload(sm)
 reload(csr)
 reload(rc)
 reload(st)
-reload(wheel)
-reload(wheel_script)
 
 this_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
 src_path = os.path.dirname(this_path)
 
 
 def main():
-    setup_wheel()
-
-def setup_wheel():
-    wheel_profile = src_path + '/../data/wheel_profiles/rs200_ro460_ri300.sat'
-    
-    mesh_2d = wheel_script.generate_2d_mesh(wheel_profile, mesh_sizes=[1.0, 10.0], 
-                                     wheel_contact_pos = [-10.0, 1.0], partition_line= -450.0)
-                           
-    node_coords, tri_elems, quad_elems, contact_nodes, inner_nodes = mesh_2d
-    for output in [node_coords, tri_elems, quad_elems, contact_nodes, inner_nodes]:
-        print(output.shape)
-    
+    setup_rail()
 
 def setup_rail():
     rail_material = {'material_model': 'elastic', 'mpar': {'E': 210.e3, 'nu': 0.3}}

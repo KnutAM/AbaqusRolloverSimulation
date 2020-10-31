@@ -15,14 +15,17 @@
 import os
 import sys
 
-src = os.path.abspath('../../rollover')
+repo = os.path.abspath('../..')
+src = repo + '/rollover'
 
-project_paths = [src,
-                 src + '/utils',
-                 src + '/three_d',
-                 src + '/three_d/rail',
-                 src + '/three_d/wheel',
-                 src + '/three_d/utils',
+project_paths = [repo,
+                 repo + '/scripts_abq',
+                 src,
+#                src + '/utils',
+#                src + '/three_d',
+#                src + '/three_d/rail',
+#                src + '/three_d/wheel',
+#                src + '/three_d/utils',
                  ]
 for p in project_paths:
     sys.path.insert(0, p)
@@ -63,7 +66,7 @@ extensions = [
 autodoc_mock_imports = ["abaqus", "abaqusConstants", "assembly",
                         "regionToolset", "mesh", "section",
                         "material", "odbAccess", "mdb", "part",
-                        "sketch", "load", "step","interaction"]
+                        "sketch", "load", "step","interaction","job"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -98,7 +101,8 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+#html_theme = 'alabaster'
+html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

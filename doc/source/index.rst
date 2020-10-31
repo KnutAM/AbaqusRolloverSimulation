@@ -13,65 +13,74 @@ Welcome to abaqusrolloversimulation's documentation!
    intro
    cross_ref_example
 
-Objects
-=======
-create_wheel_2d_profile.py
---------------------------
-.. automodule:: create_wheel_2d_profile
-   :members:
-   :undoc-members:
-
-sketch_tools.py
----------------
-.. automodule:: sketch_tools
+Abaqus scripts
+==============
+scripts_abq/wheel_super_element.py
+----------------------------------
+.. automodule:: wheel_super_element
    :members:
    :undoc-members:
    
-create_wheel_mod.py
--------------------
-.. automodule:: create_wheel_mod
+scripts_abq/develop_3d.py
+-------------------------
+.. automodule:: develop_3d
    :members:
    :undoc-members:
 
-setup_material_mod.py
----------------------
-.. automodule:: setup_material_mod
-   :members:
-   :undoc-members:
 
-rail_constraints.py
--------------------
-.. automodule:: rail_constraints
+Rollover library
+================
+three_d/utils/sketch_tools.py
+-----------------------------
+.. automodule:: rollover.three_d.utils.sketch_tools
    :members:
    :undoc-members:
    
-create_basic_rail.py
---------------------
-.. automodule:: create_basic_rail
+three_d/wheel/substructure.py
+-----------------------------
+.. automodule:: rollover.three_d.wheel.substructure
    :members:
    :undoc-members:
 
-mesh_rail.py
-------------
-.. automodule:: mesh_rail
+utils/setup_material_mod.py
+---------------------------
+.. automodule:: rollover.utils.setup_material_mod
    :members:
    :undoc-members:
 
-mesh_tools.py
--------------
-.. automodule:: mesh_tools
-   :members:
-   :undoc-members:
-
-symmetric_mesh_module.py
-------------------------
-.. automodule:: symmetric_mesh_module
+three_d/rail/rail_constraints.py
+--------------------------------
+.. automodule:: rollover.three_d.rail.rail_constraints
    :members:
    :undoc-members:
    
-create_shadow_regions.py
-------------------------
-.. automodule:: create_shadow_regions
+three_d/rail/create_basic_rail.py
+---------------------------------
+.. automodule:: rollover.three_d.rail.create_basic_rail
+   :members:
+   :undoc-members:
+
+three_d/rail/mesh_rail.py
+-------------------------
+.. automodule:: rollover.three_d.rail.mesh_rail
+   :members:
+   :undoc-members:
+
+three_d/utils/mesh_tools.py
+---------------------------
+.. automodule:: rollover.three_d.utils.mesh_tools
+   :members:
+   :undoc-members:
+
+three_d/utils/symmetric_mesh_module.py
+--------------------------------------
+.. automodule:: rollover.three_d.utils.symmetric_mesh_module
+   :members:
+   :undoc-members:
+   
+three_d/rail/create_shadow_regions.py
+-------------------------------------
+.. automodule:: rollover.three_d.rail.create_shadow_regions
    :members:
    :undoc-members:
 
