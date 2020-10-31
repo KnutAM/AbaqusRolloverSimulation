@@ -21,6 +21,7 @@ import part, sketch, mesh, job
 # Project imports
 from rollover.three_d.utils import sketch_tools
 from rollover.utils import abaqus_python_tools as apt
+from rollover.utils import inp_file_edit as inpfile
 from rollover.utils import naming_mod as names
 
 
@@ -28,6 +29,7 @@ from rollover.utils import naming_mod as names
 BB_TOL = 1.e-2 # Tolerance for generating bounding boxes. It must be 
                # smaller than node spacing. However, tolerances are not 
                # so good for bounding boxes...
+
    
 def generate(wheel_param):
     """Create the wheel substructure for a 3d wheel and return the job
@@ -52,33 +54,35 @@ def generate(wheel_param):
                                   type=DEFORMABLE_BODY)
     
     # Create the 2d section mesh
-    possible_section_param = list(wheel.generate_2d_mesh.__code__.co_varnames)
+    possible_section_param = list(generate_2d_mesh.__code__.co_varnames)
     possible_section_param.remove('wheel_model')
     wheel_section_param = {key: wheel_param[key] for key in wheel_param 
                            if key in possible_section_param}
-    section_bb = wheel.generate_2d_mesh(wheel_model, **wheel_section_param)
+    section_bb = generate_2d_mesh(wheel_model, **wheel_section_param)
     
     # Revolve 2d mesh to obtain 3d mesh
-    wheel.generate_3d_mesh(wheel_model, wheel_param['mesh_sizes'])
+    generate_3d_mesh(wheel_model, wheel_param['mesh_sizes'])
     
     # Create retained node set
-    wheel.create_retained_set(wheel_part, wheel_param['wheel_angles'])
+    create_retained_set(wheel_part, wheel_param['wheel_angles'])
     
     # Create inner node set
-    wheel.create_inner_set(wheel_part, section_bb)
-    
-    # Setup mtx file output
-    
+    create_inner_set(wheel_part, section_bb)
     
     # Create job
     job = setup_simulation(wheel_model)
+    
+    # Save substructure information
+    save_data(wheel_part)
     
     return job
     
 
 def generate_2d_mesh(wheel_model, wheel_profile, mesh_sizes, wheel_contact_pos, partition_line, 
                      fine_mesh_edge_bb=None, quadratic_order=True):
-    """Generate a mesh of the wheel profile
+    """Generate a mesh of the wheel profile. A set 
+    `section_contact_nodes` is created containing the nodes involved in 
+    the contact. 
     
     :param wheel_model: The model containing the wheel part
     :type wheel_model: Model object (Abaqus)
@@ -167,6 +171,16 @@ def generate_2d_mesh(wheel_model, wheel_profile, mesh_sizes, wheel_contact_pos, 
     # Mesh wheel
     wheel_part.generateMesh()
     
+    fine_mesh_nodes = []
+    for e in fine_mesh_edges:
+        for n in e.getNodes():
+            fine_mesh_nodes.append(n)
+    
+    fine_mesh_node_array = mesh.MeshNodeArray(nodes=fine_mesh_nodes)
+    section_contact_nodes = fine_mesh_node_array.getByBoundingBox(xMin=wheel_contact_pos[0], 
+                                                                  xMax=wheel_contact_pos[1])
+    wheel_part.Set(name='section_contact_nodes', nodes=section_contact_nodes)
+    
     return wheel_part.nodes.getBoundingBox()
 
 
@@ -206,7 +220,7 @@ def create_retained_set(wheel_part, wheel_angles):
     """Create a set for the retained dofs
     
     The wheel part should have a 3d-revolved mesh and a set 
-    'contact_edges' containing the nodes in the section that should be 
+    'section_contact_nodes' containing the nodes in the section that should be 
     retained. This function will create a node set with the 
     corresponding nodes that are within the angular interval specified 
     by wheel_angles.
@@ -224,7 +238,7 @@ def create_retained_set(wheel_part, wheel_angles):
 
     """
     set_name = names.wheel_contact_nodes
-    contact_line_nodes = wheel_part.sets['contact_edges'].nodes
+    contact_line_nodes = wheel_part.sets['section_contact_nodes'].nodes
     tmp_set = get_nodes_in_ang_int(wheel_part, wheel_angles, contact_line_nodes[0].coordinates)
     wheel_part.Set(name=set_name, objectToCopy=tmp_set)
     for node in contact_line_nodes[1:]:
@@ -356,17 +370,60 @@ def setup_simulation(wheel_model):
     wheel_model.RetainedNodalDofsBC(name='BC-1', createStepName='SUBSTRUCTURE', region=contact_set, 
                                     u1=ON, u2=ON, u3=ON, ur1=OFF, ur2=OFF, ur3=OFF)
     
-    assy.ReferencePoint(point=(0.0, 0.0, 0.0))
-    ref_point_tuple = (assy.referencePoints[assy.referencePoints.keys()[0]],)
-    rp_set = assy.Set(referencePoints=ref_point_tuple, name=names.wheel_rp_set)
+    rp_node = wheel_part.Node(coordinates=(0.0, 0.0, 0.0))
+    
+    wheel_part.ReferencePoint(point=rp_node)
+    rp_tuple = (wheel_part.referencePoints[wheel_part.referencePoints.keys()[0]],)
+    wheel_part.Set(referencePoints=rp_tuple, name=names.wheel_rp_set)
+    
+    inner_set = wheel_inst.sets[names.wheel_inner_set]
+    rp_set = wheel_inst.sets[names.wheel_rp_set]
     
     wheel_model.RetainedNodalDofsBC(name='BC-2', createStepName='SUBSTRUCTURE', region=rp_set, 
                                     u1=ON, u2=ON, u3=ON, ur1=ON, ur2=ON, ur3=ON)
 
-    inner_set = wheel_inst.sets[names.wheel_inner_set]
-    wheel_model.Tie(name='Constraint-1', master=rp_set, slave=inner_set, 
-                    positionToleranceMethod=COMPUTED, adjust=ON, 
-                    tieRotations=ON, constraintEnforcement=NODE_TO_SURFACE, thickness=ON)
+    wheel_model.RigidBody(name='WheelShaft', refPointRegion=rp_set, pinRegion=inner_set)
+    
+    # Add output of stiffness matrix to file 'ke.mtx'
+    wheel_model.keywordBlock.synchVersions(storeNodesAndElements=False)
+    inpfile.add_at_end_of_cat(keyword_block=wheel_model.keywordBlock, 
+                              string_to_add=('*SUBSTRUCTURE MATRIX OUTPUT, '
+                                             + 'STIFFNESS=YES, '
+                                             + 'OUTPUT FILE=USER DEFINED, FILE NAME=ke'), 
+                              category='Step', name='SUBSTRUCTURE')
                     
     return mdb.Job(name='WHEEL_SUBSTRUCTURE', model='WHEEL_SUBSTRUCTURE', type=ANALYSIS, numCpus=1)
 
+
+
+def save_data(wheel_part):
+
+    def coord_str(coord):
+        return ('%25.15e'*3) % tuple(coord)
+    
+    def save_nodes(nodes, base_name):
+        node_coords = np.array([n.coordinates for n in nodes])
+        node_labels = np.array([n.label for n in nodes], dtype=np.int)
+        np.save(file=base_name + '_coords.npy', arr=node_coords)
+        np.save(file=base_name + '_labels.npy', arr=node_labels)
+    
+    # Save reference point
+    rp_coord = [0.0, 0.0, 0.0]
+    
+    # Write one file containing the reference node coordinates
+    np.save(file='rp_coord.npy', arr=rp_coord)
+    
+    # Write one file containing the coordinates and labels for each 
+    # contact node
+    contact_nodes = wheel_part.sets[names.wheel_contact_nodes].nodes
+    save_nodes(contact_nodes, base_name='contact_node')
+    
+    # Write one file containing the coordinates (and labels) for each 
+    # contact node in the sketch section (in the xy-plane). Note that 
+    # these nodes are not necessarily part of the contact_nodes and are
+    # given as it makes defining the element connectivity easier
+    section_contact_nodes = wheel_part.sets['section_contact_nodes'].nodes
+    save_nodes(section_contact_nodes, base_name='section_contact_node')
+    
+    
+       
