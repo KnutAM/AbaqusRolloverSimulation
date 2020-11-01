@@ -410,6 +410,11 @@ implicit none
     allocate(angles(n_nodes))
     angles = atan2(node_c_rel(1,:), -node_c_rel(2,:))
     
+    ! HERE WE NEED TO SORT BOTH IN ANGLE DIRECTION AND X-DIRECTION. WOULD PROBABLY BE GOOD TO DO 
+    ! THIS ONCE IN THE BEGINNING TO GET THE CORRECT NODE INDICES. THEN WE CAN KNOW HOW THE node_n 
+    ! SHOULD BE, AND THE node_c AND node_u CAN FOLLOW. SEE PYTHON IMPLEMENTATION FOR HOW SUCH 
+    ! ORGANIZATION CAN BE ACCOMPLISHED. 
+    
     ! Get sorting indices based on angles
     call sortinds(angles, sort_inds)
     
@@ -503,7 +508,7 @@ implicit none
     ubc(3) = return_angle
     cdofs(1:3) = [1,2,3]
     do old_ind=1,(nnod-num_elem_roll)
-        new_ind = old_ind + num_elem_roll
+        new_ind = old_ind + num_elem_roll   ! HERE WE SHOULD MULTIPLY BY NUM NODES PER ANGLE ROW
         x0_new = node_c(:, new_ind) - node_u(:, new_ind)
         x_old = node_c(:, old_ind)
         
