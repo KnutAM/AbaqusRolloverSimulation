@@ -2,14 +2,17 @@
 
 The dictionary described by the 'wheel_settings.json' file should
 contain the keywords according to 
-:py:func:`rollover.three_d.wheel.create.substructure`
+:py:func:`rollover.three_d.wheel.create.substructure` as well as
+`'wheel_name'` giving the name of the folder to which the user element
+files will be saved along with a copy of the `'wheel_settings.json'` 
+file
 
 .. codeauthor:: Knut Andreas Meyer
 """
 
 # System imports
 from __future__ import print_function
-import sys
+import sys, os, shutil
 import numpy as np
 
 # Abaqus imports
@@ -36,12 +39,14 @@ except NameError as ne:   # Will fail for Python 3, but that is ok:
 
 def main():
     # Read in wheel section parameters
-    wheel_param = json_io.read('wheel_settings.json')
+    wheel_param = json_io.read(names.wheel_settings_file)
     
-    # create_substructure(wheel_param)
+    create_substructure(wheel_param)
+    
     create_user_element(wheel_param)
     
-        
+    save_user_element(wheel_param)
+    
     
     
 def create_substructure(wheel_param):
@@ -52,8 +57,20 @@ def create_substructure(wheel_param):
     
     
 def create_user_element(wheel_param):
-    coords, elems = super_wheel.get_uel_mesh()
-    super_wheel.create_test_part(coords, elems)
+    super_wheel.get_uel_mesh()
+    
+    
+def save_user_element(wheel_param):
+    if os.path.exists(wheel_param['wheel_name']):
+        shutil.rmtree(wheel_param['wheel_name'])
+    
+    os.mkdir(wheel_param['wheel_name'])
+
+    for file_name in [names.uel_stiffness_file, 
+                      names.uel_coordinates_file, 
+                      names.uel_elements_file,
+                      names.wheel_settings_file]:
+        shutil.copy(file_name, wheel_param['wheel_name'])
     
     
 if __name__ == '__main__':

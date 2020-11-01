@@ -395,30 +395,18 @@ def setup_simulation(wheel_model):
     return mdb.Job(name='WHEEL_SUBSTRUCTURE', model='WHEEL_SUBSTRUCTURE', type=ANALYSIS, numCpus=1)
 
 
-
 def save_data(wheel_part):
-
-    def save_nodes(nodes, base_name):
-        node_coords = np.array([n.coordinates for n in nodes])
-        node_labels = np.array([n.label for n in nodes], dtype=np.int)
-        np.save(file=base_name + '_coords.npy', arr=node_coords)
-        np.save(file=base_name + '_labels.npy', arr=node_labels)
+    """ Save contact node coordinate and labels to files
     
-    # Write one file containing the coordinates and labels for each 
-    # contact node
+    :param wheel_part: The meshed wheel part containing the node set
+                       `names.wheel_contact_nodes` with contact nodes
+    :type wheel_part: Part object (Abaqus)
+    
+    """
+    
     contact_nodes = wheel_part.sets[names.wheel_contact_nodes].nodes
     node_coords = np.array([n.coordinates for n in contact_nodes])
     node_labels = np.array([n.label for n in contact_nodes], dtype=np.int)
-    np.save(file=names.uel_contact_node_coords_file, arr=node_coords)
-    np.save(file=names.uel_contact_node_labels_file, arr=node_labels)
-    
-    
-    # Write one file containing the coordinates (and labels) for each 
-    # contact node in the sketch section (in the xy-plane). Note that 
-    # these nodes are not necessarily part of the contact_nodes and are
-    # given as it makes defining the element connectivity easier
-    section_contact_nodes = wheel_part.sets['section_contact_nodes'].nodes
-    save_nodes(section_contact_nodes, base_name='section_contact_node')
-    
-    
-       
+    np.save(file=names.substr_node_coords_file, arr=node_coords)
+    np.save(file=names.substr_node_labels_file, arr=node_labels)    
+

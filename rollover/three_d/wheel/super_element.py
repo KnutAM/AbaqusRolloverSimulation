@@ -19,21 +19,21 @@ def get_uel_mesh():
     """Determine the mesh from the substructure simulation.
     Produces the following files:
     
-    - `'uel_stiffness.txt'`: The stiffness matrix to be read by the 
+    - `names.uel_stiffness_file`: The stiffness matrix to be read by the 
       fortran uel subroutine
-    - `'uel_coordinates.npy'`: The coordinates of the contact nodes in 
-      the user element. 
-    - `'uel_elements.npy'`: The indices of the user element nodes that 
-      belong to each element. 
+    - `names.uel_coordinates_file`: The coordinates of the contact nodes 
+      in the user element. 
+    - `names.uel_elements_file`: The indices of the user element nodes 
+      that belong to each element. 
     
     """
-    
-    ke_raw = get_stiffness(names.uel_mtx_file)
-    rp_nr, contact_node_labels = get_mtx_nodes(names.uel_mtx_file)
+
+    ke_raw = get_stiffness(names.substr_mtx_file)
+    rp_nr, contact_node_labels = get_mtx_nodes(names.substr_mtx_file)
     ke = reorder_stiffness(ke_raw, rp_nr)
     
-    coords = get_node_coords(names.uel_contact_node_coords_file, 
-                             names.uel_contact_node_labels_file,
+    coords = get_node_coords(names.substr_node_coords_file, 
+                             names.substr_node_labels_file,
                              contact_node_labels)
     
     elements = get_element_connectivity(coords)
@@ -384,36 +384,39 @@ def save_uel(stiffness, coordinates, elements):
     abaqus python when setting up the new simulation. 
     
     :param stiffness: Stiffness matrix, will be saved to 
-                      'uel_stiffness.txt'
+                      `names.uel_stiffness_file`
     :type stiffness: np.array
     
     :param coordinates: Node coordinates, will be saved to 
-                        'uel_coordinates.npy'
+                        `names.uel_coordinates_file`
     :type coordinates: np.array
     
     :param elements: Element connectivity (nodes in coordinates 
                      belonging to which element), will be saved to 
-                     'uel_elements.npy'
+                     `names.uel_elements_file`
     :type elements: np.array
     
     :returns: None
     :rtype: None
     
     """
-    
+
     # Create file to import stiffness matrix in fortran uel subroutine
-    with open('uel_stiffness.txt', 'w') as fid:
+    with open(names.uel_stiffness_file, 'w') as fid:
         ndof = stiffness.shape[0]
         fid.write('%5u\n' % ndof)   # First line for allocating matrix
         for i in range(ndof):
             for j in range(i, ndof):
-                fid.write('%5u, %5u, %25.15e\n' % (i+1, j+1, stiffness[i,j]))
+                fid.write('%25.15e\n' % stiffness[i,j])
+                # If verifying that correct indices are transferred, 
+                # use the following format:
+                # fid.write('%5u, %5u, %25.15e\n' % (i+1, j+1, stiffness[i,j]))
                 
     # Create file with node coordinates
-    np.save(file='uel_coordinates.npy', arr=coordinates)
+    np.save(file=names.uel_coordinates_file, arr=coordinates)
     
     # Create file with element nodes
-    np.save(file='uel_elements.npy', arr=elements)
+    np.save(file=names.uel_elements_file, arr=elements)
 
     
 def create_test_part():

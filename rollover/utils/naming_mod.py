@@ -60,6 +60,13 @@ def get_step_release(cycle_nr=2):
     
     
 # File names
-uel_contact_node_coords_file = 'contact_node_coords.npy'
-uel_contact_node_labels_file = 'contact_node_labels.npy'
-uel_mtx_file = 'ke.mtx'
+## Wheel files
+wheel_settings_file = 'wheel_settings.json'
+
+substr_node_coords_file = 'contact_node_coords.npy'
+substr_node_labels_file = 'contact_node_labels.npy'
+substr_mtx_file = 'ke.mtx'
+
+uel_stiffness_file = 'uel_stiffness.txt'
+uel_coordinates_file = 'uel_coordinates.npy'
+uel_elements_file = 'uel_elements.npy'
