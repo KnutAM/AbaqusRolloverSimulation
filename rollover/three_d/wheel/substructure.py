@@ -398,25 +398,20 @@ def setup_simulation(wheel_model):
 
 def save_data(wheel_part):
 
-    def coord_str(coord):
-        return ('%25.15e'*3) % tuple(coord)
-    
     def save_nodes(nodes, base_name):
         node_coords = np.array([n.coordinates for n in nodes])
         node_labels = np.array([n.label for n in nodes], dtype=np.int)
         np.save(file=base_name + '_coords.npy', arr=node_coords)
         np.save(file=base_name + '_labels.npy', arr=node_labels)
     
-    # Save reference point
-    rp_coord = [0.0, 0.0, 0.0]
-    
-    # Write one file containing the reference node coordinates
-    np.save(file='rp_coord.npy', arr=rp_coord)
-    
     # Write one file containing the coordinates and labels for each 
     # contact node
     contact_nodes = wheel_part.sets[names.wheel_contact_nodes].nodes
-    save_nodes(contact_nodes, base_name='contact_node')
+    node_coords = np.array([n.coordinates for n in contact_nodes])
+    node_labels = np.array([n.label for n in contact_nodes], dtype=np.int)
+    np.save(file=names.uel_contact_node_coords_file, arr=node_coords)
+    np.save(file=names.uel_contact_node_labels_file, arr=node_labels)
+    
     
     # Write one file containing the coordinates (and labels) for each 
     # contact node in the sketch section (in the xy-plane). Note that 

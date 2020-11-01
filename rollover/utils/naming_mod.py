@@ -57,3 +57,9 @@ def get_step_reapply(cycle_nr=2):
     
 def get_step_release(cycle_nr=2):
     return 'release_' + cycle_str(cycle_nr)
+    
+    
+# File names
+uel_contact_node_coords_file = 'contact_node_coords.npy'
+uel_contact_node_labels_file = 'contact_node_labels.npy'
+uel_mtx_file = 'ke.mtx'

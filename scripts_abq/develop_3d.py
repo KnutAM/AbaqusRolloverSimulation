@@ -26,15 +26,23 @@ from rollover.three_d.rail import rail_constraints as rc
 from rollover.three_d.utils import sketch_tools as st
 
 
-# Reload should only be used here, so need to import any module used down the import directory here if reload is required (i.e. when developing via abaqus cae)
-reload(names)
-reload(cbr)
-reload(mr)
-reload(sm)
-reload(csr)
-reload(rc)
-reload(st)
-
+# Reload should only be used here, so need to import any module used 
+# down the import directory here if reload is required (i.e. when 
+# developing via abaqus cae)
+try:
+    reload(names)
+    reload(cbr)
+    reload(mr)
+    reload(sm)
+    reload(csr)
+    reload(rc)
+    reload(st)
+except NameError as ne:   # Will fail for Python 3, but that is ok:
+    if sys.version_info.major == 3:
+        pass    # Only required from cae which use Python 2
+    else:
+        raise ne
+    
 this_path = os.path.dirname(os.path.abspath(inspect.getfile(lambda: None)))
 src_path = os.path.dirname(this_path)
 

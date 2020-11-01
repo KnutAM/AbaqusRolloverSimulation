@@ -19,10 +19,20 @@ import part, sketch, mesh, job
 
 # Project library imports
 from rollover.utils import json_io
+from rollover.utils import naming_mod as names
 from rollover.three_d.wheel import substructure as wheel_substr
 from rollover.three_d.wheel import super_element as super_wheel
-reload(wheel_substr)
-reload(super_wheel)
+
+try:
+    reload(wheel_substr)
+    reload(super_wheel)
+    reload(names)
+except NameError as ne:   # Will fail for Python 3, but that is ok:
+    if sys.version_info.major == 3:
+        pass    # Only required from cae which use Python 2
+    else:
+        raise ne
+    
 
 def main():
     # Read in wheel section parameters
@@ -43,7 +53,7 @@ def create_substructure(wheel_param):
     
 def create_user_element(wheel_param):
     coords, elems = super_wheel.get_uel_mesh()
-    super_wheel.test_part(coords, elems)
+    super_wheel.create_test_part(coords, elems)
     
     
 if __name__ == '__main__':
