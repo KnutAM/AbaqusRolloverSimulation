@@ -349,8 +349,11 @@ end subroutine
 end module bc_mod
 
 subroutine urdfil(lstop,lovrwrt,kstep,kinc,dtime,time)
-use usub_utils_mod, only : get_step_type, STEP_TYPE_ROLLING
+use urdfil_mod
+use bc_mod
 implicit none
+    integer, parameter  :: N_STEP_INITIAL = 2   ! Number of steps including first rollover
+    integer, parameter  :: N_STEP_BETWEEN = 4   ! Number of steps between rollover simulations
     ! Variables to be defined
     integer             :: lstop        ! Flag, set to 1 to stop analysis
     integer             :: lovrwrt      ! Flag, set to 1 to allow overwriting of
@@ -369,7 +372,8 @@ implicit none
     double precision                :: angle_incr           ! Angular nodal spacing (wheel)
     integer                         :: cycle_nr             ! Rollover cycle nr
     
-    if (get_step_type(kstep) == STEP_TYPE_ROLLING) then
+    if (mod(kstep-N_STEP_INITIAL, N_STEP_BETWEEN) == 0) then
+        cycle_nr = (kstep-N_STEP_INITIAL)/N_STEP_BETWEEN + 1
         call get_data(node_n, node_u, node_c, rp_n, rp_u, angle_incr, kstep, kinc)
         call set_bc(node_n, node_u, node_c, rp_n, rp_u, angle_incr, cycle_nr)
     endif
