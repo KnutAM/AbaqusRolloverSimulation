@@ -1,15 +1,13 @@
-include 'abaqus_utils_mod.f90'
-!include 'usub_utils_mod.f90'
-!include 'uel_stiff_mod.f90'
+include 'abaqus_utils_mod.f90'          ! Do not include when running Abaqus
+include 'usub_utils_mod.f90'
+include 'resize_array_mod.f90'
 include 'sort_mod.f90'
-
-module tmp_mod
-implicit none
-
-    contains
-    
-end module
-
+include 'rollover_mod.f90'
+include 'uel_stiff_mod.f90'
+include 'uel_trans_mod.f90'
+include 'wheel_nodes_mod.f90'
+include 'disp_mod.f90'
+include 'urdfil_mod.f90'
 
 program test_usub
 use sort_mod

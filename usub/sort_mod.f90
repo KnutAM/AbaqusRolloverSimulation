@@ -1,5 +1,4 @@
 module sort_mod
-use abaqus_utils_mod, only : xit    ! Use when testing outside abaqus, comment away otherwise
 implicit none
 
 private
@@ -82,8 +81,10 @@ implicit none
         allocate(sort_inds(size(array)))
     else
         if (size(sort_inds).ne.size(array)) then
-            write(*,*) 'array and sort_inds must have same size in sortinds subroutine'
-            call xit()
+            deallocate(sort_inds)
+            allocate(sort_inds(size(array)))
+            write(*,*) 'WARNING: array and sort_inds should have same size in sortinds subroutine'
+            write(*,*) '         sort_inds reallocated to correct size'
         endif
     endif
         
@@ -110,8 +111,10 @@ implicit none
         allocate(sort_inds(size(array)))
     else
         if (size(sort_inds).ne.size(array)) then
-            write(*,*) 'array and sort_inds must have same size in sortinds subroutine'
-            call xit()
+            deallocate(sort_inds)
+            allocate(sort_inds(size(array)))
+            write(*,*) 'WARNING: array and sort_inds should have same size in sortinds subroutine'
+            write(*,*) '         sort_inds reallocated to correct size'
         endif
     endif
         
