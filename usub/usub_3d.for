@@ -1,4 +1,18 @@
 !DEC$ FREEFORM
+include 'abaqus_utils_mod.f90'          ! Do not include when running Abaqus
+!include 'abaqus_utils_dummy_mod.f90'    ! Include when running Abaqus
+include 'usub_utils_mod.f90'
+include 'resize_array_mod.f90'
+include 'sort_mod.f90'
+include 'rollover_mod.f90'
+include 'uel_stiff_mod.f90'
+include 'uel_trans_mod.f90'
+include 'wheel_nodes_mod.f90'
+include 'disp_mod.f90'
+include 'urdfil_mod.f90'
+
+
+! ============================================== UEL ==============================================
 !   First 3 dofs are x-disp, y-disp, z-rot for wheel center
 !   The remaining dofs are x, y disp of wheel perimeter nodes
 !
@@ -60,10 +74,6 @@
 !   npredf      [int]           Number of predefined field variables, including temperature. For user 
 !                               elements Abaqus/Standard uses one value for each field variable per node. 
 
-include 'usub_utils_mod.f90'
-include 'uel_stiff_mod.f90'
-include 'uel_trans_mod.f90'
-
 subroutine uel(rhs,amatrx,svars,energy,ndofel,nrhs,nsvars,&
                props,nprops,coords,mcrd,nnode,u,du,v,a,jtype,time,dtime,&
                kstep,kinc,jelem,params,ndload,jdltyp,adlmag,predef,npredf,&
@@ -108,3 +118,87 @@ subroutine uel(rhs,amatrx,svars,energy,ndofel,nrhs,nsvars,&
     
     
 end subroutine uel
+
+! ============================================ URDFIL ============================================
+
+
+subroutine urdfil(lstop,lovrwrt,kstep,kinc,dtime,time)
+use usub_utils_mod, only : get_step_type, STEP_TYPE_ROLLING
+implicit none
+    ! Variables to be defined
+    integer             :: lstop        ! Flag, set to 1 to stop analysis
+    integer             :: lovrwrt      ! Flag, set to 1 to allow overwriting of
+                                        ! results from current increment by next
+    double precision    :: dtime        ! Time increment, can be updated
+    ! Variables passed for information
+    integer             :: kstep, kinc  ! Current step and increment, respectively
+    double precision    :: time(2)      ! Time at end of increment (step, total)
+    
+    ! Internal variables
+    integer, allocatable            :: node_n(:)            ! Contact node numbers
+    double precision, allocatable   :: node_u(:,:)          ! Contact node displacements
+    double precision, allocatable   :: node_c(:,:)          ! Contact node coordinates
+    integer                         :: rp_n                 ! Reference point node number
+    double precision                :: rp_u(3)              ! Reference point displacements
+    double precision                :: angle_incr           ! Angular nodal spacing (wheel)
+    integer                         :: cycle_nr             ! Rollover cycle nr
+    
+    if (get_step_type(kstep) == STEP_TYPE_ROLLING) then
+        call get_data(node_n, node_u, node_c, rp_n, rp_u, angle_incr, kstep, kinc)
+        call set_bc(node_n, node_u, node_c, rp_n, rp_u, angle_incr, cycle_nr)
+    endif
+    
+    lstop = 0   ! Continue analysis (set lstop=1 to stop analysis)
+    lovrwrt = 1 ! Overwrite read results. (These results not needed later, set to 0 to keep in .fil)
+    
+end subroutine
+
+! ============================================= DISP =============================================
+
+subroutine disp(u,kstep,kinc,time,node,noel,jdof,coords)
+use disp_mod
+implicit none
+    integer, parameter  :: N_STEP_INITIAL = 2   ! Number of steps including first rollover
+    integer, parameter  :: N_STEP_BETWEEN = 4   ! Number of steps between rollover simulations
+    ! Interface variables for disp subroutine
+    double precision    :: u(3)         ! u(1) is total value of dof (except rotation where the 
+                                        ! incremental value should be specified). u(2:3) are the 
+                                        ! du(1)/dt and d^2u(1)/dt^2 req. only in dyn. analyses. 
+    double precision    :: time(3)      ! 1: current step time, 2: current total time, 
+                                        ! 3: current time increment
+    double precision    :: coords(3)    ! Current coordinates at end of previous increment if nlgeom
+    integer             :: kstep, kinc  ! Step and increment number
+    integer             :: node, noel   ! Node (not connector) and element number (not bc)
+    integer             :: jdof         ! Degree of freedom number (at node) u(1) corresponds to.
+    
+    ! Internal variables
+    integer             :: step_type    ! 1: return step, 2: reapply_step, 3: release nodes step
+                                        ! 0: rolling_step_name    
+    integer             :: cycle_nr     ! The number of rollover cycles, starting at 1
+    integer             :: file_id      ! File identifier for bc-file written by urdfil
+    integer             :: io_status    ! Status for file to handle i/o-errors
+    integer             :: node_type    ! 1: Reference point, 2: Contact node
+    double precision    :: bc_val       ! Value from bc file    
+    
+    step_type = mod(kstep-N_STEP_INITIAL, N_STEP_BETWEEN)
+    cycle_nr = (kstep-step_type-N_STEP_INITIAL)/N_STEP_BETWEEN + 1
+    if (kstep < 1) then             ! Should not occur
+        return          
+    elseif (kstep == 1) then        ! Initial depression
+        call get_bc_init_depression(time, jdof, bc_val)
+    elseif (step_type == 0) then    ! Rolling step (only called for reference point)
+        cycle_nr = (kstep-N_STEP_INITIAL)/N_STEP_BETWEEN + 1
+        call get_bc_rolling(cycle_nr, time, jdof, bc_val)
+    else                            ! Move_back or re-application of load
+        call get_bc_value(cycle_nr, node, jdof, bc_val, node_type)
+        if ((step_type > 1).and.(node_type==1).and.(jdof==6)) then
+            bc_val = 0.0  ! No change in wheel rotation
+        endif
+    endif
+    u(1) = bc_val
+    
+    if (bc_val /= bc_val) then  ! Check for nan-values
+        call xit()
+    endif
+        
+end subroutine

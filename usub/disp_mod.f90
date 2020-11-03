@@ -1,5 +1,3 @@
-!DEC$ FREEFORM
-
 module disp_mod
 implicit none
 
@@ -150,50 +148,3 @@ end subroutine
     
 end module
 
-subroutine disp(u,kstep,kinc,time,node,noel,jdof,coords)
-use disp_mod
-implicit none
-    integer, parameter  :: N_STEP_INITIAL = 2   ! Number of steps including first rollover
-    integer, parameter  :: N_STEP_BETWEEN = 4   ! Number of steps between rollover simulations
-    ! Interface variables for disp subroutine
-    double precision    :: u(3)         ! u(1) is total value of dof (except rotation where the 
-                                        ! incremental value should be specified). u(2:3) are the 
-                                        ! du(1)/dt and d^2u(1)/dt^2 req. only in dyn. analyses. 
-    double precision    :: time(3)      ! 1: current step time, 2: current total time, 
-                                        ! 3: current time increment
-    double precision    :: coords(3)    ! Current coordinates at end of previous increment if nlgeom
-    integer             :: kstep, kinc  ! Step and increment number
-    integer             :: node, noel   ! Node (not connector) and element number (not bc)
-    integer             :: jdof         ! Degree of freedom number (at node) u(1) corresponds to.
-    
-    ! Internal variables
-    integer             :: step_type    ! 1: return step, 2: reapply_step, 3: release nodes step
-                                        ! 0: rolling_step_name    
-    integer             :: cycle_nr     ! The number of rollover cycles, starting at 1
-    integer             :: file_id      ! File identifier for bc-file written by urdfil
-    integer             :: io_status    ! Status for file to handle i/o-errors
-    integer             :: node_type    ! 1: Reference point, 2: Contact node
-    double precision    :: bc_val       ! Value from bc file    
-    
-    step_type = mod(kstep-N_STEP_INITIAL, N_STEP_BETWEEN)
-    cycle_nr = (kstep-step_type-N_STEP_INITIAL)/N_STEP_BETWEEN + 1
-    if (kstep < 1) then             ! Should not occur
-        return          
-    elseif (kstep == 1) then        ! Initial depression
-        call get_bc_init_depression(time, jdof, bc_val)
-    elseif (step_type == 0) then    ! Rolling step (only called for reference point)
-        cycle_nr = (kstep-N_STEP_INITIAL)/N_STEP_BETWEEN + 1
-        call get_bc_rolling(cycle_nr, time, jdof, bc_val)
-    else                            ! Move_back or re-application of load
-        call get_bc_value(cycle_nr, node, jdof, bc_val, node_type)
-        if ((step_type > 1).and.(node_type==1).and.(jdof==6)) then
-            bc_val = 0.0  ! No change in wheel rotation
-        endif
-    endif
-    u(1) = bc_val
-    
-    if (bc_val /= bc_val) then  ! Check for nan-values
-        call xit()
-    endif
-        
-end subroutine
