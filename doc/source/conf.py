@@ -206,13 +206,7 @@ epub_exclude_files = ['search.html']
 # -- Extension configuration -------------------------------------------------
 
 # Auto-documenting fortran code
-fortran_src = [ repo + '/usub/abaqus_utils_mod.f90',
-                repo + '/usub/resize_array_mod.f90',
-                repo + '/usub/sort_mod.f90',
-                repo + '/usub/uel_stiff_mod.f90',
-                repo + '/usub/uel_trans_mod.f90',
-                repo + '/usub/usub_utils_mod.f90',
-                repo + '/usub/wheel_nodes_mod.f90']
+fortran_src = [ repo + '/usub/sort_mod.f90' ]
 
 # -- Options for todo extension ----------------------------------------------
 
