@@ -1,4 +1,4 @@
-[//]: # (To preview markdown file in Emacs type C-c C-c p)
+[//]: # "To preview markdown file in Emacs type C-c C-c p"
 
 # Documentation of Abaqus Rollover Simulation
 Code documentation using [Sphinx](http://www.sphinx-doc.org/en/stable/).
@@ -14,4 +14,5 @@ Code documentation using [Sphinx](http://www.sphinx-doc.org/en/stable/).
 ## Dependencies
 
 - [Sphinx](http://www.sphinx-doc.org/en/stable/)
-- [Python 2](https://www.python.org)
+- [Python 2](https://www.python.org) or [Python 3](https://www.python.org)
+- [sphinx-fortran](https://pypi.org/project/sphinx-fortran/) 
