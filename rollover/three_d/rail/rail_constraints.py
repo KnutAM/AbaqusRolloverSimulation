@@ -8,8 +8,8 @@ Constraints between points in the same position in the xy-plane are added by the
     u_y^{(\\mathrm{c})} &= u_y^{(\\mathrm{r})}
 
     u_z^{(\\mathrm{c})} &= u_z^{(\\mathrm{r})} + 
-    u_z^{(\\mathrm{rp})} \\frac{(z^{(\\mathrm{c})} - z^{(\\mathrm{r})})}{L_\\mathrm{rail}} + 
-    (y-y^{(\\mathrm{rp})})\\phi_x^{(\\mathrm{rp})}
+    \\frac{(z^{(\\mathrm{c})} - z^{(\\mathrm{r})})}{L_\\mathrm{rail}} \\left[u_z^{(\\mathrm{rp})} + 
+    (y-y^{(\\mathrm{rp})})\\phi_x^{(\\mathrm{rp})}\\right]
     
 :math:`u_x^{(\\mathrm{c})}, u_y^{(\\mathrm{c})}, u_z^{(\\mathrm{c})}, u_x^{(\\mathrm{r})}, 
 u_y^{(\\mathrm{r})}, u_z^{(\\mathrm{r})}` are the :math:`x`, :math:`y` and :math:`z` displacements of 
@@ -47,7 +47,7 @@ from rollover.utils import naming_mod as names
 
 def add_rail_constraints(rail_part):
     rail_rp = add_ctrl_point(rail_part)
-    
+    ''' test '''
 
 def add_ctrl_point(the_model, y_coord):
     """Add the rail control point that is used to determine rail tension and bending 
@@ -135,13 +135,14 @@ def add_constraint(the_model, rail_length, c_set_name, rp_set_name, rp_coord, r_
             terms.append( (1.0, get_inst_set_name(r_set_name), dof) )
         
         # Add bending/extension constraints if z-dof
-        if dof == 3:    # z-dof
+        # Note that dz / rail_length = +/- 1 except at bottom (when r_set_name is None)
+        if dof == 3:    # z-dof. 
             # Extension
             dz = zc - zr
             terms.append( (dz / rail_length, rp_set_name, dof) )
             # Bending
             dy = yc - yrp
-            terms.append( (dy, rp_set_name, 4) )     # 4=ur1=phi_x^
+            terms.append( (dy * dz / rail_length, rp_set_name, 4) )     # 4=ur1=phi_x^
             
         if len(terms) > 1:  # Only add equation if required. If only one term (i.e. = 0), this 
                             # should be added as a regular boundary condition.
