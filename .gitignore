@@ -1,1 +1,9 @@
 *.pyc
+
+# Compiled files
+*.mod
+*.exe
+*.obj
+*.o
+*.dll
+*.so

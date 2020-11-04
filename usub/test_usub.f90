@@ -1,32 +1,35 @@
-include 'abaqus_utils_mod.f90'          ! Do not include when running Abaqus
-include 'usub_utils_mod.f90'
-include 'resize_array_mod.f90'
-include 'sort_mod.f90'
-include 'rollover_mod.f90'
-include 'uel_stiff_mod.f90'
-include 'uel_trans_mod.f90'
-include 'wheel_nodes_mod.f90'
-include 'disp_mod.f90'
-include 'urdfil_mod.f90'
+!include 'abaqus_utils_mod.f90'          ! Do not include when running Abaqus
+!include 'usub_utils_mod.f90'
+!include 'resize_array_mod.f90'
+!include 'sort_mod.f90'
+!include 'rollover_mod.f90'
+!include 'uel_stiff_mod.f90'
+!include 'uel_trans_mod.f90'
+!include 'wheel_nodes_mod.f90'
+!include 'disp_mod.f90'
+!include 'urdfil_mod.f90'
+include 'find_mod.f90'
 
 program test_usub
-use sort_mod
+use find_mod
 implicit none
     double precision, allocatable   :: tmp(:)
     integer, allocatable            :: tmp_int(:)
     double precision, allocatable   :: utmp(:)
+    integer                         :: a2d(3,5)
+    integer                         :: a1d(5)
+    integer                         :: indices(2)
     
+    a1d = [11, 12, 13, 14, 15]
+    a2d(1,:) = [11, 12, 13, 14, 15]
+    a2d(2,:) = [21, 22, 23, 24, 25]
+    a2d(3,:) = [31, 32, 33, 34, 35]
     
-    allocate(tmp, source=[1.d0,4.d0,2.d0,2.1d0])
+    indices = find(a2d, 23)
     
-    allocate(tmp_int, source=[1, -3, 6, 2])
+    write(*,*) find(a1d, 13)
+    write(*,*) find(a2d, 23)
     
-    write(*,*) 'tmp_dbl'
-    write(*,*) tmp
-    call unique(tmp, utmp, 0.2d0)
-    write(*,*) utmp
-    call unique(tmp, utmp)
-    write(*,*) utmp
+    write(*,*) find(a2d, 0)
     
-
 end program test_usub
