@@ -60,8 +60,8 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
-    'sphinxfortran.fortran_domain',
-    'sphinxfortran.fortran_autodoc',
+#   'sphinxfortran.fortran_domain',
+#   'sphinxfortran.fortran_autodoc',
 ]
 
 # Mock imports that are not available at build time (e.g. Abaqus imports):
