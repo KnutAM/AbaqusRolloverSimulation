@@ -8,20 +8,26 @@
 !	 nodes
 
 module urdfil_mod
-use resize_array_mod
-use sortinds_mod
+use resize_array_mod, only : expand_array, contract_array
 implicit none
-    integer, parameter  :: NPRECD = 2       ! Precision for floats
     integer, parameter  :: GUESS_NUM = 100  ! Guess for number of contact nodes
     contains
     
 
 subroutine get_node_data(node_n, node_val, array)
+! Subroutine to node data for multiple nodes. The array input/output variable should on input 
+! contain the values for the first node. The record type (e.g. 101 => node displacements) of this 
+! entry is read and saved as the reference record type. Records are read for as long as the record
+! type remains equal to the reference, and the end of file is not encountered. 
+! Typically, to initiate this subroutine the caller would make a call to Abaqus dbfile, resulting 
+! in the array to pass to the present subroutine. The record type can be obtained as 
+! transfer(array(2), 1)
+! On exit, array 
 implicit none
     ! Input/output
-    integer, allocatable            :: node_n(:)        ! Contact node numbers [Nc]
-    double precision, allocatable   :: node_val(:,:)    ! Contact node displacements [num_values,Nc]
-    double precision, intent(inout) :: array(:)         ! Array to which .fil info is saved
+    integer, allocatable, intent(out)           :: node_n(:)        ! Node numbers [Nc]
+    double precision, allocatable, intent(out)  :: node_val(:,:)    ! Node values [num_values,Nc]
+    double precision, intent(inout)             :: array(:)         ! Array to which .fil info is saved
     
     ! Internal variables
     integer                         :: fil_status       ! Status for .fil file input/output
@@ -47,7 +53,7 @@ implicit none
         
         k1 = k1 + 1
         node_n(k1) = transfer(array(3), 1)
-        node_val(1:num_values,k1) = array(4:(3+num_values))
+        node_val(:,k1) = array(4:(3+num_values))
         
         call dbfile(0, array, fil_status)
         record_type = transfer(array(2), 1)
