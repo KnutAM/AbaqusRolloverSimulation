@@ -125,7 +125,9 @@ end subroutine uel
 
 
 subroutine urdfil(lstop,lovrwrt,kstep,kinc,dtime,time)
+use urdfil_mod, only : get_data_
 use usub_utils_mod, only : get_step_type, STEP_TYPE_ROLLING
+
 implicit none
     ! Variables to be defined
     integer             :: lstop        ! Flag, set to 1 to stop analysis
@@ -146,8 +148,13 @@ implicit none
     integer                         :: cycle_nr             ! Rollover cycle nr
     
     if (get_step_type(kstep) == STEP_TYPE_ROLLING) then
-        call get_data(node_n, node_u, node_c, rp_n, rp_u, angle_incr, kstep, kinc)
-        call set_bc(node_n, node_u, node_c, rp_n, rp_u, angle_incr, cycle_nr)
+        cycle_nr = get_cycle_nr(kstep)
+        if (cycle_nr == 1) then
+            call get_data_first_time(kstep, kinc, contact_node_disp, wheel_rp_disp, rail_rp_disp)
+        else
+            call get_data(kstep, kinc, contact_node_disp, wheel_rp_disp, rail_rp_disp)
+        endif
+        call set_bc(contact_node_disp, wheel_rp_disp, rail_rp_disp, cycle_nr)
     endif
     
     lstop = 0   ! Continue analysis (set lstop=1 to stop analysis)
@@ -160,9 +167,9 @@ end subroutine
 subroutine disp(u,kstep,kinc,time,node,noel,jdof,coords)
 use abaqus_utils_mod
 use usub_utils_mod, only : write_node_info
-use rollover_mod, only : get_step_type, get_cycle_nr, STEP_TYPE_INITIAL_DEPRESSION, &
-                         STEP_TYPE_ROLLING, STEP_TYPE_MOVE_BACK, STEP_TYPE_REAPPLY_LOAD, &
-                         STEP_TYPE_RELEASE_NODES
+use step_type_mod, only : get_step_type, get_cycle_nr, STEP_TYPE_INITIAL_DEPRESSION, &
+                          STEP_TYPE_ROLLING, STEP_TYPE_MOVE_BACK, STEP_TYPE_REAPPLY_LOAD, &
+                          STEP_TYPE_RELEASE_NODES
 use node_id_mod, only : get_node_type, NODE_TYPE_UNKNOWN, NODE_TYPE_WHEEL_RP, NODE_TYPE_RAIL_RP, &
                         NODE_TYPE_WHEEL_CONTACT
 use disp_mod, only : get_bc_rail_rp, get_bc_wheel_rp, get_bc_wheel_contact

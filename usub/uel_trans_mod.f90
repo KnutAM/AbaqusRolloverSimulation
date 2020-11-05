@@ -4,10 +4,10 @@ implicit none
 
     private
 
-    public :: get_phi!(u, phi_rp)
-    public :: get_u_prim!(coords, u, u_prim)
-    public :: get_f_glob!(phi_rp, f_prim, f_glob)
-    public :: get_k_glob!(phi_rp, k_glob)
+    public :: get_phi       !function(u) result(phi_rp)
+    public :: get_u_prim    !subroutine(coords, u, u_prim)
+    public :: get_f_glob    !subroutine(phi_rp, f_prim, f_glob)
+    public :: get_k_glob    !subroutine(phi_rp, k_glob)
 
     contains
     
@@ -19,7 +19,6 @@ implicit none
         phi_rp = u(4:6)
         
     end function get_phi
-
 
     subroutine get_u_prim(coords, u, u_prim)
     implicit none

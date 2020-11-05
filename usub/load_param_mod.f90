@@ -23,18 +23,25 @@ implicit none
     public  :: set_contact_node_bc
     public  :: get_contact_node_bc
     
+    ! Rail reference point motion
+    public  :: get_rail_rolling_ext
+    public  :: get_rail_noroll_ext
+    
     ! Static load parameters (not changed during simulation)
     double precision, save              :: rail_length
     double precision, save              :: initial_depression_speed
     integer, allocatable, save          :: update_cycles(:)
     double precision, allocatable, save :: rolling_times(:)
     double precision, allocatable, save :: rot_per_lengths(:)
+    double precision, allocatable, save :: rail_extensions(:)
     
     ! Dynamic load parameters (may be updated each cycle)
     integer, save                       :: cycle_spec_ind = 1   ! Current position in update_cycle
     integer, save                       :: updated_cycle = -1   ! For which cycle the data is updated
-    double precision, save              :: rolling_time         ! Duration of current rolling step
-    double precision, save              :: rot_per_length       ! Rotation per rolling length
+    double precision, save              :: rolling_time         ! Current duration of rolling step
+    double precision, save              :: rot_per_length       ! Current rotation per rolling length
+    double precision, save              :: rail_extension_last=0! Rail extension for last cycle
+    double precision, save              :: rail_extension       ! Current rail extension (dz)
     double precision, allocatable, save :: node_u_bc(:,:,:)     ! Displacements for nodes
     double precision, save              :: u_rp_bc_end_last(6)  ! wheel rp pos, end of last cycle
     double precision, save              :: u_rp_bc_start(6)     ! wheel rp pos, start of cur cycle
@@ -72,8 +79,9 @@ implicit none
         allocate(update_cycles(num_cycles_specified+1))
         allocate(rolling_times(num_cycles_specified))
         allocate(rot_per_lengths(num_cycles_specified))
+        allocate(rail_extensions(num_cycles_specified))
         do k1=1,num_cycles_specified
-            read(file_id,*, iostat=io_stat) update_cycles(k1), rolling_times(k1), rot_per_lengths(k1)
+            read(file_id,*, iostat=io_stat) update_cycles(k1), rolling_times(k1), rot_per_lengths(k1), rail_extensions(k1)
             write(error_message, "(A,I0,A,I0,A)") 'Could not read info for cycle spec nr ', k1, &
                                  ', when given that ', num_cycles_specified, ' cycles are specified'
             call check_iostat(io_status, error_message)
@@ -91,9 +99,9 @@ implicit none
     subroutine setup_initial_rolling_cycle()
     implicit none
         u_rp_bc_start = 0.d0
-        up_rp_bc_end = 0.d0
-        up_rp_bc_end(3) = rail_length
-        up_rp_bc_end(4) = rail_length*rot_per_length
+        u_rp_bc_end = 0.d0
+        u_rp_bc_end(3) = rail_length
+        u_rp_bc_end(4) = rail_length*rot_per_length
         
     end subroutine
     
@@ -102,22 +110,28 @@ implicit none
     implicit none
         integer, intent(in)     :: cycle_nr
         
+        rail_extension_last = rail_extension
         if (cycle_nr >= update_cycles(cycle_spec_ind+1)) then
             ! We should update the loading parameters
             cycle_spec_ind = cycle_spec_ind + 1
             rolling_time = rolling_times(cycle_spec_ind)
             rot_per_length = rot_per_lengths(cycle_spec_ind)
+            rail_extension = rail_extensions(cycle_spec_ind)
         endif
         updated_cycle = cycle_nr
     end subroutine
     
-    function get_rot_per_length() result(the_rot_per_length)
+    subroutine get_rolling_par(the_rail_length, the_rot_per_length, the_rail_extension)
     implicit none
+        double precision        :: the_rail_length
         double precision        :: the_rot_per_length
+        double precision        :: the_rail_extension    
         
+        the_rail_length = rail_length
         the_rot_per_length = rot_per_length
+        the_rail_extension = rail_extension
         
-    end function
+    end subroutine
     
     ! Wheel reference point motion
     subroutine set_rp_bc(bc_end_last, bc_start, bc_end)
@@ -161,7 +175,7 @@ implicit none
             time_increment = time(3)
             bc_val = (u_rp_bc_end(jdof)-u_rp_bc_start(jdof))*(time_increment/rolling_time)
         else
-            write(*,*) 'load_param_mod:get_rolling_wheel_rp: jdof > 6 not supported'
+            write(*,*) 'load_param_mod:get_rp_rolling_wheel_bc: jdof > 6 not supported'
             call xit()
         endif
     
@@ -176,7 +190,7 @@ implicit none
         elseif (jdof <=6) then  ! Rotation, give value increment
             bc_val = u_rp_bc_start(jdof)-u_rp_bc_end_last(jdof)
         else
-            write(*,*) 'load_param_mod:get_move_back_rp: jdof > 6 not supported'
+            write(*,*) 'load_param_mod:get_rp_move_back_bc: jdof > 6 not supported'
             call xit()
         endif
     
@@ -195,7 +209,7 @@ implicit none
             allocate(node_u_bc(3, mesh_size(1), mesh_size(2)))
         endif
         
-        node_u_bc(:, mesh_inds(1), mesh_inds(2)) = bc_vals
+        node_u_bc(:, mesh_inds(1), mesh_inds(2)) = u_vals
         
     end subroutine
     
@@ -212,5 +226,23 @@ implicit none
         
     end function
         
+    ! Rail reference point motion
+    function get_rail_rolling_ext(time_in_step) result(delta_z)
+    implicit none
+        double precision, intent(in)        :: time_in_step
+        double precision                    :: delta_z
+        
+        delta_z = rail_extension_last + (rail_extension - rail_extension_last)*time_in_step/rolling_time
+    
+    end function
+    
+    function get_rail_noroll_ext() result (delta_z)
+    implicit none
+        double precision                    :: delta_z
+        
+        delta_z = rail_extension_last
+    
+    end function
+    
         
 end module load_param_mod

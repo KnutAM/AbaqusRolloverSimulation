@@ -18,9 +18,12 @@ implicit none
     public  :: get_label                ! function(mesh_inds) result(node_label)
     public  :: get_node_coords          ! function(mesh_inds) result(node_coords)
     public  :: get_node_dofs            ! function(mesh_inds) result(node_dofs)
-    public  :: get_contact_node_mesh_size
+    public  :: get_mesh_size            ! function() result(size(wheel_contact_node_labels))
+    public  :: get_angle_incr           ! function() result(the_angle_incr)
     
     ! Node type
+    public  :: is_wheel_rp_node         ! function(node_label) result (is_wheel_rp)
+    public  :: is_rail_rp_node          ! function(node_label) result (is_rail_rp)
     public  :: get_node_type_by_label   ! function(node_label) result(node_type)
     public  :: get_node_type            ! subroutine(node_label, node_coords, node_type)
     
@@ -81,7 +84,7 @@ implicit none
         
     end function
     
-    function get_contact_node_mesh_size() result(mesh_size)
+    function get_mesh_size() result(mesh_size)
     implicit none
         integer     :: mesh_size(2)
         
@@ -167,6 +170,14 @@ implicit none
         
     end subroutine get_wheel_contact_node_dofs
     
+    function get_angle_incr() result(the_angle_incr)
+    implicit none
+        double precision        :: the_angle_incr
+        
+        the_angle_incr = angle_incr
+        
+    end function
+    
     function get_inds(node_label) result(mesh_inds)
     use find_mod, only : find
     implicit none
@@ -200,6 +211,32 @@ implicit none
         integer                 :: node_dofs(3)
 
         node_dofs = wheel_contact_node_dofs(:, mesh_inds(1), mesh_inds(2))
+    end function
+    
+    function is_wheel_rp_node(node_label) result(is_wheel_rp)
+    implicit none
+        integer, intent(in)             :: node_label
+        logical                         :: is_wheel_rp
+        
+        if (allocated(wheel_rp_node_label)) then
+            is_wheel_rp = node_label == wheel_rp_node_label
+        else
+            write(*,*) 'WARNING: is_wheel_rp_node called before wheel_rp_node_label has been set'
+            is_wheel_rp = .false.
+        endif
+    end function
+    
+    function is_rail_rp_node(node_label) result(is_rail_rp)
+    implicit none
+        integer, intent(in)             :: node_label
+        logical                         :: is_rail_rp
+        
+        if (allocated(rail_rp_node_label)) then
+            is_rail_rp = node_label == rail_rp_node_label
+        else
+            write(*,*) 'WARNING: is_rail_rp_node called before rail_rp_node_label has been set'
+            is_rail_rp = .false.
+        endif
     end function
     
     subroutine get_node_type(node_label, node_coords, node_type)

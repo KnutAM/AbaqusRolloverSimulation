@@ -40,6 +40,13 @@ implicit none
     enddo
     
 end subroutine allocate_uel_stiffness
+   
+function get_ndof() result(ndof)
+implicit none
+    integer     :: ndof
     
+    ndof = size(uel_stiffness,1)
+    
+end function
 
 end module uel_stiff_mod
