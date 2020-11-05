@@ -1,4 +1,4 @@
-module rollover_mod
+module step_type_mod
 implicit none
     
     private
@@ -16,15 +16,16 @@ implicit none
     integer, parameter  :: STEP_TYPE_MOVE_BACK = 1
     integer, parameter  :: STEP_TYPE_REAPPLY_LOAD = 2
     integer, parameter  :: STEP_TYPE_RELEASE_NODES = 3
+    
+    ! Internal parameters
+    integer, parameter  :: N_STEP_INITIAL = 2   ! Number of initial steps including first rollover
+    integer, parameter  :: N_STEP_PER_CYCLE = 4 ! Number of steps per rollover cycle
 	
     contains
 	
 	function get_step_type(kstep) result (step_type)
-    ! Determine the step type for the given step number, see module constant
+    ! Determine the step type for the given step number, see module constants
     implicit none
-        integer, parameter  :: N_STEP_INITIAL = 2   ! Number of initial steps including first rollover
-        integer, parameter  :: N_STEP_PER_CYCLE = 4 ! Number of steps per rollover cycle
-        
         integer, intent(in) :: kstep                ! Step number
         integer             :: step_type            ! Step type
         
@@ -45,5 +46,18 @@ implicit none
         
     end function get_step_type
 
-
-end module rollover_mod
+    function get_cycle_nr(kstep) result (cycle_nr)
+    ! Determine the cycle number for the given step number
+    implicit none
+        integer, intent(in)         :: kstep
+        integer                     :: cycle_nr
+        
+        if (kstep < N_STEP_INITIAL) then
+            cycle_nr = 0
+        else
+            cycle_nr = kstep - mod(kstep-N_STEP_INITIAL, N_STEP_BETWEEN) + 1
+        endif
+        
+    end function
+    
+end module step_type_mod

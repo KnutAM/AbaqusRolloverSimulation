@@ -1,34 +1,79 @@
 module disp_mod
 implicit none
+    
+    private
+    
+    public      :: get_bc_rail_rp
+    public      :: get_bc_wheel_rp
+    public      :: get_bc_wheel_contact
 
 contains
 
-subroutine get_fid(base_name, file_id)
+subroutine get_bc_rail_rp(step_type, cycle_nr, time, node_jdof, bc_val)
 implicit none
-    character(len=*), intent(in):: base_name    ! Base name for file
-    integer, intent(out)        :: file_id      ! File identifier for file to read
+    integer, intent(in)                 :: step_type
+    integer, intent(in)                 :: cycle_nr
+    double precision, intent(in)        :: time(3)
+    integer, intent(in)                 :: node_jdof
+    double precision, intent(out)       :: bc_val
     
-    integer                     :: io_status    ! Used to check that file opens sucessfully
-    integer                     :: cwd_length   ! Length of current path (used by getoutdir)
-    character(len=256)          :: filename     ! Filename (full path)
+    ! To get started, this is not supported and we always return 0.0
+    bc_val = 0.0
     
-    call getoutdir(filename, cwd_length)
+end subroutine get_bc_rail_rp
+
+subroutine get_bc_wheel_rp(step_type, cycle_nr, time, node_jdof, bc_val)
+use load_param_mod, only: is_load_param_read, read_load_param, get_initial_depression_bc
+implicit none
+    integer, intent(in)                 :: step_type
+    integer, intent(in)                 :: cycle_nr
+    double precision, intent(in)        :: time(3)
+    integer, intent(in)                 :: node_jdof
+    double precision, intent(out)       :: bc_val
     
-    if ((len(trim(filename)) + len(trim(base_name)) + 1) > len(filename)) then
-        write(*,*) 'Current path = "'//trim(filename)//'" is too long'
+    double precision                    :: time_in_step
+    
+    time_in_step = time(2)
+    if (step_type == STEP_TYPE_INITIAL_DEPRESSION) then
+        ! This step type will occur first, so we will read load params here the first time
+        if (.not.is_load_param_read()) then
+            call read_load_param()
+        endif
+        bc_val = get_initial_depression_bc(node_jdof, time_in_step)
+    elseif (step_type == STEP_TYPE_ROLLING)
+        bc_val = get_rolling_wheel_rp(node_jdof, time)
+    elseif (step_type == STEP_TYPE_MOVE_BACK)
+        bc_val = get_move_back_rp(node_jdof)
+    else
+        write(*,*) 'bc for wheel rp requested for unsupported step type'
+        write(*,"(A,I0)") 'step_type = ', step_type
+    endif
+    
+    
+end subroutine get_bc_wheel_rp
+
+subroutine get_bc_wheel_contact(step_type, cycle_nr, node_label, node_jdof, bc_val)
+implicit none
+    integer, intent(in)                 :: step_type
+    integer, intent(in)                 :: cycle_nr
+    integer, intent(in)                 :: node_label
+    integer, intent(in)                 :: node_jdof
+    double precision, intent(out)       :: bc_val
+    
+    integer                             :: mesh_inds(2)
+    
+    if (any(step_type == [STEP_TYPE_MOVE_BACK])) then
+        mesh_inds = get_mesh_inds(node_label)
+        bc_val = get_u_bc_val(mesh_inds, node_jdof)
+    else
+        write(*,*) 'Did not expect request for wheel contact node boundary conditions for'
+        write(*,"(A,I0)") 'step of type, step_type = ', step_type
         call xit()
     endif
     
-    write(filename, *) trim(filename)//'/'//trim(base_name)
-        
-    open(newunit=file_id, file=trim(filename), iostat=io_status, action='read')
-    if (io_status /= 0) then
-        write(*,*) 'Error opening '//base_name
-        call xit()
-    endif
-    
-    
-end subroutine get_fid
+end subroutine get_bc_wheel_contact
+
+
 
 subroutine get_bc_value(cycle_nr, node, jdof, bc_val, node_type)
 implicit none

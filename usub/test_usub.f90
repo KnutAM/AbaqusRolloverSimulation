@@ -1,14 +1,16 @@
-!include 'abaqus_utils_mod.f90'          ! Do not include when running Abaqus
+include 'utils/src/resize_array_mod.f90'
+include 'utils/src/sort_mod.f90'
+include 'utils/src/find_mod.f90'
+
+include 'abaqus_utils_mod.f90'         ! Include when running ifort externally and not via Abaqus
+!include 'abaqus_utils_dummy_mod.f90'    ! Include when running ifort via Abaqus and not externally
 !include 'usub_utils_mod.f90'
-!include 'resize_array_mod.f90'
-!include 'sort_mod.f90'
 !include 'rollover_mod.f90'
 !include 'uel_stiff_mod.f90'
 !include 'uel_trans_mod.f90'
 !include 'wheel_nodes_mod.f90'
 !include 'disp_mod.f90'
 !include 'urdfil_mod.f90'
-include 'find_mod.f90'
 
 program test_usub
 use find_mod

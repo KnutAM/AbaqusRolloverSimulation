@@ -80,6 +80,7 @@ subroutine uel(rhs,amatrx,svars,energy,ndofel,nrhs,nsvars,&
                lflags,mlvarx,ddlmag,mdload,pnewdt,jprops,njprop,period)
     use uel_stiff_mod, only : uel_stiffness, allocate_uel_stiffness
     use uel_trans_mod, only : get_u_prim, get_f_glob, get_k_glob, get_phi
+    use node_id_mod, only: are_uel_coords_obtained, set_uel_coords
     implicit none
     double precision, intent(inout) :: rhs(mlvarx,*), amatrx(ndofel,ndofel), svars(nsvars), energy(8), pnewdt
     double precision, intent(in)    :: props(*), coords(mcrd,nnode)
@@ -99,6 +100,7 @@ subroutine uel(rhs,amatrx,svars,energy,ndofel,nrhs,nsvars,&
     allocate(u_prim(ndofel))
     
     if (not(allocated(uel_stiffness))) call allocate_uel_stiffness(props(1))
+    if (not(are_uel_coords_obtained())) call set_uel_coords(coords)
     
     ! Get rotation of reference point
     phi_rp = get_phi(u)
@@ -156,10 +158,15 @@ end subroutine
 ! ============================================= DISP =============================================
 
 subroutine disp(u,kstep,kinc,time,node,noel,jdof,coords)
-use disp_mod
+use abaqus_utils_mod
+use usub_utils_mod, only : write_node_info
+use rollover_mod, only : get_step_type, get_cycle_nr, STEP_TYPE_INITIAL_DEPRESSION, &
+                         STEP_TYPE_ROLLING, STEP_TYPE_MOVE_BACK, STEP_TYPE_REAPPLY_LOAD, &
+                         STEP_TYPE_RELEASE_NODES
+use node_id_mod, only : get_node_type, NODE_TYPE_UNKNOWN, NODE_TYPE_WHEEL_RP, NODE_TYPE_RAIL_RP, &
+                        NODE_TYPE_WHEEL_CONTACT
+use disp_mod, only : get_bc_rail_rp, get_bc_wheel_rp, get_bc_wheel_contact
 implicit none
-    integer, parameter  :: N_STEP_INITIAL = 2   ! Number of steps including first rollover
-    integer, parameter  :: N_STEP_BETWEEN = 4   ! Number of steps between rollover simulations
     ! Interface variables for disp subroutine
     double precision    :: u(3)         ! u(1) is total value of dof (except rotation where the 
                                         ! incremental value should be specified). u(2:3) are the 
@@ -180,25 +187,29 @@ implicit none
     integer             :: node_type    ! 1: Reference point, 2: Contact node
     double precision    :: bc_val       ! Value from bc file    
     
-    step_type = mod(kstep-N_STEP_INITIAL, N_STEP_BETWEEN)
-    cycle_nr = (kstep-step_type-N_STEP_INITIAL)/N_STEP_BETWEEN + 1
-    if (kstep < 1) then             ! Should not occur
-        return          
-    elseif (kstep == 1) then        ! Initial depression
-        call get_bc_init_depression(time, jdof, bc_val)
-    elseif (step_type == 0) then    ! Rolling step (only called for reference point)
-        cycle_nr = (kstep-N_STEP_INITIAL)/N_STEP_BETWEEN + 1
-        call get_bc_rolling(cycle_nr, time, jdof, bc_val)
-    else                            ! Move_back or re-application of load
-        call get_bc_value(cycle_nr, node, jdof, bc_val, node_type)
-        if ((step_type > 1).and.(node_type==1).and.(jdof==6)) then
-            bc_val = 0.0  ! No change in wheel rotation
-        endif
-    endif
-    u(1) = bc_val
+    step_type = get_step_type(kstep)
+    cycle_nr = get_cycle_nr(kstep)
+    call get_node_type(node_label=node, node_coords=coords, node_type=node_type)
     
-    if (bc_val /= bc_val) then  ! Check for nan-values
+    if (node_type == NODE_TYPE_RAIL_RP) then
+        call get_bc_rail_rp(step_type, cycle_nr, time, jdof, bc_val)
+    elseif (node_type == NODE_TYPE_WHEEL_RP) then
+        call get_bc_wheel_rp(step_type, cycle_nr, time, jdof, bc_val)
+    elseif (node_type == NODE_TYPE_WHEEL_CONTACT) then
+        call get_bc_wheel_contact(step_type, cycle_nr, node, jdof, bc_val)
+    else
+        write(*,*) 'Did not expect call to disp for this node:'
+        call write_node_info(node, coords, jdof, kstep, kinc)
         call xit()
     endif
+    
+    ! Check for nan-values
+    if (bc_val /= bc_val) then  
+        write(*,*) 'NaN boundary condition calculated for'
+        call write_node_info(node, coords, jdof, kstep, kinc)
+        call xit()
+    endif
+    
+    u(1) = bc_val
         
 end subroutine

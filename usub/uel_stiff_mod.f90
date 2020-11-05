@@ -1,23 +1,22 @@
 module uel_stiff_mod
 implicit none
     
-    character(len=20), parameter        :: uel_stiffness_file_name = 'uel_stiffness.txt'
-    
     double precision, allocatable, save :: uel_stiffness(:,:)
     
     contains
     
 subroutine allocate_uel_stiffness(scale_factor)
+use rollover_filenames_mod, only : uel_stiffness_file_name
 use usub_utils_mod, only : get_fid
 implicit none
     double precision, intent(in):: scale_factor 
     integer                     :: file_id          ! File identifier
     integer                     :: ndof             ! Number of dofs (read from file)
     integer                     :: i, j             ! Iterators
-    integer                     :: check_i, check_j
     double precision            :: tmp
+   !integer                     :: check_i, check_j
 
-    call get_fid(uel_stiffness_file_name, file_id)
+    file_id = get_fid(uel_stiffness_file_name)
     
     ! The number of dofs is written on the first line as a single integer
     read(file_id, *) ndof
@@ -27,8 +26,8 @@ implicit none
     
     do i=1,ndof
         do j=i,ndof
-            read(file_id, *) uel_stiffness(i, j)
-            uel_stiffness(i, j) = uel_stiffness(i, j)*scale_factor
+            read(file_id, *) tmp
+            uel_stiffness(i, j) = tmp*scale_factor
             uel_stiffness(j, i) = uel_stiffness(i, j)
             ! To check that current setup provides correct indices
             ! Requires to modify output from python scripts to include indices
