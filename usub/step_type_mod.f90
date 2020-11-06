@@ -5,6 +5,7 @@ implicit none
     private
     
     public  :: get_step_type
+    public  :: get_cycle_nr
     public  :: STEP_TYPE_INITIAL_DEPRESSION
     public  :: STEP_TYPE_ROLLING
     public  :: STEP_TYPE_MOVE_BACK

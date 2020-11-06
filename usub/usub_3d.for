@@ -1,7 +1,7 @@
 !DEC$ FREEFORM
 ! Abaqus utility modules
 !include 'abaqus_utils_mod.f90'          ! Do not include when running Abaqus
-!include 'abaqus_utils_dummy_mod.f90'    ! Include when running Abaqus
+include 'abaqus_utils_dummy_mod.f90'    ! Include when running Abaqus
 include 'includes.f90'
 
 
@@ -118,9 +118,9 @@ end subroutine uel
 
 
 subroutine urdfil(lstop,lovrwrt,kstep,kinc,dtime,time)
-use urdfil_mod, only : get_data_
-use usub_utils_mod, only : get_step_type, STEP_TYPE_ROLLING
-
+use urdfil_mod, only : get_data, get_data_first_time
+use step_type_mod, only : get_step_type, get_cycle_nr, STEP_TYPE_ROLLING
+use bc_mod, only : set_bc
 implicit none
     ! Variables to be defined
     integer             :: lstop        ! Flag, set to 1 to stop analysis
@@ -139,6 +139,9 @@ implicit none
     double precision                :: rp_u(3)              ! Reference point displacements
     double precision                :: angle_incr           ! Angular nodal spacing (wheel)
     integer                         :: cycle_nr             ! Rollover cycle nr
+    double precision, allocatable   :: contact_node_disp(:,:,:) ! Contact node disp
+    double precision, allocatable   :: wheel_rp_disp(:)     ! Wheel rp disp and rot
+    double precision, allocatable   :: rail_rp_disp(:)      ! Rail rp disp and rot
     
     if (get_step_type(kstep) == STEP_TYPE_ROLLING) then
         cycle_nr = get_cycle_nr(kstep)
