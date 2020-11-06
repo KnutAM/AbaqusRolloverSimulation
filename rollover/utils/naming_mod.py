@@ -60,6 +60,9 @@ def get_step_release(cycle_nr=2):
     
     
 # File names
+## Rail files
+rail_settings_file = 'rail_settings.json'
+
 ## Wheel files
 wheel_settings_file = 'wheel_settings.json'
 

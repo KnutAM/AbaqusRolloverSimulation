@@ -13,7 +13,7 @@ from rollover.utils import naming_mod as names
 from rollover.three_d.utils import mesh_tools as mt
 
 
-def create_shadow_region(rail_part, extend_lengths):
+def create(rail_part, extend_lengths):
     """Create a dummy region by extending the rail at each side
     
     .. note:: Requires that `rail_part` contains a surface named `names.rail_contact_surf` and that
@@ -37,11 +37,11 @@ def create_shadow_region(rail_part, extend_lengths):
     cs_bounding_box = contact_surface.nodes.getBoundingBox()
     rail_length = cs_bounding_box['high'][2] - cs_bounding_box['low'][2]
     
-    create_shadow_mesh(rail_part, contact_surface, z_shift=rail_length, 
-                       shadow_size=extend_lengths[0], set_name=names.rail_shadow_sets[0])
+    create_mesh(rail_part, contact_surface, z_shift=rail_length, 
+                shadow_size=extend_lengths[0], set_name=names.rail_shadow_sets[0])
                                       
-    create_shadow_mesh(rail_part, contact_surface, z_shift=-rail_length, 
-                       shadow_size=extend_lengths[1], set_name=names.rail_shadow_sets[1])
+    create_mesh(rail_part, contact_surface, z_shift=-rail_length, 
+                shadow_size=extend_lengths[1], set_name=names.rail_shadow_sets[1])
                                   
     shadow_region = rail_part.SetByBoolean(name=names.rail_shadow_set, 
                                            sets=tuple([rail_part.sets[name] 
@@ -51,7 +51,7 @@ def create_shadow_region(rail_part, extend_lengths):
     
     
     
-def create_shadow_mesh(rail_part, contact_surface, z_shift, shadow_size=None, set_name=None):
+def create_mesh(rail_part, contact_surface, z_shift, shadow_size=None, set_name=None):
     """Create dummy elements by extending the rail on one side. 
     
     :param rail_part: The part containing the rail geometry with a surface: names.rail_contact_surf
@@ -121,7 +121,8 @@ def create_shadow_mesh(rail_part, contact_surface, z_shift, shadow_size=None, se
                     delete_nodes.append(node)
     
     rail_part.editNode(nodes=shadow_nodes, offset3=z_shift)
-    rail_part.deleteNode(nodes=mesh.MeshNodeArray(nodes=delete_nodes))
+    if len(delete_nodes) > 0:
+        rail_part.deleteNode(nodes=mesh.MeshNodeArray(nodes=delete_nodes))
     
     return shadow_elems
     

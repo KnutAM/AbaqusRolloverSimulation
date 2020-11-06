@@ -45,10 +45,6 @@ import regionToolset, mesh
 
 from rollover.utils import naming_mod as names
 
-def add_rail_constraints(rail_part):
-    rail_rp = add_ctrl_point(rail_part)
-    ''' test '''
-
 def add_ctrl_point(the_model, y_coord):
     """Add the rail control point that is used to determine rail tension and bending 
     
@@ -79,8 +75,8 @@ def add_ctrl_point(the_model, y_coord):
     return rp_coord
     
 
-def add_constraint(the_model, rail_length, c_set_name, rp_set_name, rp_coord, r_set_name=None):
-    """Add the constraint to the node in the set c_set_name in the part rail. The constraints are 
+def add(the_model, rail_length, c_set_name, rp_set_name, rp_coord, r_set_name=None):
+    """Add the constraints to the node in the set c_set_name in the part rail. The constraints are 
     added on the model level. This function deducts the correct assembly set name using 
     names.rail_inst in combination with the set names given as input. The c_set_name and r_set_name
     must refer to sets belonging to the part. rp_set_name should refer to the set in the assembly.
@@ -147,9 +143,9 @@ def add_constraint(the_model, rail_length, c_set_name, rp_set_name, rp_coord, r_
         if len(terms) > 1:  # Only add equation if required. If only one term (i.e. = 0), this 
                             # should be added as a regular boundary condition.
             the_model.Equation(name=c_set_name + '_' + dirstr, terms=tuple(terms))
-        
-
-def create_constraint_sets(rail_part, c_set_name, r_set_name=None):
+       
+       
+def create_sets(rail_part, c_set_name, r_set_name=None):
     """Create individual sets for each matching node in the constrained set and retained set. If a 
     node is already constrained this set pair is not created. The retained set can contain nodes 
     that are not in the constrained set, but not the other way around. 
@@ -219,11 +215,4 @@ def create_constraint_sets(rail_part, c_set_name, r_set_name=None):
             rail_part.Set(name=r_node_set_names[-1], nodes=mesh.MeshNodeArray(nodes=[r_node]))
             
     return c_node_set_names, r_node_set_names
-    
-    
-def constrain_bottom(bottom_set):
-    pass
-    
 
-def constrain_shadow_region(shadow_set, contact_set):
-    pass

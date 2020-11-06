@@ -10,7 +10,8 @@ import numpy as np
 # Abaqus imports
 from abaqusConstants import *
 from abaqus import mdb
-import mesh, part
+import mesh
+import part
 
 # Project imports
 from rollover.utils import naming_mod as names
@@ -19,9 +20,29 @@ from rollover.utils import abaqus_python_tools as apt
 
 from rollover.three_d.utils import symmetric_mesh_module as sm
 
+def create_basic_from_param(rail_part, rail_param):
+    """ Call :py:func:`rollover.three_d.rail.mesh.create_basic` with the settings from rail_param
+    
+    :param rail_part: The part in which the sets will be created
+    :type rail_part: Part (Abaqus object)
+    
+    :param rail_param: dictionary containing input arguments to the create_basic function:
+                       
+                       - 'point_in_refine_cell'
+                       - 'fine_mesh'
+                       - 'coarse_mesh'
+                       
+    :type rail_param: dict
+    
+    :returns: None
+    :rtype: None
+    """
+    
+    create_basic(rail_part, rail_param['point_in_refine_cell'], rail_param['fine_mesh'],
+                 rail_param['coarse_mesh'])
 
 
-def create_basic_mesh(rail_part, point_in_refine_cell, fine_mesh, coarse_mesh):
+def create_basic(rail_part, point_in_refine_cell, fine_mesh, coarse_mesh):
     """Mesh the rail with basic settings
     
     The cell containing point_in_refine_cell will get the fine_mesh size. The global mesh seed will
@@ -153,7 +174,7 @@ def get_elem_types(order, reduced):
     :type reduced: bool
         
     :returns: A list of element types
-    :rtype: list(mesh.elemType (Abaqus object))
+    :rtype: list(ElemType (Abaqus object))
 
     """
     if order == 1:

@@ -21,9 +21,27 @@ from rollover.three_d.utils import sketch_tools
 
 default_material = {'material_model': 'elastic', 'mpar': {'E': 210.e3, 'nu': 0.3}}
 
+def create_from_param(rail_param):
+    """ Call :py:func:`rollover.three_d.rail.basic.create` with arguments that are present in 
+    the rail_param dictionary. 
+    
+    :param rail_param: dictionary containing input arguments to create function, required:
+                       
+                       - 'rail_profile'
+                       - 'rail_length'
+                       
+    :type rail_param: dict
+    
+    :returns: The model database returned from create
+    :rtype: Model object (Abaqus)
+    """
+    
+    create_param = {p: rail_param[p] for p in rail_param if p in create.__code__.co_varnames}
+    print(create_param)
+    return create(**create_param)
+    
 
-def create_rail(rail_profile, rail_length, refine_region=None, sym_dir=None, 
-                material=default_material):
+def create(rail_profile, rail_length, refine_region=None, sym_dir=None, material=default_material):
     """Create a new model containing a simple rail geometry.
     
     The model is named 'RAIL' and the profile is created by importing the sketch rail_profile and 
