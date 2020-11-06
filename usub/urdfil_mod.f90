@@ -51,6 +51,7 @@ subroutine get_node_data(node_n, node_val, array)
 ! in the array to pass to the present subroutine. The record type can be obtained as 
 ! transfer(array(2), 1)
 ! On exit, array 
+use resize_array_mod, only : expand_array, contract_array
 implicit none
     ! Input/output
     integer, allocatable, intent(out)           :: node_n(:)        ! Node numbers [Nc]
@@ -155,9 +156,11 @@ implicit none
                 call get_contact_node_disp(node_labels_d, node_disp, contact_node_disp)
             else    ! Reference point node
                 if (is_wheel_rp_node(node_labels_d(1))) then
-                    wheel_rp_disp = node_disp
+                    allocate(wheel_rp_disp(size(node_disp, 1)))
+                    wheel_rp_disp = node_disp(:,1)
                 elseif (is_rail_rp_node(node_labels_d(1))) then
-                    rail_rp_disp = node_disp
+                    allocate(rail_rp_disp(size(node_disp, 1)))
+                    rail_rp_disp = node_disp(:,1)
                 else
                     write(*,*) 'WARNING: Could not determine node type for URDFIL'
                 endif
@@ -208,9 +211,11 @@ implicit none
                 call get_contact_node_disp(node_labels, node_disp, contact_node_disp)
             else    ! Reference point node
                 if (is_wheel_rp_node(node_labels(1))) then
-                    wheel_rp_disp = node_disp
+                    allocate(wheel_rp_disp(size(node_disp, 1)))
+                    wheel_rp_disp = node_disp(:,1)
                 elseif (is_rail_rp_node(node_labels(1))) then
-                    rail_rp_disp = node_disp
+                    allocate(rail_rp_disp(size(node_disp, 1)))
+                    rail_rp_disp = node_disp(:,1)
                 else
                     write(*,*) 'WARNING: Could not determine node type for URDFIL'
                 endif
@@ -227,12 +232,13 @@ end subroutine
 subroutine get_contact_node_disp(node_labels, node_disp, contact_node_disp)
 use node_id_mod, only : get_inds, get_mesh_size
 implicit none
-    integer, intent(in)                         :: node_labels
+    integer, intent(in)                         :: node_labels(:)
     double precision, intent(in)                :: node_disp(:,:)
     double precision, allocatable, intent(out)  :: contact_node_disp(:,:,:)
     
     integer                                     :: mesh_size(2)
     integer                                     :: mesh_inds(2)
+    integer                                     :: k1
     
     mesh_size = get_mesh_size()
     allocate(contact_node_disp(size(node_disp,1), mesh_size(1), mesh_size(2)))

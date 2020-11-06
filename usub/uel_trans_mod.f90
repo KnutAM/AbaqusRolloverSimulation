@@ -1,5 +1,6 @@
 ! Module for transforming user element for rotations
 module uel_trans_mod
+use abaqus_utils_mod
 implicit none
 
     private

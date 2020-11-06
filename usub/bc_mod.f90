@@ -1,13 +1,15 @@
 module bc_mod
+use abaqus_utils_mod
 implicit none
     
 contains
 
 subroutine set_bc(contact_node_disp, wheel_rp_disp, rail_rp_disp, cycle_nr)
-use load_param_mod, only : update_cycle, get_rolling_par, set_rp_bc
-use node_id_mod, only : get_angle_incr, get_mesh_size, get_inds
+use load_param_mod, only : update_cycle, get_rolling_par, set_rp_bc, set_contact_node_bc
+use node_id_mod, only : get_angle_incr, get_mesh_size, get_inds, get_node_coords, get_node_dofs
+use find_mod, only : find
 implicit none
-    double precision, intent(in)    :: contact_dof_disp(:,:,:)  ! Contact node disp after rolling
+    double precision, intent(in)    :: contact_node_disp(:,:,:) ! Contact node disp after rolling
     double precision, intent(in)    :: wheel_rp_disp(:)         ! Wheel rp disp after rolling
     double precision, intent(in)    :: rail_rp_disp(:)          ! Rail rp disp after rolling
     integer, intent(in)             :: cycle_nr                 ! Current rollover cycle
@@ -18,11 +20,30 @@ implicit none
     integer                         :: num_elem_roll            ! Number of wheel elements rolled
     double precision                :: return_angle             ! Wheel rp angle to return to
     
+    double precision                :: dx_rp(3)                 ! Translation of wheel reference point
     double precision                :: u_rp_start(6)
     double precision                :: u_rp_end(6)
     
     integer                         :: mesh_size(2)
     integer                         :: mesh_inds(2)
+    integer                         :: num_ang_node             ! Number of contact nodes along angular direction
+    integer                         :: old_ang_ind              ! Iterator for old nodes in contact, ang dir
+    integer                         :: new_ang_ind              ! Iterator for new nodes in contact, ang dir
+    integer                         :: num_x_node               ! Number of contact nodes along x-direction
+    integer                         :: x_ind                    ! Iterator for nodes along x-direction
+    integer                         :: num_c_dofs               ! Number of constrained dofs
+    integer, allocatable            :: cdofs(:), fdofs(:)       ! List of constrained and free dofs indices
+    double precision, allocatable   :: ubc(:), uf(:)            ! List of constrained and free dof values
+    integer                         :: k_cdofs(3)               ! Dof counter for constrained nodes
+    integer                         :: node_dofs(3)             ! Temporary storage for node dofs
+    integer                         :: fdof_inds(3)             ! Indices for the dofs in fdofs
+    
+    double precision                :: x0_new(3)                ! Initial coordinates for a new node in contact
+    double precision                :: x_old(3)                 ! Current coordinates for a old node in contact (before move back)
+    double precision                :: x_new(3)                 ! Current coordinates for a new node in contact (after move back)
+    double precision                :: u_new(3)                 ! Displacements for a new node in contact, u_new=x_new-x0_new
+    
+    
     
     ! Update load parameters for the present cycle
     call update_cycle(cycle_nr)
@@ -44,13 +65,13 @@ implicit none
     
     u_rp_end = u_rp_start
     u_rp_end(3) = rail_length + rail_extension
-    u_rp_end(4) = up_rp_end*rot_per_length
+    u_rp_end(4) = u_rp_end(3)*rot_per_length
     
     ! Set boundary conditions for the reference point
     call set_rp_bc(wheel_rp_disp, u_rp_start, u_rp_end)
     
     ! Set boundary conditions for the wheel contact nodes
-    mesh_size = get_mesh_size
+    mesh_size = get_mesh_size()
     num_ang_node = mesh_size(1) ! Number of nodes in angular direction on wheel
     num_x_node = mesh_size(2)   ! Number of nodes in x-direction on wheel
     
@@ -64,11 +85,11 @@ implicit none
         new_ang_ind = old_ang_ind + num_elem_roll
         do x_ind = 1,num_x_node
             x0_new = get_node_coords([new_ang_ind, x_ind])
-            x_old = get_node_coords([old_ang_ind, x_ind])
+            x_old = get_node_coords([old_ang_ind, x_ind]) + contact_node_disp(:, old_ang_ind, x_ind)
             x_new = x_old + dx_rp
             u_new = x_new - x0_new
             call set_contact_node_bc([new_ang_ind, x_ind], u_new)
-            k_cdofs = k_dofs + 3
+            k_cdofs = k_cdofs + 3
             cdofs(k_cdofs) = get_node_dofs([new_ang_ind, x_ind])
             ubc(k_cdofs) = u_new
         enddo
@@ -78,9 +99,9 @@ implicit none
     
     do old_ang_ind=1,num_elem_roll
         do x_ind = 1,num_x_node
-            dofs = get_node_dofs([old_ang_ind, x_ind])
-            fdof = find(fdofs, dofs(1)) + [0, 1, 2]
-            call set_contact_node_bc([old_ang_ind, x_ind], uf(fdof))
+            node_dofs = get_node_dofs([old_ang_ind, x_ind])
+            fdof_inds = find(fdofs, node_dofs(1)) + [0, 1, 2]
+            call set_contact_node_bc([old_ang_ind, x_ind], uf(fdof_inds))
         enddo
     enddo
     
@@ -106,7 +127,7 @@ implicit none
     num_dof = get_ndof()
     num_fdof = num_dof - size(cdofs)
     
-    allocate(kstiff(ndof,ndof), all_dofs(ndof))
+    allocate(kstiff(num_dof,num_dof))
     allocate(fdofs(num_fdof), uf(num_fdof), ipiv(num_fdof), kff(num_fdof,num_fdof))
     
     ! Get rotated element stiffness matrix

@@ -1,6 +1,7 @@
 ! Module to identify which type of node we have and other info about nodes
 
 module node_id_mod
+use abaqus_utils_mod
 implicit none
 
     private
@@ -107,11 +108,11 @@ implicit none
         integer                         :: ka, kx       ! Iterators in angular and x directions
         integer                         :: min_ind(1)   ! Index of identified point
         
-        nt = size(ndoe_labels)
+        nt = size(node_labels)
         allocate(xcoords(nt), angles(nt))
         allocate(x_dist_square(nt), a_dist_square(nt))
         
-        max_radius = sqrt(maxval(node_coordinates(2,:)^2 + node_coordinates(3, :)^2))
+        max_radius = sqrt(maxval(node_coordinates(2,:)**2 + node_coordinates(3, :)**2))
         
         angles = atan2(-node_coordinates(3,:), -node_coordinates(2, :))
         xcoords = node_coordinates(1,:)
@@ -126,13 +127,13 @@ implicit none
         allocate(wheel_contact_node_coords(3, na, nx))
         
         do kx=1,nx
-            x_dist_square = (uxcoords(kx) - xcoords)^2
+            x_dist_square = (uxcoords(kx) - xcoords)**2
             do ka=1,na
-                a_dist_square = ((uangles(ka) - angles)*max_radius)^2
+                a_dist_square = ((uangles(ka) - angles)*max_radius)**2
                 min_ind = minloc(x_dist_square + a_dist_square)
                 wheel_contact_node_labels(ka, kx) = node_labels(min_ind(1))
                 wheel_contact_node_coords(:, ka, kx) = node_coordinates(:, min_ind(1))
-                if ((x_dist_square(min_ind(1))+a_dist_square(min_ind(1))) > 2*POS_TOL^2) then
+                if ((x_dist_square(min_ind(1))+a_dist_square(min_ind(1))) > 2*POS_TOL**2) then
                     write(*,*) 'setup_mesh_inds could not find the point'
                     write(*,"(A,I0,A,I0)") 'kx = ', kx, ', ka = ', ka
                     call xit()
@@ -152,7 +153,7 @@ implicit none
     use find_mod, only: find
     implicit none
         integer             :: nnod
-        integer             :: k1, mesh_inds
+        integer             :: k1, mesh_inds(2)
         
         nnod = size(uel_coords,2)
         ! First 3 dofs are wheel rp translations
@@ -199,7 +200,7 @@ implicit none
     
     function get_node_coords(mesh_inds) result(node_coords)
     implicit none
-        integer, intent(in)     :: mesh_inds
+        integer, intent(in)     :: mesh_inds(2)
         double precision        :: node_coords(3)
 
         node_coords = wheel_contact_node_coords(:, mesh_inds(1), mesh_inds(2))
@@ -207,7 +208,7 @@ implicit none
     
     function get_node_dofs(mesh_inds) result(node_dofs)
     implicit none
-        integer, intent(in)     :: mesh_inds
+        integer, intent(in)     :: mesh_inds(2)
         integer                 :: node_dofs(3)
 
         node_dofs = wheel_contact_node_dofs(:, mesh_inds(1), mesh_inds(2))
@@ -240,7 +241,6 @@ implicit none
     end function
     
     subroutine get_node_type(node_label, node_coords, node_type)
-    use abaqus_utils_mod
     implicit none
         integer, intent(in)             :: node_label
         double precision, intent(in)    :: node_coords(3)
@@ -252,7 +252,7 @@ implicit none
         if (node_type == NODE_TYPE_UNKNOWN) then
             ! If node type not known, probably because label is not setup yet.
             ! Get rp node by coordinate will also setup the label
-            call get_rp_node_type_by_coord(node_coords, node_type)
+            call get_rp_node_type_by_coord(node_label, node_coords, node_type)
             if (node_type == NODE_TYPE_UNKNOWN) then
                 write(*,*) 'Could not identify node type'
                 if (.not.is_mesh_info_setup()) then
@@ -264,7 +264,7 @@ implicit none
     
     end subroutine
     
-    subroutine get_rp_node_type_by_coord(node_label, coords, node_type)
+    subroutine get_rp_node_type_by_coord(node_label, node_coords, node_type)
     use linalg_mod, only : norm
     implicit none
         integer, intent(in)             :: node_label
@@ -275,11 +275,11 @@ implicit none
             call set_rp_node_coords()
         endif
         
-        if (norm(coords - wheel_rp_coords) < POS_TOL) then
+        if (norm(node_coords - wheel_rp_coords) < POS_TOL) then
             allocate(wheel_rp_node_label)
             wheel_rp_node_label = node_label
             node_type = NODE_TYPE_WHEEL_RP
-        elseif (norm(coords - rail_rp_coords) < POS_TOL) then
+        elseif (norm(node_coords - rail_rp_coords) < POS_TOL) then
             allocate(rail_rp_node_label)
             rail_rp_node_label = node_label
             node_type = NODE_TYPE_RAIL_RP
@@ -307,8 +307,8 @@ implicit none
     end function get_node_type_by_label
         
     subroutine set_rp_node_coords()
-    use rollover_filenames_mod, only : rp_node_coords_file_name
-    use abaqus_utils_mod, only : get_fid
+    use filenames_mod, only : rp_node_coords_file_name
+    use usub_utils_mod, only : get_fid, check_iostat
     implicit none
         integer             :: file_id
         integer             :: io_stat

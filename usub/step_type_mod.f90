@@ -1,4 +1,5 @@
 module step_type_mod
+use abaqus_utils_mod
 implicit none
     
     private
@@ -32,7 +33,7 @@ implicit none
         if (kstep < N_STEP_INITIAL) then
             step_type = -kstep
         else
-            step_type = mod(kstep-N_STEP_INITIAL, N_STEP_BETWEEN)
+            step_type = mod(kstep-N_STEP_INITIAL, N_STEP_PER_CYCLE)
         endif
         
         ! Check result
@@ -55,7 +56,7 @@ implicit none
         if (kstep < N_STEP_INITIAL) then
             cycle_nr = 0
         else
-            cycle_nr = kstep - mod(kstep-N_STEP_INITIAL, N_STEP_BETWEEN) + 1
+            cycle_nr = kstep - mod(kstep-N_STEP_INITIAL, N_STEP_PER_CYCLE) + 1
         endif
         
     end function

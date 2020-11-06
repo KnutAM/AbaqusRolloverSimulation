@@ -2,6 +2,7 @@
 ! - step_type_mod
 ! - load_param_mod
 module disp_mod
+use abaqus_utils_mod
 implicit none
     
     private
@@ -38,7 +39,7 @@ end subroutine get_bc_rail_rp
 
 subroutine get_bc_wheel_rp(step_type, cycle_nr, time, node_jdof, bc_val)
 use step_type_mod, only: STEP_TYPE_INITIAL_DEPRESSION, STEP_TYPE_ROLLING, STEP_TYPE_MOVE_BACK
-use load_param_mod, only: is_load_param_read, read_load_param, get_rp_initial_depression_bc, &
+use load_param_mod, only: is_load_param_read, read_load_params, get_rp_initial_depression_bc, &
                           get_rp_rolling_wheel_bc, get_rp_move_back_bc
 implicit none
     integer, intent(in)                 :: step_type
@@ -53,7 +54,7 @@ implicit none
     if (step_type == STEP_TYPE_INITIAL_DEPRESSION) then
         ! This step type will occur first, so we will read load params here the first time
         if (.not.is_load_param_read()) then
-            call read_load_param()
+            call read_load_params()
         endif
         bc_val = get_rp_initial_depression_bc(node_jdof, time_in_step)
     elseif (step_type == STEP_TYPE_ROLLING) then

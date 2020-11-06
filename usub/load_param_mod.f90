@@ -10,7 +10,7 @@ implicit none
                                         ! simulation
     ! Update and get loading routines
     public  :: update_cycle             ! Update the loading parameters, done each cycle
-    public  :: get_rot_per_length       ! 
+    public  :: get_rolling_par          ! 
     
     ! Wheel reference point motion
     public  :: set_rp_bc
@@ -19,7 +19,6 @@ implicit none
     public  :: get_rp_move_back_bc
     
     ! Wheel contact nodes motion
-    public  :: allocate_node_u_bc
     public  :: set_contact_node_bc
     public  :: get_contact_node_bc
     
@@ -65,23 +64,23 @@ implicit none
         integer             :: file_id
         integer             :: num_cycles_specified
         integer             :: k1
-        integer             :: io_stat
+        integer             :: io_status
         character(len=256)  :: error_message
         
         file_id = get_fid(load_param_file_name)
         
-        read(file_id,*, iostat=io_stat) rail_length
+        read(file_id,*, iostat=io_status) rail_length
         call check_iostat(io_status, 'Could not read rail length from "'//load_param_file_name//'"')
-        read(file_id,*, iostat=io_stat) initial_depression_speed
+        read(file_id,*, iostat=io_status) initial_depression_speed
         call check_iostat(io_status, 'Could not read initial depression speed from "'//load_param_file_name//'"')
-        read(file_id,*, iostat=io_stat) num_cycles_specified
+        read(file_id,*, iostat=io_status) num_cycles_specified
         call check_iostat(io_status, 'Could not read number of cycles from "'//load_param_file_name//'"')
         allocate(update_cycles(num_cycles_specified+1))
         allocate(rolling_times(num_cycles_specified))
         allocate(rot_per_lengths(num_cycles_specified))
         allocate(rail_extensions(num_cycles_specified))
         do k1=1,num_cycles_specified
-            read(file_id,*, iostat=io_stat) update_cycles(k1), rolling_times(k1), rot_per_lengths(k1), rail_extensions(k1)
+            read(file_id,*, iostat=io_status) update_cycles(k1), rolling_times(k1), rot_per_lengths(k1), rail_extensions(k1)
             write(error_message, "(A,I0,A,I0,A)") 'Could not read info for cycle spec nr ', k1, &
                                  ', when given that ', num_cycles_specified, ' cycles are specified'
             call check_iostat(io_status, error_message)
@@ -164,6 +163,7 @@ implicit none
     implicit none
         integer, intent(in)             :: jdof
         double precision, intent(in)    :: time(3)
+        double precision                :: bc_val
         
         double precision                :: time_in_step     ! time(2)
         double precision                :: time_increment   ! time(3)
@@ -184,6 +184,7 @@ implicit none
     function get_rp_move_back_bc(jdof) result(bc_val)
     implicit none
         integer, intent(in)             :: jdof
+        double precision                :: bc_val
         
         if (jdof <= 3) then ! Linear displacement, give value to go to
             bc_val = u_rp_bc_start(jdof)
@@ -198,14 +199,14 @@ implicit none
     
     ! Wheel contact nodes motion
     subroutine set_contact_node_bc(mesh_inds, u_vals)
-    use node_id_mod, only : get_contact_node_mesh_size
+    use node_id_mod, only : get_mesh_size
     implicit none
         integer, intent(in)             :: mesh_inds(2) ! Indices from the get_inds function
         double precision, intent(in)    :: u_vals(3)    ! Values to set
         integer                         :: mesh_size(2)
         
         if (.not.allocated(node_u_bc)) then
-            mesh_size = get_contact_node_mesh_size()
+            mesh_size = get_mesh_size()
             allocate(node_u_bc(3, mesh_size(1), mesh_size(2)))
         endif
         

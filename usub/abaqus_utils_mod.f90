@@ -18,9 +18,34 @@ end subroutine getoutdir
 
 subroutine xit()
 implicit none
-    
-    stop
+    write(*,*) 'xit was called, quiting with error code 1'
+    error stop 1
     
 end subroutine xit
+
+subroutine posfil(nstep,ninc,array,jrdc)
+implicit none
+    integer, intent(in)             :: nstep
+    integer, intent(in)             :: ninc
+    double precision, intent(inout) :: array(:)
+    integer, intent(out)            :: jrdc
+    
+    array(1) = transfer(2000, 1.d0)
+    
+    jrdc = 0
+    
+end subroutine
+
+subroutine dbfile(lop, array, jrdc)
+implicit none
+    integer, intent(in)             :: lop
+    double precision, intent(inout) :: array(:)
+    integer, intent(out)            :: jrdc
+    
+    array(1) = transfer(2000, 1.d0)
+    
+    jrdc = 0
+    
+end subroutine
 
 end module abaqus_utils_mod
