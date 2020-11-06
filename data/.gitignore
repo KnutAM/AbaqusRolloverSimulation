@@ -3,6 +3,8 @@
 # Except this file
 !.gitignore
 # And except the following example data provided:
+#  Rail settings
+!.rail_settings/rail_settings.json
 #  Rail profiles
 !.rail_profiles/BV50.sat
 !.rail_profiles/BV50_half.sat

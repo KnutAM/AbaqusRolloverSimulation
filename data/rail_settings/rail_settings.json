@@ -1,0 +1,31 @@
+{
+    "material": {
+        "material_model": "chaboche",
+        "mpar": {
+            "E": 210000.0,
+            "nu": 0.3,
+            "Y0": 500.0,
+            "Qinf": 100.0,
+            "biso": 4.0,
+            "Cmod": [
+                20000.0,
+                10.0
+            ],
+            "gamma": [
+                400.0,
+                0.0
+            ]
+        }
+    },
+    "rail_profile": "C:/MyWork/ProjectsWorkFolders/MU34/Project_2020_C_RolloverSimulation/AbaqusRolloverSimulation/data/rail_profiles/BV50.sat",
+    "rail_length": 30.0,
+    "rail_name": "rail_example",
+    "refine_region": [[-20, 145],[20,160]],
+    "point_in_refine_cell": [
+        0.0,
+        150.0,
+        1.0
+    ],
+    "fine_mesh": 4.0,
+    "coarse_mesh": 20.0
+}
