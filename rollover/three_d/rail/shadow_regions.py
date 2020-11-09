@@ -64,6 +64,13 @@ def create(the_model, extend_lengths, Emod=1.0, nu=0.3, thickness=0.01):
     shadow_region = rail_part.SetByBoolean(name=names.rail_shadow_set, 
                                            sets=tuple([rail_part.sets[name] 
                                                        for name in names.rail_shadow_sets]))
+    # Set element type to membrane elements
+    et3 = mesh.ElemType(elemCode=M3D3, elemLibrary=STANDARD, secondOrderAccuracy=OFF)
+    et4 = mesh.ElemType(elemCode=M3D4, elemLibrary=STANDARD, secondOrderAccuracy=OFF)
+    et6 = mesh.ElemType(elemCode=M3D6, elemLibrary=STANDARD, secondOrderAccuracy=ON)
+    et8 = mesh.ElemType(elemCode=M3D8, elemLibrary=STANDARD, secondOrderAccuracy=ON)
+    membrane_elem_types = (et3, et4, et6, et8)
+    rail_part.setElementType(regions=(shadow_region.elements, ), elemTypes=membrane_elem_types)
     
     rail_part.SectionAssignment(region=shadow_region, sectionName=names.rail_shadow_sect)
     
