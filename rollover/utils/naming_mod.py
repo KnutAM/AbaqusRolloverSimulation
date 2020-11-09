@@ -6,6 +6,7 @@
 
 # Model, job and odb naming
 model = 'rollover'
+rail_model = 'RAIL'
 job = model
 
 # Part, instance and section names

@@ -13,24 +13,42 @@ from rollover.utils import naming_mod as names
 from rollover.three_d.utils import mesh_tools as mt
 
 
-def create(rail_part, extend_lengths):
-    """Create a dummy region by extending the rail at each side
+def create(the_model, extend_lengths, Emod=1.0, nu=0.3, thickness=0.01):
+    """Create a dummy region by extending the rail at each side. Assign 
+    it a membrane section with thickness 0.01 and elastic material with
+    E=1.0 and nu=0.3.
     
-    .. note:: Requires that `rail_part` contains a surface named `names.rail_contact_surf` and that
-              the model contains a section definition named `names.rail_shadow_sect`
+    .. note:: Requires that the meshed part, 
+              the_model.parts[names.rail_part] contains a surface named 
+              `names.rail_contact_surf`
     
-    :param rail_part: The part containing the rail geometry with a surface named 
-                      `names.rail_contact_surf`
-    :type rail_part: Part (Abaqus object)
+    :param the_model: The model containing the rail part 
+    :type rail_part: Model object (Abaqus)
     
     :param extend_lengths: The (absolute) distance with which the rail will be extended in each end 
                            `[z=0, z=L]`. If any is None, the full contact surface will be extended.
     :type extend_lengths: list[ float ], len=2
     
+    :param Emod: Dummy stiffness - elastic modulus of shadow membrane
+    :type Emod: float
+    
+    :param nu: Dummy Poisson's ratio of shaddow membrane
+    :type nu: float
+    
+    :param thickness: Thickness of shadow membrane
+    :type thickness: float
+    
     :returns: None
     :rtype: None
 
     """
+    rail_part = the_model.parts[names.rail_part]
+    
+    # Create shadow section
+    the_model.Material(name='ShadowElastic')
+    the_model.materials['ShadowElastic'].Elastic(table=((Emod, nu), ))
+    the_model.MembraneSection(name=names.rail_shadow_sect, material='ShadowElastic', 
+                              thickness=thickness)
     
     contact_surface = rail_part.surfaces[names.rail_contact_surf]
     

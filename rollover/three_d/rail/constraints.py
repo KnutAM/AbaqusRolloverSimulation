@@ -45,6 +45,50 @@ import regionToolset, mesh
 
 from rollover.utils import naming_mod as names
 
+def create(the_model, rail_length):
+    """Add the rail constraint sets and equations. 
+    
+    .. note:: `the_model` must fulfill the following requirements
+    
+              - Contain a part named names.rail_part that
+                
+                - Is a meshed part. 
+                - Contains a set names.rail_bottom_nodes
+                - Contains set pairs (equal node coords in xy-plane): 
+                  names.rail_side_sets[0:2] and 
+                  (names.rail_shadow_sets[0], names.rail_contact_surf),
+                  and 
+                  (names.rail_shadow_sets[1], names.rail_contact_surf)
+              
+              - Contains an instance of names.rail_part, named 
+                names.rail_inst. 
+    
+    :param the_model: The full model 
+    :type the_model: Model object (Abaqus)
+    
+    :param rail_length: The length of the rail (z-dimension)
+    :type rail_length: float
+    
+    :returns: None
+    :rtype: None
+
+    """
+    
+    bc_sets, br_sets = create_sets(rail_part, names.rail_bottom_nodes)
+    sc_sets, sr_sets = create_sets(rail_part, names.rail_side_sets[0], names.rail_side_sets[1])
+    shc_sets1, shr_sets1 = create_sets(rail_part, names.rail_shadow_sets[0], names.rail_contact_surf)
+    shc_sets2, shr_sets2 = create_sets(rail_part, names.rail_shadow_sets[1], names.rail_contact_surf)
+    
+    # From hereon an instance is also required!
+    
+    rp_coord = add_ctrl_point(the_model, y_coord=0.0)
+    
+    for c_sets, r_sets in zip([bc_sets, sc_sets, shc_sets1, shc_sets2], 
+                              [br_sets, sr_sets, shr_sets1, shr_sets2]):
+        for c_set, r_set in zip(c_sets, r_sets):
+            add(the_model, rail_length, c_set, names.rail_rp_set, rp_coord, r_set)
+    
+
 def add_ctrl_point(the_model, y_coord):
     """Add the rail control point that is used to determine rail tension and bending 
     

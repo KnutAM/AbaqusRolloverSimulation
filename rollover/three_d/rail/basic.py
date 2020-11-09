@@ -37,7 +37,7 @@ def create_from_param(rail_param):
     """
     
     create_param = {p: rail_param[p] for p in rail_param if p in create.__code__.co_varnames}
-    print(create_param)
+    
     return create(**create_param)
     
 
@@ -69,7 +69,7 @@ def create(rail_profile, rail_length, refine_region=None, sym_dir=None, material
     :rtype: Model (Abaqus object)
 
     """
-    rail_model = apt.create_model('RAIL')
+    rail_model = apt.create_model(names.rail_model)
     profile_sketch = sketch_tools.import_sketch(rail_model, rail_profile, name='rail_profile')
     rail_part = rail_model.Part(name=names.rail_part, dimensionality=THREE_D, type=DEFORMABLE_BODY)
     rail_part.BaseSolidExtrude(sketch=profile_sketch, depth=rail_length)
