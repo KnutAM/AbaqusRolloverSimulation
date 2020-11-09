@@ -272,7 +272,7 @@ def get_mesh_inds(coords):
     
     """
     
-    TOL = 1.e-3 # Linear tolerance (length unit)
+    TOL = 1.e-2 # Linear tolerance (length unit)
     
     # Get angle around the x-axis, measured from the negative y-axis
     angles = np.arctan2(-coords[:, 2], -coords[:, 1])
@@ -329,7 +329,7 @@ def get_unique(vector, tol=0):
     return np.array(unique_vals)
 
 
-def find_coord(find_coords, search_coords, tol=0.0):
+def find_coord(find_coords, search_coords, tol=1.e-6):
     """ {TEST}
     Find the index for the coordinate in search_coords that matches
     the coordinate find_coords. 
@@ -355,26 +355,22 @@ def find_coord(find_coords, search_coords, tol=0.0):
         tol_list = [tol for _ in find_coords]
     else:
         tol_list = tol[:]
-    
-    logical_array = [True for _ in search_coords[0]]
-    for find_coord, search_coord, the_tol in zip(find_coords, search_coords, tol_list):
-        logical_array *= np.abs(find_coord - search_coord) < the_tol
-    
-    indices = np.argwhere(logical_array).flatten()
-    if indices.shape[0] > 1:
-        print('Warning: find_coord found multiple coordinates. Taking the smallest')
-        errors = np.abs(find_coords[0][indices] - search_coords[0][indices])/tol_list[0]
-        for find_coord, search_coord, the_tol in zip(find_coords[1:], search_coords[1:], 
-                                                     tol_list[1:]):
-            errors += np.abs(find_coord[indices] - search_coord[indices])/the_tol
-        index = indices[np.argmin(errors)]
-    elif indices.shape[0] < 1:
-        raise ValueError('Could not identify a matching coordinate, choose a larger tolerance or '
-                         + 'check that a matching coordinate exists')
-    else:
-        index = indices[0]
         
-    return index
+    dist2 = 0.0
+    for find_coord, search_coord, the_tol in zip(find_coords, search_coords, tol_list):
+        dist2 = dist2 + ((find_coord - search_coord)/the_tol)**2
+    
+    min_ind = np.argmin(dist2)
+    
+    if dist2[min_ind] > 1.0:
+        apt.log('Could not identify matching coordinate within tol, ' 
+                + 'error is %0.2f %% of tol' % (100.0*np.sqrt(dist2[min_ind])))
+        for i, find_coord, search_coord, the_tol in zip(range(len(tol_list)), find_coords, 
+                                                        search_coords, tol_list):
+            apt.log('coord nr %u: dist = %10.2e, tol = %10.2e' % 
+                    (i, find_coord - search_coord[min_ind], the_tol))
+
+    return min_ind
     
     
 def save_uel(stiffness, coordinates, elements):
