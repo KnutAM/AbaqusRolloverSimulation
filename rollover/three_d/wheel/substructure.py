@@ -16,7 +16,7 @@ import uuid
 # Abaqus imports
 from abaqusConstants import *
 from abaqus import mdb
-import part, sketch, mesh, job
+import part, sketch, mesh, job, interaction
 
 # Project imports
 from rollover.three_d.utils import sketch_tools
