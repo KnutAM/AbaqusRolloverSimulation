@@ -116,8 +116,8 @@ implicit none
                 exp_rot_mat(k1:(k1+num_node_dofs), k1:(k1+num_node_dofs)) = rot_mat
             enddo
         else                            ! 3d, no special treatment required
-            do k1=0,ndof,num_node_dofs
-                exp_rot_mat(k1:(k1+num_node_dofs), k1:(k1+num_node_dofs)) = rot_mat
+            do k1=1,ndof,num_node_dofs
+                exp_rot_mat(k1:(k1+num_node_dofs-1), k1:(k1+num_node_dofs-1)) = rot_mat
             enddo
         endif
         
