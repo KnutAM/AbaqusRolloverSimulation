@@ -74,6 +74,8 @@ def create(the_model, rail_length):
 
     """
     
+    rail_part = the_model.parts[names.rail_part]
+    
     bc_sets, br_sets = create_sets(rail_part, names.rail_bottom_nodes)
     sc_sets, sr_sets = create_sets(rail_part, names.rail_side_sets[0], names.rail_side_sets[1])
     shc_sets1, shr_sets1 = create_sets(rail_part, names.rail_shadow_sets[0], names.rail_contact_surf)

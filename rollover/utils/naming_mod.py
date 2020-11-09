@@ -61,6 +61,9 @@ def get_step_release(cycle_nr=2):
     
     
 # File names
+## Rolover files
+rollover_settings_file = 'rollover_settings.json'
+
 ## Rail files
 rail_settings_file = 'rail_settings.json'
 

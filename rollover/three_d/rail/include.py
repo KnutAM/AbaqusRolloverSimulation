@@ -5,13 +5,7 @@ rollover analysis
 """
 
 from abaqus import mdb
-'''
-import part
-import assembly
-import material
-import section
-import interaction
-'''
+from abaqusConstants import *
 
 from rollover.utils import naming_mod as names
 from rollover.three_d.rail import shadow_regions as rail_shadow_regions
