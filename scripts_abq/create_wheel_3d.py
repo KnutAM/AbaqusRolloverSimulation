@@ -52,8 +52,8 @@ def main():
 def create_substructure(wheel_param):
     job = wheel_substr.generate(wheel_param)
     
-    #job.submit()
-    #job.waitForCompletion()
+    job.submit()
+    job.waitForCompletion()
     
     
 def create_user_element(wheel_param):
