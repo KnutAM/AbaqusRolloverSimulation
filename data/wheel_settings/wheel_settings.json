@@ -1,9 +1,9 @@
 {
-    "test_unrelated": "Dummy setting",
+    "wheel_name": "wheel_example",
     "wheel_angles": [-0.2, 0.1],
-    "wheel_profile": "C:/MyWork/ProjectsWorkFolders/MU34/Project_2020_C_RolloverSimulation/AbaqusRolloverSimulation/data/wheel_profiles/rs200_ro460_ri300.sat",
+    "wheel_profile": "C:/MyWork/ProjectsWorkFolders/MU34/Project_2020_C_RolloverSimulation/AbaqusRolloverSimulation/data/wheel_profiles/rs200_ro460_ri300_w60.sat",
     "mesh_sizes": [2.0, 10.0],
-    "wheel_contact_pos": [-10.0, 1.0],
+    "wheel_contact_pos": [-10.0, 10.0],
     "partition_line": -450.0,
     "quadratic_order": false
 }
