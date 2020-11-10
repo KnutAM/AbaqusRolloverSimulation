@@ -58,6 +58,10 @@ def test(the_model):
     rail_inst = assy.instances[names.rail_inst]
     wheel_inst = assy.instances[names.wheel_inst]
     
+    the_model.DisplacementBC(name='BC-3', createStepName='Initial', 
+                             u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET, 
+                             region=assy.sets[names.rail_rp_set])
+    
     the_model.StaticStep(name='Step-1', previous='Initial')
     the_model.DisplacementBC(name='BC-1', createStepName='Initial', 
                              region=rail_inst.sets[names.rail_bottom_nodes],
