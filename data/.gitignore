@@ -3,13 +3,20 @@
 # Except this file
 !.gitignore
 # And except the following example data provided:
+# Rollover settings
+!/rollover_settings/
+!/rollover_settings/rollover_settings.json
 #  Rail settings
+!/rail_settings/
 !rail_settings/rail_settings.json
 #  Rail profiles
+!/rail_profiles/
 !rail_profiles/BV50.sat
 !rail_profiles/BV50_half.sat
 #  Wheel profiles
+!/wheel_profiles/
 !wheel_profiles/rs200_ro460_ri300_s60.sat
 !wheel_profiles/rs200_ro460_ri300_s60_sym.sat
 #  Wheel settings
+!/wheel_settings/
 !wheel_settings/wheel_settings.json
