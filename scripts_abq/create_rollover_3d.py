@@ -76,7 +76,7 @@ def test(the_model):
                             constraintEnforcementMethod=DEFAULT)
                             
     the_model.SurfaceToSurfaceContactStd(name='Int-1', createStepName='Initial', 
-                                         master=rail_inst.surfaces[names.rail_contact_surf],
+                                         master=rail_inst.surfaces[names.rail_full_contact_surf],
                                          slave=wheel_inst.surfaces[names.wheel_contact_surf], 
                                          sliding=FINITE, interactionProperty='IntProp-1')
     

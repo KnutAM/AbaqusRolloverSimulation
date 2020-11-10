@@ -32,7 +32,7 @@ def create(the_model, extend_lengths, Emod=1.0, nu=0.3, thickness=0.01):
     :param Emod: Dummy stiffness - elastic modulus of shadow membrane
     :type Emod: float
     
-    :param nu: Dummy Poisson's ratio of shaddow membrane
+    :param nu: Dummy Poisson's ratio of shadow membrane
     :type nu: float
     
     :param thickness: Thickness of shadow membrane
@@ -74,6 +74,25 @@ def create(the_model, extend_lengths, Emod=1.0, nu=0.3, thickness=0.01):
     
     rail_part.SectionAssignment(region=shadow_region, sectionName=names.rail_shadow_sect)
     
+    # Create a surface with all shadow elements and for the full contact 
+    # surface
+    # Via testing side1Elements seem to be correct. Might be possible to 
+    # verify this by checking for element face normals, should do so if
+    # it becomes a problem. 
+    contact_surf_elems = {'side1Elements': shadow_region.elements}
+    for face in contact_surface.faces:
+        contact_surf_elems = mt.get_elem_by_face_type(face, elems=contact_surf_elems)
+    
+    rail_part.Surface(name=names.rail_full_contact_surf, **contact_surf_elems)
+    
+    # Cannot use the following boolean operation because that resulted 
+    # in illegal double definition of the full contact surface in the 
+    # input file: 
+    #shadow_surface = rail_part.Surface(name=names.rail_shadow_surf, 
+    #                                   side1Elements=shadow_region.elements)
+    
+    #rail_part.SurfaceByBoolean(name=names.rail_full_contact_surf, 
+    #                           surfaces=(contact_surface, shadow_surface))
     
     
 def create_mesh(rail_part, contact_surface, z_shift, shadow_size=None, set_name=None):

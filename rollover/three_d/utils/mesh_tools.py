@@ -23,21 +23,44 @@ def get_source_region(source_face):
 
     """
     
-    f_elems = source_face.getElementFaces()
-    elem_by_face_type = [[] for i in range(6)]
-    for f_elem in f_elems:
-        face_type_ind = int(str(f_elem.face)[4:]) - 1
-        elem_by_face_type[face_type_ind].append(f_elem.getElements()[0])
-    
-    elems = {}
-    for i, e in enumerate(elem_by_face_type):
-        if len(e)>0:
-            elems['face' + str(i+1) + 'Elements'] = mesh.MeshElementArray(elements=e)
+    elems = get_elem_by_face_type(source_face)
             
     source_region = regionToolset.Region(**elems)
     
     return source_region
 
+
+def get_elem_by_face_type(source_face, elems=None):
+    """Get a dictionary with each elements of each face type, e.g. 
+    face1Elements, face2Elements etc. (up to face6Elements) as keys.
+    
+    :param source_face: A meshed face
+    :type source_face: Face (Abaqus object)
+    
+    :param elems: The dictionary to return, will add to it if not None
+    :type elems: dict
+    
+    :returns: Dictionary keys as described above, containing MeshElement
+              objects
+    :rtype: dict
+
+    """
+    
+    if elems is None:
+        elems = {}
+        
+    elem_by_face_type = [[] for i in range(6)]
+    f_elems = source_face.getElementFaces()
+    for f_elem in f_elems:
+        face_type_ind = int(str(f_elem.face)[4:]) - 1
+        elem_by_face_type[face_type_ind].append(f_elem.getElements()[0])
+    
+    for i, e in enumerate(elem_by_face_type):
+        if len(e)>0:
+            elems['face' + str(i+1) + 'Elements'] = mesh.MeshElementArray(elements=e)
+
+    return elems
+    
 
 def create_offset_mesh(the_part, source_face, source_region, offset_distance=20.0):
     """Create an offsetted orphan mesh
