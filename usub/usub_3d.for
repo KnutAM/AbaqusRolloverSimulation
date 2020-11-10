@@ -71,7 +71,7 @@ subroutine uel(rhs,amatrx,svars,energy,ndofel,nrhs,nsvars,&
                props,nprops,coords,mcrd,nnode,u,du,v,a,jtype,time,dtime,&
                kstep,kinc,jelem,params,ndload,jdltyp,adlmag,predef,npredf,&
                lflags,mlvarx,ddlmag,mdload,pnewdt,jprops,njprop,period)
-    use uel_stiff_mod, only : uel_stiffness, allocate_uel_stiffness
+    use uel_stiff_mod, only : uel_stiffness, allocate_uel_stiffness!, print_uel_time, set_uel_time
     use uel_trans_mod, only : get_u_prim, get_f_glob, get_k_glob, get_phi
     use node_id_mod, only: are_uel_coords_obtained, set_uel_coords
     implicit none
@@ -89,11 +89,20 @@ subroutine uel(rhs,amatrx,svars,energy,ndofel,nrhs,nsvars,&
     double precision, allocatable   :: f_glob(:)    ! Element forces in deformed rotated system
     double precision                :: phi_rp(3)    ! Rotation of reference point around x, y, z axis
     
+    integer                         :: time_values(8)
+    double precision                :: run_time
+    
     allocate(f_prim(ndofel), f_glob(ndofel))
     allocate(u_prim(ndofel))
     
-    if (not(allocated(uel_stiffness))) call allocate_uel_stiffness(props(1))
+    
+    if (not(allocated(uel_stiffness))) then
+        !call set_uel_time()
+        call allocate_uel_stiffness(props(1))
+    endif
     if (not(are_uel_coords_obtained())) call set_uel_coords(coords)
+    
+    !call print_uel_time('UEL START TIME = ')
     
     ! Get rotation of reference point
     phi_rp = get_phi(u)
@@ -111,6 +120,7 @@ subroutine uel(rhs,amatrx,svars,energy,ndofel,nrhs,nsvars,&
     ! Rotate stiffness
     call get_k_glob(phi_rp, amatrx)
     
+    !call print_uel_time('UEL END TIME = ')
     
 end subroutine uel
 

@@ -2,8 +2,36 @@ module uel_stiff_mod
 implicit none
     
     double precision, allocatable, save :: uel_stiffness(:,:)
+    double precision, save              :: first_call_time
     
     contains
+    
+subroutine set_uel_time()
+implicit none
+    integer             :: time_values(8)
+    
+    call date_and_time(values=time_values)
+    first_call_time = (time_values(5)*60 + time_values(6))*60 + time_values(7) + time_values(8)/1000.d0
+    write(*,"(A,I02,A,I02,A,I02,A,I03)") 'SET UEL TIME: ', time_values(5), ':', time_values(6), ':', time_values(7), '.', time_values(8)
+
+end subroutine
+
+subroutine print_uel_time(pre_string)
+implicit none
+    character(len=*), optional  :: pre_string
+    integer                     :: time_values(8)
+    double precision            :: run_time
+    
+    call date_and_time(values=time_values)
+    run_time = (time_values(5)*60 + time_values(6))*60 + time_values(7) + time_values(8)/1000.d0
+    if (present(pre_string)) then
+        write(*,"(A,F0.3)") pre_string, run_time - first_call_time
+    else
+        write(*,"(F0.3)") run_time - first_call_time
+    endif
+    
+end subroutine
+    
     
 subroutine allocate_uel_stiffness(scale_factor)
 use filenames_mod, only : uel_stiffness_file_name

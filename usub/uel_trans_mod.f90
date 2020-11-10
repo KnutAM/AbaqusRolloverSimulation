@@ -75,55 +75,51 @@ implicit none
     end subroutine get_f_glob
 
     subroutine get_k_glob(phi_rp, k_glob)
-    use uel_stiff_mod
+    use uel_stiff_mod, only : uel_stiffness!, print_uel_time
     implicit none
-        double precision, intent(in)    :: phi_rp(:)
-        double precision, intent(inout) :: k_glob(:,:)
+        double precision, intent(in)                :: phi_rp(:)
+        double precision, intent(inout)             :: k_glob(:,:)
+        double precision                            :: rot_mat(3,3)         ! Rotation matrix
+        double precision                            :: rot_mat_t(3,3)  ! Transpose rotation matrix
+        integer                                     :: ndof,nnod
+        integer                                     :: i_n,j_n
+        integer                                     :: i_d(3),j_d(3)
         
-        double precision, allocatable   :: exp_rot_mat(:,:)
+        rot_mat = get_rotation_matrix(phi_rp)
+        rot_mat_t = transpose(rot_mat)
+        ndof = size(k_glob,1)
+        nnod = ndof/3
+        ! Leftmost index change fastest, hence we have that in the inner loop
+        do j_n=1,nnod
+            j_d = 3*(j_n-1) + [1,2,3]
+            do i_n=1,nnod
+                i_d = 3*(i_n-1) + [1,2,3]
+                !k_d = i_d
+                !l_d = j_d 
+                !k_glob(i_d,j_d) = matmul(matmul(Q(i_d,i_d), uel_stiffness(k_d,l_d)), transpose(Q(j_d, j_d)))
+                k_glob(i_d,j_d) = matmul(matmul(rot_mat, uel_stiffness(i_d,j_d)), rot_mat_t)
+            enddo
+        enddo
         
-        ! This a very inefficient procedure for large matrices, as exp_rot_mat is (1) diagonal with 
-        ! band width 2 or 3, and (2) contains a repeated pattern. This could therefore be sped up, but 
-        ! on the other hand this might not be performance critical. It should be evaluated though...
-        
-        call get_expanded_rotation_matrix(phi_rp, size(uel_stiffness,1), exp_rot_mat)
-        k_glob = matmul(matmul(exp_rot_mat, uel_stiffness), transpose(exp_rot_mat))
-        
+        ! Reference with full loop (to help understand code):
+        !do i_n=1,nnod
+        !    i_d = 3*(i_n-1) + [1,2,3]
+        !    do j_n=1,nnod
+        !        j_d = 3*(j_n-1) + [1,2,3]
+        !        do k_n=1,nnod
+        !            k_d = 3*(k_n-1) + [1,2,3]
+        !            do l_n=1,nnod
+        !                l_d = 3*(l_n-1) + [1,2,3]
+        !                ! Q(i_d,k_d) = 0 unless i_n=k_n
+        !                ! Q(j_d,l_d) = 0 unless j_n=l_n
+        !                k_glob(i_d,j_d) = k_glob(i_d,j_d) + matmul(matmul(Q(i_d,k_d), uel_stiffness(k_d,l_d)), transpose(Q(l_d, j_d)))
+        !            enddo
+        !        enddo
+        !    enddo
+        !enddo
     end subroutine get_k_glob
 
     ! Internal procedures
-    subroutine get_expanded_rotation_matrix(phi_rp, ndof, exp_rot_mat)
-    implicit none
-        double precision, intent(in)                :: phi_rp(:)        ! Rotation (either 1 (2d) or 3 
-                                                                        !(3d) comp)
-        integer, intent(in)                         :: ndof             ! Number of degrees of freedom
-        double precision, allocatable, intent(out)  :: exp_rot_mat(:,:) ! Expanded rotation matrix 
-                                                                        ! (ndof x ndof)
-                                                                        
-        integer                                     :: k1               ! Iterator
-        double precision, allocatable               :: rot_mat(:,:)     ! Rotation matrix
-        integer                                     :: num_node_dofs    ! Number of dofs per node
-
-        allocate(exp_rot_mat(ndof,ndof))
-        allocate(rot_mat, source=get_rotation_matrix(phi_rp))
-
-        num_node_dofs = size(rot_mat,1)
-
-        if (num_node_dofs == 2) then     ! 2d, rotation handled as special case
-            exp_rot_mat(1:num_node_dofs, 1:num_node_dofs) = rot_mat
-            exp_rot_mat(3,3) = 1.d0
-            do k1=4,ndof,num_node_dofs
-                exp_rot_mat(k1:(k1+num_node_dofs), k1:(k1+num_node_dofs)) = rot_mat
-            enddo
-        else                            ! 3d, no special treatment required
-            do k1=1,ndof,num_node_dofs
-                exp_rot_mat(k1:(k1+num_node_dofs-1), k1:(k1+num_node_dofs-1)) = rot_mat
-            enddo
-        endif
-        
-    end subroutine get_expanded_rotation_matrix
-        
-
     function get_rotation_matrix(phi_rp) result(rot_mat)
     implicit none
         double precision, intent(in)    :: phi_rp(:)        ! Rotation (either 1 (2d) or 3 (3d) comp)
@@ -146,3 +142,54 @@ implicit none
     end function get_rotation_matrix
 
 end module uel_trans_mod
+
+
+! Unused modules, keep for reference and potentially for testing:
+    ! subroutine get_k_glob_slow(phi_rp, k_glob)
+    ! use uel_stiff_mod
+    ! implicit none
+        ! double precision, intent(in)    :: phi_rp(:)
+        ! double precision, intent(inout) :: k_glob(:,:)
+        
+        ! double precision, allocatable   :: exp_rot_mat(:,:)
+        
+        ! ! This a very inefficient procedure for large matrices, as exp_rot_mat is (1) diagonal with 
+        ! ! band width 2 or 3, and (2) contains a repeated pattern. This could therefore be sped up, but 
+        ! ! on the other hand this might not be performance critical. It should be evaluated though...
+        ! call print_uel_time('get_k_glob start = ')
+        ! call get_expanded_rotation_matrix(phi_rp, size(uel_stiffness,1), exp_rot_mat)
+        ! call print_uel_time('get_k_glob middle = ')
+        ! k_glob = matmul(matmul(exp_rot_mat, uel_stiffness), transpose(exp_rot_mat))
+        ! call print_uel_time('get_k_glob end = ')
+    ! end subroutine get_k_glob_slow
+    
+    ! subroutine get_expanded_rotation_matrix(phi_rp, ndof, exp_rot_mat)
+    ! implicit none
+        ! double precision, intent(in)                :: phi_rp(:)        ! Rotation (either 1 (2d) or 3 
+                                                                        ! !(3d) comp)
+        ! integer, intent(in)                         :: ndof             ! Number of degrees of freedom
+        ! double precision, allocatable, intent(out)  :: exp_rot_mat(:,:) ! Expanded rotation matrix 
+                                                                        ! ! (ndof x ndof)
+                                                                        
+        ! integer                                     :: k1               ! Iterator
+        ! double precision, allocatable               :: rot_mat(:,:)     ! Rotation matrix
+        ! integer                                     :: num_node_dofs    ! Number of dofs per node
+
+        ! allocate(exp_rot_mat(ndof,ndof))
+        ! allocate(rot_mat, source=get_rotation_matrix(phi_rp))
+
+        ! num_node_dofs = size(rot_mat,1)
+
+        ! if (num_node_dofs == 2) then     ! 2d, rotation handled as special case
+            ! exp_rot_mat(1:num_node_dofs, 1:num_node_dofs) = rot_mat
+            ! exp_rot_mat(3,3) = 1.d0
+            ! do k1=4,ndof,num_node_dofs
+                ! exp_rot_mat(k1:(k1+num_node_dofs), k1:(k1+num_node_dofs)) = rot_mat
+            ! enddo
+        ! else                            ! 3d, no special treatment required
+            ! do k1=1,ndof,num_node_dofs
+                ! exp_rot_mat(k1:(k1+num_node_dofs-1), k1:(k1+num_node_dofs-1)) = rot_mat
+            ! enddo
+        ! endif
+        
+    ! end subroutine get_expanded_rotation_matrix
