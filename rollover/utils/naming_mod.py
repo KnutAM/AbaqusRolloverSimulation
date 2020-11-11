@@ -37,10 +37,10 @@ rail_shadow_set = 'SHADOW_RAIL'
 rail_shadow_sets = [rail_shadow_set + s for s in ['1', '2']]
 
 # BC and interactions
-fix_rail_bc = 'FIX_BOTTOM'
-wheel_ctrl_bc = 'WHEEL_CTRL'
+rail_rp_bc = 'RAIL_RP'
+rail_bottom_bc = 'FIX_BOTTOM'
+wheel_rp_bc = 'WHEEL_CTRL'
 wheel_vert_load = 'WHEEL_VLOAD'
-contact = 'CONTACT'
 
 # Step naming
 # Formatting of names

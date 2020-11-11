@@ -45,7 +45,7 @@ def main():
     rail_include.from_file(rollover_model, **param['rail'])
     
     # Include the wheel part
-    wheel_include.from_folder(rollover_model, **param['wheel'])
+    wheel_stiffness = wheel_include.from_folder(rollover_model, **param['wheel'])
                   
     # Setup contact
     contact.setup(rollover_model, **param['contact'])
@@ -53,45 +53,11 @@ def main():
     # Setup loading steps
     loading.setup(rollover_model, **param['loading'])
     
-    test(rollover_model)
-    
     # Add wheel uel to input file
-    wheel_include.add_wheel_super_element_to_inp(rollover_model)
+    wheel_include.add_wheel_super_element_to_inp(rollover_model, wheel_stiffness)
     
     mdb.saveAs(pathName=names.model)
     
-    
-def test(the_model):
-    assy = the_model.rootAssembly
-    rail_inst = assy.instances[names.rail_inst]
-    wheel_inst = assy.instances[names.wheel_inst]
-    
-    if names.rail_rp_set in assy.sets.keys():
-        the_model.DisplacementBC(name='BC-3', createStepName='Initial', 
-                                 u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET, 
-                                 region=assy.sets[names.rail_rp_set])
-        bottom_u3=UNSET
-    else:
-        bottom_u3=0.0
-    
-    the_model.StaticStep(name='Step-1', previous='Initial')
-    the_model.DisplacementBC(name='BC-1', createStepName='Initial', 
-                             region=rail_inst.sets[names.rail_bottom_nodes],
-                             u1=0.0, u2=0.0, u3=bottom_u3)
-    
-    the_model.DisplacementBC(name='BC-2', createStepName='Step-1', 
-                             region=wheel_inst.sets[names.wheel_rp_set], 
-                             u1=0.0, u2=-0.2, u3=0.0, ur1=0.0, ur2=0.0, ur3=0.0)
-    
-    int_prop = the_model.ContactProperty('IntProp-1')
-    int_prop.NormalBehavior(pressureOverclosure=LINEAR, contactStiffness=1000000.0, 
-                            constraintEnforcementMethod=DEFAULT)
-                            
-    the_model.SurfaceToSurfaceContactStd(name='Int-1', createStepName='Initial', 
-                                         master=rail_inst.surfaces[names.rail_full_contact_surf],
-                                         slave=wheel_inst.surfaces[names.wheel_contact_surf], 
-                                         sliding=FINITE, interactionProperty='IntProp-1')
-    
-    
+        
 if __name__ == '__main__':
     main()
