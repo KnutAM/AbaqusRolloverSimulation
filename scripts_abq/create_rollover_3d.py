@@ -38,6 +38,9 @@ def main():
     # Read in rollover parameters
     param = json_io.read(names.rollover_settings_file)
     
+    if not check_input(param):
+        return
+    
     # Create the model
     rollover_model = apt.create_model(names.model)
     # rollover_model = mdb.models[names.model]
@@ -58,6 +61,43 @@ def main():
     
     mdb.saveAs(pathName=names.model)
     
+       
+def check_input(param):
+    
+    def get_arguments(function, num_first=0):
+        all_arguments = function.__code__.co_varnames[num_first:]
+        num_defaults = len(function.__defaults__)
+        num_mandatory = len(all_arguments) - num_defaults
         
+        mandatory_arguments = [arg for i, arg in enumerate(all_arguments) if i<num_mandatory]
+        
+        return all_arguments, mandatory_arguments
+
+    def check_param(param, function, num_first=0):
+        failed = False
+        name = function.__name__
+        all, mandatory = get_arguments(function, num_first)
+        for marg in mandatory:
+            if marg not in param:
+                print('Function "' + name + '" requires argument "' + marg + '"')
+                failed = True
+        for par in param:
+            if par not in all:
+                print('Function ' + name + ' does not have argument "' + par + '"')
+                failed = True
+        
+        return failed
+        
+    rail_ok = check_param(param['rail'], rail_include.from_file, num_first=1)
+    wheel_ok = check_param(param['wheel'], wheel_include.from_folder, num_first=1)
+    contact_ok = check_param(param['contact'], contact.setup, num_first=1)
+    loading_ok = check_param(param['loading'], loading.setup, num_first=1)
+    
+    if not all([rail_ok, wheel_ok, contact_ok, loading_ok]):
+        return False
+    else:
+        return True
+        
+    
 if __name__ == '__main__':
     main()
