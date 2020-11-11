@@ -13,10 +13,9 @@ from rollover.utils import naming_mod as names
 from rollover.three_d.utils import mesh_tools as mt
 
 
-def create(the_model, extend_lengths, Emod=1.0, nu=0.3, thickness=0.01):
+def create(the_model, extend_lengths, Emod=1.0, nu=0.3, thickness=1.e-9):
     """Create a dummy region by extending the rail at each side. Assign 
-    it a membrane section with thickness 0.01 and elastic material with
-    E=1.0 and nu=0.3.
+    it a membrane section with parameters, thickness 0.01, Emod, and nu.
     
     .. note:: Requires that the meshed part, 
               the_model.parts[names.rail_part] contains a surface named 
@@ -45,9 +44,9 @@ def create(the_model, extend_lengths, Emod=1.0, nu=0.3, thickness=0.01):
     rail_part = the_model.parts[names.rail_part]
     
     # Create shadow section
-    the_model.Material(name='ShadowElastic')
-    the_model.materials['ShadowElastic'].Elastic(table=((Emod, nu), ))
-    the_model.MembraneSection(name=names.rail_shadow_sect, material='ShadowElastic', 
+    the_model.Material(name='RailDummyElastic')
+    the_model.materials['RailDummyElastic'].Elastic(table=((Emod, nu), ))
+    the_model.MembraneSection(name=names.rail_shadow_sect, material='RailDummyElastic', 
                               thickness=thickness)
     
     contact_surface = rail_part.surfaces[names.rail_contact_surf]

@@ -65,10 +65,10 @@ def from_folder(the_model, wheel_folder, wheel_translation):
     
     # Add a zero stiffness section and very thin section.
     region = regionToolset.Region(elements=wheel_part.elements)
-    the_model.Material(name='ZeroElastic')
-    the_model.materials['ZeroElastic'].Elastic(table=((1.e-3, 0.3)    , ))
+    the_model.Material(name='WheelDummyElastic')
+    the_model.materials['WheelDummyElastic'].Elastic(table=((1.0, 0.3)    , ))
     the_model.MembraneSection(name=names.wheel_dummy_contact_sect, 
-                              material='ZeroElastic', thickness=1.e-9)
+                              material='WheelDummyElastic', thickness=1.e-9)
     wheel_part.SectionAssignment(region=region, sectionName=names.wheel_dummy_contact_sect)
     
     
