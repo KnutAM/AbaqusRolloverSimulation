@@ -34,23 +34,25 @@ from rollover.three_d.wheel import include as wheel_include
 
 def main():
     # Read in rollover parameters
-    rollover_param = json_io.read(names.rollover_settings_file)
+    param = json_io.read(names.rollover_settings_file)
     
     # Create the model
     rollover_model = apt.create_model(names.model)
     # rollover_model = mdb.models[names.model]
     # Include the rail part
-    rail_include.from_file(rollover_model, rollover_param['rail_model_file'], 
-                           rollover_param['shadow_extents'])
+    rail_include.from_file(rollover_model, param['rail_model_file'], 
+                           param['shadow_extents'], param['use_rail_rp'])
     
     # Include the wheel part
-    wheel_include.from_folder(rollover_model, rollover_param['wheel_folder'],
-                              rollover_param['wheel_translation'])
+    wheel_include.from_folder(rollover_model, param['wheel_folder'],
+                              param['wheel_translation'])
                               
     test(rollover_model)
     
     # Add wheel uel to input file
     wheel_include.add_wheel_super_element_to_inp(rollover_model, wheel_stiffness=210.e3)
+    
+    mdb.saveAs(pathName=names.model)
     
     
 def test(the_model):
@@ -58,14 +60,18 @@ def test(the_model):
     rail_inst = assy.instances[names.rail_inst]
     wheel_inst = assy.instances[names.wheel_inst]
     
-    the_model.DisplacementBC(name='BC-3', createStepName='Initial', 
-                             u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET, 
-                             region=assy.sets[names.rail_rp_set])
+    if names.rail_rp_set in assy.sets.keys():
+        the_model.DisplacementBC(name='BC-3', createStepName='Initial', 
+                                 u1=SET, u2=SET, u3=SET, ur1=SET, ur2=SET, ur3=SET, 
+                                 region=assy.sets[names.rail_rp_set])
+        bottom_u3=UNSET
+    else:
+        bottom_u3=0.0
     
     the_model.StaticStep(name='Step-1', previous='Initial')
     the_model.DisplacementBC(name='BC-1', createStepName='Initial', 
                              region=rail_inst.sets[names.rail_bottom_nodes],
-                             u1=0.0, u2=0.0, u3=UNSET)
+                             u1=0.0, u2=0.0, u3=bottom_u3)
     
     the_model.DisplacementBC(name='BC-2', createStepName='Step-1', 
                              region=wheel_inst.sets[names.wheel_rp_set], 
@@ -79,8 +85,6 @@ def test(the_model):
                                          master=rail_inst.surfaces[names.rail_full_contact_surf],
                                          slave=wheel_inst.surfaces[names.wheel_contact_surf], 
                                          sliding=FINITE, interactionProperty='IntProp-1')
-    
-    mdb.saveAs(pathName=names.model)
     
     
 if __name__ == '__main__':

@@ -45,7 +45,7 @@ import regionToolset, mesh
 
 from rollover.utils import naming_mod as names
 
-def create(the_model, rail_length):
+def create(the_model, rail_length, use_rail_rp):
     """Add the rail constraint sets and equations. 
     
     .. note:: `the_model` must fulfill the following requirements
@@ -69,6 +69,10 @@ def create(the_model, rail_length):
     :param rail_length: The length of the rail (z-dimension)
     :type rail_length: float
     
+    :param use_rail_rp: Should a reference point for the rail be used 
+                        and included in the constraint equations?
+    :type use_rail_rp: bool
+    
     :returns: None
     :rtype: None
 
@@ -76,19 +80,26 @@ def create(the_model, rail_length):
     
     rail_part = the_model.parts[names.rail_part]
     
-    bc_sets, br_sets = create_sets(rail_part, names.rail_bottom_nodes)
     sc_sets, sr_sets = create_sets(rail_part, names.rail_side_sets[0], names.rail_side_sets[1])
     shc_sets1, shr_sets1 = create_sets(rail_part, names.rail_shadow_sets[0], names.rail_contact_surf)
     shc_sets2, shr_sets2 = create_sets(rail_part, names.rail_shadow_sets[1], names.rail_contact_surf)
     
-    # From hereon an instance is also required!
+    constrained_sets_collection = [sc_sets, shc_sets1, shc_sets2]
+    retained_sets_collection = [sr_sets, shr_sets1, shr_sets2]
     
-    rp_coord = add_ctrl_point(the_model, y_coord=0.0)
+    if use_rail_rp:
+        rp_coord = add_ctrl_point(the_model, y_coord=0.0)
+        rail_rp_set = names.rail_rp_set
+        bc_sets, br_sets = create_sets(rail_part, names.rail_bottom_nodes)
+        constrained_sets_collection.append(bc_sets)
+        retained_sets_collection.append(br_sets)
+    else:
+        rail_rp_set = None
+        rp_coord = None
     
-    for c_sets, r_sets in zip([bc_sets, sc_sets, shc_sets1, shc_sets2], 
-                              [br_sets, sr_sets, shr_sets1, shr_sets2]):
+    for c_sets, r_sets in zip(constrained_sets_collection, retained_sets_collection):
         for c_set, r_set in zip(c_sets, r_sets):
-            add(the_model, rail_length, c_set, names.rail_rp_set, rp_coord, r_set)
+            add(the_model, rail_length, c_set, rail_rp_set, rp_coord, r_set)
     
 
 def add_ctrl_point(the_model, y_coord):
@@ -121,7 +132,7 @@ def add_ctrl_point(the_model, y_coord):
     return rp_coord
     
 
-def add(the_model, rail_length, c_set_name, rp_set_name, rp_coord, r_set_name=None):
+def add(the_model, rail_length, c_set_name, rp_set_name=None, rp_coord=None, r_set_name=None):
     """Add the constraints to the node in the set c_set_name in the part rail. The constraints are 
     added on the model level. This function deducts the correct assembly set name using 
     names.rail_inst in combination with the set names given as input. The c_set_name and r_set_name
@@ -160,7 +171,11 @@ def add(the_model, rail_length, c_set_name, rp_set_name, rp_coord, r_set_name=No
     c_node = rail_part.sets[c_set_name].nodes[0]
     xc, yc, zc = c_node.coordinates
     
-    xrp, yrp, zrp = rp_coord
+    if rp_set_name is not None:
+        xrp, yrp, zrp = rp_coord
+        use_rp = True
+    else:
+        use_rp = False
     
     if r_set_name is not None:
         r_node = rail_part.sets[r_set_name].nodes[0]
@@ -178,7 +193,7 @@ def add(the_model, rail_length, c_set_name, rp_set_name, rp_coord, r_set_name=No
         
         # Add bending/extension constraints if z-dof
         # Note that dz / rail_length = +/- 1 except at bottom (when r_set_name is None)
-        if dof == 3:    # z-dof. 
+        if dof == 3 and use_rp:    # z-dof. 
             # Extension
             dz = zc - zr
             terms.append( (dz / rail_length, rp_set_name, dof) )

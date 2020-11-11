@@ -2,5 +2,6 @@
     "rail_model_file": "rail_example.cae",
     "shadow_extents": [20, 30],
     "wheel_folder": "C:/MyWork/ProjectsWorkFolders/MU34/Project_2020_C_RolloverSimulation/AbaqusRolloverSimulation/data/wheels/wheel_example",
-    "wheel_translation": [0.0, 490, 0.0]
+    "wheel_translation": [0.0, 490, 0.0],
+    "use_rail_rp": false
 }

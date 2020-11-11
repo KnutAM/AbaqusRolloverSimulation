@@ -12,7 +12,7 @@ from rollover.three_d.rail import shadow_regions as rail_shadow_regions
 from rollover.three_d.rail import constraints as rail_constraints
 
 
-def from_file(the_model, rail_model_file, shadow_extents):
+def from_file(the_model, rail_model_file, shadow_extents, use_rail_rp):
     """Include a previously created rail part in the given model.
     Shadow regions and constraints are added, and an instance of the 
     rail part is 
@@ -30,6 +30,10 @@ def from_file(the_model, rail_model_file, shadow_extents):
                            :py:func:`rollover.three_d.rail.shadow_regions.create`
     :type shadow_extents: list[ float ] (len=2)
     
+    :param use_rail_rp: Should a reference point for the rail be used 
+                        and included in the constraint equations?
+    :type use_rail_rp: bool
+    
     :returns: None
     :rtype: None
 
@@ -43,7 +47,7 @@ def from_file(the_model, rail_model_file, shadow_extents):
     rail_shadow_regions.create(the_model, shadow_extents)
     
     the_model.rootAssembly.Instance(name=names.rail_inst, part=rail_part, dependent=ON)
-    rail_constraints.create(the_model, rail_length)
+    rail_constraints.create(the_model, rail_length, use_rail_rp)
     
     
 def get_rail_z_extent(rail_part):
