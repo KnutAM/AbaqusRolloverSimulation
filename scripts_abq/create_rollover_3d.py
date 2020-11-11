@@ -80,5 +80,8 @@ def test(the_model):
                                          slave=wheel_inst.surfaces[names.wheel_contact_surf], 
                                          sliding=FINITE, interactionProperty='IntProp-1')
     
+    mdb.saveAs(pathName=names.model)
+    
+    
 if __name__ == '__main__':
     main()
