@@ -13,33 +13,40 @@ import regionToolset, mesh
 from rollover.utils import naming_mod as names
 from rollover.utils import inp_file_edit as inp_edit
 
+wheel_stiffness = None
 
-def from_folder(the_model, wheel_folder, wheel_translation):
+
+def from_folder(the_model, folder, translation, stiffness=210.e3):
     """Include a wheel super element from a folder.
     
     :param the_model: The full model 
     :type the_model: Model object (Abaqus)
     
-    :param wheel_folder: The path to the folder containing the wheel 
-                         super element. The folder must contain
-                         
-                         - names.uel_coordinates_file
-                         - names.uel_elements_file
-                         - names.uel_stiffness_file
-                         
-    :type wheel_folder: str
+    :param folder: The path to the folder containing the wheel super 
+                   element. The folder must contain
+                   
+                   - names.uel_coordinates_file
+                   - names.uel_elements_file
+                   - names.uel_stiffness_file
+                   
+    :type folder: str
     
-    :param wheel_translation: Translation on the wheel part when adding
-                              the instance to the assembly.
-    :type wheel_translation: list[ float ] (len=3)
+    :param translation: Translation on the wheel part when adding the 
+                        instance to the assembly.
+    :type translation: list[ float ] (len=3)
+    
+    :param stiffness: The wheel's modulus of elasticity
+    :type stiffness: float
     
     :returns: None
     :rtype: None
     
     """
     
-    coords = np.load(wheel_folder + '/' + names.uel_coordinates_file)
-    element_connectivity = np.load(wheel_folder + '/' + names.uel_elements_file)
+    wheel_stiffness = stiffness
+    
+    coords = np.load(folder + '/' + names.uel_coordinates_file)
+    element_connectivity = np.load(folder + '/' + names.uel_elements_file)
     
     wheel_part = the_model.Part(name=names.wheel_part, dimensionality=THREE_D, 
                                 type=DEFORMABLE_BODY)
@@ -75,12 +82,12 @@ def from_folder(the_model, wheel_folder, wheel_translation):
     assy = the_model.rootAssembly
     assy.Instance(name=names.wheel_inst, part=wheel_part, dependent=ON)
     
-    assy.translate(instanceList=(names.wheel_inst, ), vector=wheel_translation)
+    assy.translate(instanceList=(names.wheel_inst, ), vector=translation)
     
-    shutil.copy(wheel_folder + '/' + names.uel_stiffness_file, '.')
+    shutil.copy(folder + '/' + names.uel_stiffness_file, '.')
     
 
-def add_wheel_super_element_to_inp(the_model, wheel_stiffness):
+def add_wheel_super_element_to_inp(the_model):
     
     wheel_part = the_model.parts[names.wheel_part]
     
@@ -100,7 +107,7 @@ def add_wheel_super_element_to_inp(the_model, wheel_stiffness):
     inp_edit.add_at_end_of_cat(kwb, get_inp_str_element_connectivity(wheel_part), 
                                category='Part', name=names.wheel_part)
     
-    inp_edit.add_at_end_of_cat(kwb, get_inp_str_element_property(wheel_stiffness), 
+    inp_edit.add_at_end_of_cat(kwb, get_inp_str_element_property(), 
                                category='Part', name=names.wheel_part)
     
     
@@ -163,7 +170,7 @@ def get_inp_str_element_connectivity(wheel_part):
     return inp_str[:-2] # Remove last comma and space
     
 
-def get_inp_str_element_property(wheel_stiffness):
+def get_inp_str_element_property():
     inp_str = '*UEL PROPERTY, ELSET=WHEEL_SUPER_ELEMENT\n'
     inp_str = inp_str + str(wheel_stiffness)
     return inp_str

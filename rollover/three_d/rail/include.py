@@ -12,7 +12,7 @@ from rollover.three_d.rail import shadow_regions as rail_shadow_regions
 from rollover.three_d.rail import constraints as rail_constraints
 
 
-def from_file(the_model, rail_model_file, shadow_extents, use_rail_rp):
+def from_file(the_model, model_file, shadow_extents, use_rail_rp=False):
     """Include a previously created rail part in the given model.
     Shadow regions and constraints are added, and an instance of the 
     rail part is 
@@ -20,10 +20,10 @@ def from_file(the_model, rail_model_file, shadow_extents, use_rail_rp):
     :param the_model: The full model 
     :type the_model: Model object (Abaqus)
     
-    :param rail_model_file: The path to the model database (.cae file)
-                            containing a model: names.rail_model that
-                            again contains the part names.rail_part. 
-    :type rail_model_file: str
+    :param model_file: The path to the model database (.cae file)
+                       containing a model: names.rail_model that again 
+                       contains the part names.rail_part. 
+    :type model_file: str
     
     :param shadow_extents: How far to extend the shadow mesh in each 
                            direction. See `extend_lengths` in 
@@ -39,7 +39,7 @@ def from_file(the_model, rail_model_file, shadow_extents, use_rail_rp):
 
     """
     
-    get_part_from_file(the_model, rail_model_file)
+    get_part_from_file(the_model, model_file)
     
     rail_part = the_model.parts[names.rail_part]
     rail_length = get_rail_z_extent(rail_part)
@@ -66,24 +66,24 @@ def get_rail_z_extent(rail_part):
     return rail_part_bb['high'][2] - rail_part_bb['low'][2]
     
     
-def get_part_from_file(the_model, rail_model_file):
+def get_part_from_file(the_model, model_file):
     """Add the rail part from the rail_model_file, along with materials
     and sections, to the_model. 
     
     :param the_model: The full model 
     :type the_model: Model object (Abaqus)
     
-    :param rail_model_file: The path to the model database (.cae file)
-                            containing a model: names.rail_model that
-                            again contains the part names.rail_part. 
-    :type rail_model_file: str
+    :param model_file: The path to the model database (.cae file)
+                       containing a model: names.rail_model that again 
+                       contains the part names.rail_part. 
+    :type model_file: str
     
     :returns: None
     :rtype: None
 
     """
     
-    mdb.openAuxMdb(pathName=rail_model_file)
+    mdb.openAuxMdb(pathName=model_file)
     mdb.copyAuxMdbModel(fromName=names.rail_model, toName=names.rail_model)
     mdb.closeAuxMdb()
     source_rail_model = mdb.models[names.rail_model]

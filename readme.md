@@ -1,5 +1,3 @@
-[//]: # "To preview markdown file in Emacs type C-c C-c p"
-
 # Abaqus Rollover Simulation
 Python library to setup rollover simulation in Abaqus for CHARMEC
 
@@ -25,10 +23,31 @@ The following top-level folders and file are provided
 ## Running for the first time 
 
 ### Requirements
-* Abaqus Standard setup to compile fortran user subroutines. Note special requirements below if ifort version higher than 16
-* Python 2.7 or higher
+* Abaqus Standard setup to compile fortran user subroutines. Note special requirements below if the `ifort` version higher than 16.
+* Python 2.7 or higher.
 
-### Steps
+### Input data
+The `json` format is used for the input data. Mostly, the files should be written with a similar formatting as for a Python dictionary. However, there are a few important differences:
+* Booleans are written `true` and `false`, as opposed to `True` and `False`.
+* All strings (keywords and variables) must be enclosed in double quotes (single not accepted).
+* Exponential formats must be written `A.BeC` (as opposed to `A.eC`) where `A`, `B`, and `C` are integers. E.g. `1.0e-3` is ok, but not `1.e-3`.
+* Python's `None` is written as `null`.
+
+To ensure the correct data format, one can write the following code in Python to generate the `json` file:
+```python
+import json
+filename = 'example.json'	# Give the filename that you want to save to
+
+# Define the parameters you want to save as a Python dictionary
+param = {'key1': [1,2,3],	# Example of list data
+         'key2': 'this is a string example data' # Example of string data
+        }
+with open(filename, 'w') as fid:
+    # Using indent=1 for nicer output, but not required
+    json.dump(param, fid, indent=1)	
+```
+
+### Steps (OUT OF DATE)
 1. Create a new file in the `src/` directory named `user_settings.py` and copy the contents from `user_settings_example.py`
 2. Run the python script `src/wheel_super_element/create_super_wheel.py`
 3. This will a folder with files `uel.for`, `uel_coords.npy` and `uel_info.json` in the `super_wheels` folder 

@@ -31,6 +31,8 @@ from rollover.utils import naming_mod as names
 from rollover.utils import abaqus_python_tools as apt
 from rollover.three_d.rail import include as rail_include
 from rollover.three_d.wheel import include as wheel_include
+from rollover.three_d.utils import contact
+from rollover.three_d.utils import loading
 
 def main():
     # Read in rollover parameters
@@ -40,17 +42,21 @@ def main():
     rollover_model = apt.create_model(names.model)
     # rollover_model = mdb.models[names.model]
     # Include the rail part
-    rail_include.from_file(rollover_model, param['rail_model_file'], 
-                           param['shadow_extents'], param['use_rail_rp'])
+    rail_include.from_file(rollover_model, **param['rail'])
     
     # Include the wheel part
-    wheel_include.from_folder(rollover_model, param['wheel_folder'],
-                              param['wheel_translation'])
-                              
+    wheel_include.from_folder(rollover_model, **param['wheel'])
+                  
+    # Setup contact
+    contact.setup(rollover_model, **param['contact'])
+    
+    # Setup loading steps
+    loading.setup(rollover_model, **param['loading'])
+    
     test(rollover_model)
     
     # Add wheel uel to input file
-    wheel_include.add_wheel_super_element_to_inp(rollover_model, wheel_stiffness=210.e3)
+    wheel_include.add_wheel_super_element_to_inp(rollover_model)
     
     mdb.saveAs(pathName=names.model)
     
