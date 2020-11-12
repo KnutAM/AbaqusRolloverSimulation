@@ -49,7 +49,7 @@ def main():
     
     # Include the wheel part
     wheel_stiffness = wheel_include.from_folder(rollover_model, **param['wheel'])
-                  
+    
     # Setup contact
     contact.setup(rollover_model, **param['contact'])
     
@@ -59,41 +59,51 @@ def main():
     # Add wheel uel to input file
     wheel_include.add_wheel_super_element_to_inp(rollover_model, wheel_stiffness)
     
+    write_rp_coord(param['wheel']['translation'], [0.0, 0.0, 0.0])
+    
     mdb.saveAs(pathName=names.model)
+    
+
+def write_rp_coord(wheel_rp_coord, rail_rp_coord):
+    with open(names.rp_coord_file, 'w') as fid:
+        fid.write(('%25.15e'*3 + '\n') % tuple(wheel_rp_coord))
+        fid.write(('%25.15e'*3 + '\n') % tuple(rail_rp_coord))
     
        
 def check_input(param):
     
     def get_arguments(function, num_first=0):
-        all_arguments = function.__code__.co_varnames[num_first:]
-        num_defaults = len(function.__defaults__)
-        num_mandatory = len(all_arguments) - num_defaults
+        num_all = function.__code__.co_argcount
+        all_arg = function.__code__.co_varnames[num_first:num_all]
+        num_def = len(function.__defaults__)
+        num_man = len(all_arg) - num_def
+        man_arg = all_arg[:num_man]
         
-        mandatory_arguments = [arg for i, arg in enumerate(all_arguments) if i<num_mandatory]
-        
-        return all_arguments, mandatory_arguments
+        return all_arg, man_arg
 
-    def check_param(param, function, num_first=0):
+    def check_param(params, function, num_first=0):
         failed = False
         name = function.__name__
-        all, mandatory = get_arguments(function, num_first)
-        for marg in mandatory:
-            if marg not in param:
+        all_arg, man_arg = get_arguments(function, num_first)
+        for marg in man_arg:
+            if marg not in params:
                 print('Function "' + name + '" requires argument "' + marg + '"')
                 failed = True
-        for par in param:
-            if par not in all:
-                print('Function ' + name + ' does not have argument "' + par + '"')
+        for param in params:
+            if param not in all_arg:
+                print('Function ' + name + ' does not have argument "' + param + '"')
                 failed = True
         
         return failed
         
-    rail_ok = check_param(param['rail'], rail_include.from_file, num_first=1)
-    wheel_ok = check_param(param['wheel'], wheel_include.from_folder, num_first=1)
-    contact_ok = check_param(param['contact'], contact.setup, num_first=1)
-    loading_ok = check_param(param['loading'], loading.setup, num_first=1)
     
-    if not all([rail_ok, wheel_ok, contact_ok, loading_ok]):
+    not_ok_list = []
+    not_ok_list.append(check_param(param['rail'], rail_include.from_file, num_first=1))
+    not_ok_list.append(check_param(param['wheel'], wheel_include.from_folder, num_first=1))
+    not_ok_list.append(check_param(param['contact'], contact.setup, num_first=1))
+    not_ok_list.append(check_param(param['loading'], loading.setup, num_first=1))
+    
+    if any(not_ok_list):
         return False
     else:
         return True

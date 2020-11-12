@@ -50,8 +50,9 @@ def create(the_model, extend_lengths, Emod=1.0, nu=0.3, thickness=1.e-9):
                               thickness=thickness)
     
     contact_surface = rail_part.surfaces[names.rail_contact_surf]
+    contact_nodes = contact_surface.nodes
     
-    cs_bounding_box = contact_surface.nodes.getBoundingBox()
+    cs_bounding_box = contact_nodes.getBoundingBox()
     rail_length = cs_bounding_box['high'][2] - cs_bounding_box['low'][2]
     
     create_mesh(rail_part, contact_surface, z_shift=rail_length, 
@@ -72,6 +73,9 @@ def create(the_model, extend_lengths, Emod=1.0, nu=0.3, thickness=1.e-9):
     rail_part.setElementType(regions=(shadow_region.elements, ), elemTypes=membrane_elem_types)
     
     rail_part.SectionAssignment(region=shadow_region, sectionName=names.rail_shadow_sect)
+    
+    # Create the rail contact node set
+    rail_part.Set(name=names.rail_contact_nodes, nodes=contact_nodes)
     
     # Create a surface with all shadow elements and for the full contact 
     # surface
