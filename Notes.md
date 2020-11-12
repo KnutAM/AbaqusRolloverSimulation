@@ -1,3 +1,9 @@
+## Speed-up ideas
+
+1. ~~Use smaller wheel, and reposition during the rollover (this should reduce the connectivity in the total stiffness matrix)~~: Does not seem to give any significant speedup, when trying to use as indentation test.  
+2. Use a substructure for parts of the rail not expected to behave plastically. While this will increase the density, it will also reduce the constraint equations because parts of the rail containing constraints will be reduced. Alternatively, an elastic foundation boundary condition?
+3. ~~Use quasi-newton method to avoid recalculation of stiffness matrix~~ (Is not faster, could potentially work better if Lagrange multipliers are used for contact enforcement)
+
 ## Contact using substructure/uel:
 
 ### Primary/secondary
