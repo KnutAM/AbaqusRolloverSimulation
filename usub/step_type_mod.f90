@@ -7,6 +7,7 @@ implicit none
     public  :: get_step_type
     public  :: get_cycle_nr
     public  :: STEP_TYPE_INITIAL_DEPRESSION
+    public  :: STEP_TYPE_INITIAL_LOAD
     public  :: STEP_TYPE_ROLLING
     public  :: STEP_TYPE_MOVE_BACK
     public  :: STEP_TYPE_REAPPLY_LOAD
@@ -14,13 +15,14 @@ implicit none
     
     ! Constants for the get_step_type function:
     integer, parameter  :: STEP_TYPE_INITIAL_DEPRESSION = -1
+    integer, parameter  :: STEP_TYPE_INITIAL_LOAD = -2
     integer, parameter  :: STEP_TYPE_ROLLING = 0
     integer, parameter  :: STEP_TYPE_MOVE_BACK = 1
     integer, parameter  :: STEP_TYPE_REAPPLY_LOAD = 2
     integer, parameter  :: STEP_TYPE_RELEASE_NODES = 3
     
     ! Internal parameters
-    integer, parameter  :: N_STEP_INITIAL = 2   ! Number of initial steps including first rollover
+    integer, parameter  :: N_STEP_INITIAL = 3   ! Number of initial steps including first rollover
     integer, parameter  :: N_STEP_PER_CYCLE = 4 ! Number of steps per rollover cycle
 	
     contains
@@ -38,9 +40,9 @@ implicit none
         endif
         
         ! Check result
-        if (not(any(step_type == [STEP_TYPE_INITIAL_DEPRESSION, STEP_TYPE_ROLLING, &
-                                  STEP_TYPE_MOVE_BACK, STEP_TYPE_REAPPLY_LOAD, &
-                                  STEP_TYPE_RELEASE_NODES]))) then
+        if (not(any(step_type == [STEP_TYPE_INITIAL_DEPRESSION, STEP_TYPE_INITIAL_LOAD,&
+                                  STEP_TYPE_ROLLING, STEP_TYPE_MOVE_BACK,&
+                                  STEP_TYPE_REAPPLY_LOAD, STEP_TYPE_RELEASE_NODES]))) then
             write(*,"(A,I0,A)") 'Step type = ', step_type, ' not recognized'
             write(*,*) 'usub_utils_mod, get_step_type'
             call xit()
@@ -52,12 +54,14 @@ implicit none
     ! Determine the cycle number for the given step number
     implicit none
         integer, intent(in)         :: kstep
+        integer                     :: kstep_red    
         integer                     :: cycle_nr
         
         if (kstep < N_STEP_INITIAL) then
             cycle_nr = 0
         else
-            cycle_nr = kstep - mod(kstep-N_STEP_INITIAL, N_STEP_PER_CYCLE) + 1
+            kstep_red = kstep - N_STEP_INITIAL
+            cycle_nr = (kstep_red - mod(kstep_red, N_STEP_PER_CYCLE))/N_STEP_PER_CYCLE + 1
         endif
         
     end function

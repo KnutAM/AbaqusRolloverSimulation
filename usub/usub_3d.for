@@ -173,12 +173,10 @@ end subroutine
 subroutine disp(u,kstep,kinc,time,node,noel,jdof,coords)
 use abaqus_utils_mod
 use usub_utils_mod, only : write_node_info
-use step_type_mod, only : get_step_type, get_cycle_nr, STEP_TYPE_INITIAL_DEPRESSION, &
-                          STEP_TYPE_ROLLING, STEP_TYPE_MOVE_BACK, STEP_TYPE_REAPPLY_LOAD, &
-                          STEP_TYPE_RELEASE_NODES
-use node_id_mod, only : get_node_type, NODE_TYPE_UNKNOWN, NODE_TYPE_WHEEL_RP, NODE_TYPE_RAIL_RP, &
-                        NODE_TYPE_WHEEL_CONTACT
+use step_type_mod, only : get_step_type, get_cycle_nr
+use node_id_mod, only : get_node_type, NODE_TYPE_WHEEL_RP, NODE_TYPE_RAIL_RP, NODE_TYPE_WHEEL_CONTACT
 use disp_mod, only : get_bc_rail_rp, get_bc_wheel_rp, get_bc_wheel_contact
+use load_param_mod, only : is_load_param_read, read_load_params, is_updated, update_cycle
 implicit none
     ! Interface variables for disp subroutine
     double precision    :: u(3)         ! u(1) is total value of dof (except rotation where the 
@@ -200,10 +198,19 @@ implicit none
     integer             :: node_type    ! 1: Reference point, 2: Contact node
     double precision    :: bc_val       ! Value from bc file    
     
-    step_type = get_step_type(kstep)
-    cycle_nr = get_cycle_nr(kstep)
-    call get_node_type(node_label=node, node_coords=coords, node_type=node_type)
+    write(*,"(A, I4, I4, I6, I2)") 'DISP: step, inc, node, jdof = ', kstep, kinc, node, jdof
     
+    if (.not.is_load_param_read()) then
+        call read_load_params()
+    endif
+    
+    cycle_nr = get_cycle_nr(kstep)
+    if (.not.is_updated(cycle_nr)) then
+        call update_cycle(cycle_nr)
+    endif
+    
+    step_type = get_step_type(kstep)
+    call get_node_type(node_label=node, node_coords=coords, node_type=node_type)
     if (node_type == NODE_TYPE_RAIL_RP) then
         call get_bc_rail_rp(step_type, cycle_nr, time, jdof, bc_val)
     elseif (node_type == NODE_TYPE_WHEEL_RP) then

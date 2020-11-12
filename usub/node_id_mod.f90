@@ -297,11 +297,24 @@ implicit none
         node_type = NODE_TYPE_UNKNOWN
         
         if (allocated(wheel_rp_node_label)) then
-            if (node_label == wheel_rp_node_label) node_type = NODE_TYPE_WHEEL_RP
-        elseif (allocated(wheel_rp_node_label)) then
-            if (node_label == rail_rp_node_label) node_type = NODE_TYPE_RAIL_RP
-        elseif (is_mesh_info_setup()) then
-            if (all(get_inds(node_label) > -1)) node_type = NODE_TYPE_WHEEL_CONTACT
+            if (node_label == wheel_rp_node_label) then
+                node_type = NODE_TYPE_WHEEL_RP
+                return
+            endif
+        endif
+        
+        if (allocated(rail_rp_node_label)) then
+            if (node_label == rail_rp_node_label) then
+                node_type = NODE_TYPE_RAIL_RP
+                return
+            endif
+        endif
+        
+        if (is_mesh_info_setup()) then
+            if (all(get_inds(node_label) > -1)) then
+                node_type = NODE_TYPE_WHEEL_CONTACT
+                return
+            endif
         endif
         
     end function get_node_type_by_label

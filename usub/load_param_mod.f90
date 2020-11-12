@@ -9,6 +9,7 @@ implicit none
     public  :: read_load_params         ! Initial setup to read in the load param at start of 
                                         ! simulation
     ! Update and get loading routines
+    public  :: is_updated               ! Check if cycle is up to date
     public  :: update_cycle             ! Update the loading parameters, done each cycle
     public  :: get_rolling_par          ! 
     
@@ -40,7 +41,7 @@ implicit none
     double precision, save              :: rolling_time         ! Current duration of rolling step
     double precision, save              :: rot_per_length       ! Current rotation per rolling length
     double precision, save              :: rail_extension_last=0! Rail extension for last cycle
-    double precision, save              :: rail_extension       ! Current rail extension (dz)
+    double precision, save              :: rail_extension=0     ! Current rail extension (dz)
     double precision, allocatable, save :: node_u_bc(:,:,:)     ! Displacements for nodes
     double precision, save              :: u_rp_bc_end_last(6)  ! wheel rp pos, end of last cycle
     double precision, save              :: u_rp_bc_start(6)     ! wheel rp pos, start of cur cycle
@@ -89,7 +90,11 @@ implicit none
         update_cycles(num_cycles_specified+1) = huge(update_cycles(1))
         
         close(file_id)
-        
+        write(*,*) 'LOADING DATA READ'
+        write(*,*) 'update_cycles: ', update_cycles
+        write(*,*) 'rolling_times: ', rolling_times
+        write(*,*) 'rot_per_lengths: ', rot_per_lengths
+        write(*,*) 'rail_extensions: ', rail_extensions
         call update_cycle(0)
         call setup_initial_rolling_cycle()
         
@@ -100,7 +105,7 @@ implicit none
         u_rp_bc_start = 0.d0
         u_rp_bc_end = 0.d0
         u_rp_bc_end(3) = rail_length
-        u_rp_bc_end(4) = rail_length*rot_per_length
+        u_rp_bc_end(4) = rail_length*rot_per_lengths(1)
         
     end subroutine
     
@@ -108,17 +113,38 @@ implicit none
     subroutine update_cycle(cycle_nr)
     implicit none
         integer, intent(in)     :: cycle_nr
-        
+        write(*,"(A,I0)") 'Updating to cycle nr: ', cycle_nr
         rail_extension_last = rail_extension
-        if (cycle_nr >= update_cycles(cycle_spec_ind+1)) then
-            ! We should update the loading parameters
+        if (cycle_nr == 0) then ! Initial depression
+            cycle_spec_ind = 1
+            rail_extension = 0.0
+        elseif (cycle_nr == 1) then !First rolling cycle
+            cycle_spec_ind = 1
+            rolling_time = rolling_times(1)
+            rot_per_length = rot_per_lengths(1)
+            rail_extension = rail_extensions(1)
+        elseif (cycle_nr >= update_cycles(cycle_spec_ind+1)) then
+            ! Subsequent loading with new specification
             cycle_spec_ind = cycle_spec_ind + 1
             rolling_time = rolling_times(cycle_spec_ind)
             rot_per_length = rot_per_lengths(cycle_spec_ind)
             rail_extension = rail_extensions(cycle_spec_ind)
         endif
+            
+        write(*,"(A,I0)") 'cycle_spec_ind: ', cycle_spec_ind
+        write(*,"(A,F0.3)") 'rolling_time: ', rolling_time
+        write(*,"(A,F0.3)") 'rot_per_length: ', rot_per_length
+        write(*,"(A,F0.3)") 'rail_extension: ', rail_extension
         updated_cycle = cycle_nr
     end subroutine
+
+    function is_updated(cycle_nr)
+    implicit none
+        integer, intent(in)     :: cycle_nr
+        logical                 :: is_updated
+        
+        is_updated = cycle_nr == updated_cycle
+    end function
     
     subroutine get_rolling_par(the_rail_length, the_rot_per_length, the_rail_extension)
     implicit none

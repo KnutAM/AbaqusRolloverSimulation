@@ -38,7 +38,8 @@ implicit none
 end subroutine get_bc_rail_rp
 
 subroutine get_bc_wheel_rp(step_type, cycle_nr, time, node_jdof, bc_val)
-use step_type_mod, only: STEP_TYPE_INITIAL_DEPRESSION, STEP_TYPE_ROLLING, STEP_TYPE_MOVE_BACK
+use step_type_mod, only: STEP_TYPE_INITIAL_DEPRESSION, STEP_TYPE_INITIAL_LOAD, STEP_TYPE_ROLLING, &
+                         STEP_TYPE_MOVE_BACK, STEP_TYPE_REAPPLY_LOAD, STEP_TYPE_RELEASE_NODES
 use load_param_mod, only: is_load_param_read, read_load_params, get_rp_initial_depression_bc, &
                           get_rp_rolling_wheel_bc, get_rp_move_back_bc
 implicit none
@@ -49,7 +50,7 @@ implicit none
     double precision, intent(out)       :: bc_val
     
     double precision                    :: time_in_step
-    
+
     time_in_step = time(2)
     if (step_type == STEP_TYPE_INITIAL_DEPRESSION) then
         ! This step type will occur first, so we will read load params here the first time
@@ -57,10 +58,16 @@ implicit none
             call read_load_params()
         endif
         bc_val = get_rp_initial_depression_bc(node_jdof, time_in_step)
+    elseif (step_type == STEP_TYPE_INITIAL_LOAD) then
+        bc_val = 0.d0
     elseif (step_type == STEP_TYPE_ROLLING) then
         bc_val = get_rp_rolling_wheel_bc(node_jdof, time)
     elseif (step_type == STEP_TYPE_MOVE_BACK) then
         bc_val = get_rp_move_back_bc(node_jdof)
+    elseif (step_type == STEP_TYPE_REAPPLY_LOAD) then
+        bc_val = 0.d0
+    elseif (step_type == STEP_TYPE_RELEASE_NODES) then
+        bc_val = 0.d0
     else
         write(*,*) 'bc for wheel rp requested for unsupported step type'
         write(*,"(A,I0)") 'step_type = ', step_type
