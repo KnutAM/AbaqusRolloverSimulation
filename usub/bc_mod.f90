@@ -11,7 +11,10 @@ use find_mod, only : find
 implicit none
     double precision, intent(in)    :: contact_node_disp(:,:,:) ! Contact node disp after rolling
     double precision, intent(in)    :: wheel_rp_disp(:)         ! Wheel rp disp after rolling
-    double precision, intent(in)    :: rail_rp_disp(:)          ! Rail rp disp after rolling
+    double precision, allocatable, intent(inout) :: rail_rp_disp(:) ! Rail rp disp after rolling
+                                                                    ! If not allocated, not used, 
+                                                                    ! but it will then be allocated
+                                                                    ! to zero.
     integer, intent(in)             :: cycle_nr                 ! Current rollover cycle
     
     double precision                :: rail_length              ! Rail length
@@ -43,16 +46,19 @@ implicit none
     double precision                :: x_new(3)                 ! Current coordinates for a new node in contact (after move back)
     double precision                :: u_new(3)                 ! Displacements for a new node in contact, u_new=x_new-x0_new
     
-    
-    
     ! Update load parameters for the present cycle
-    call update_cycle(cycle_nr)
+    call update_cycle(cycle_nr+1)
     
     ! Get load parameters for the present cycle
     call get_rolling_par(rail_length, rot_per_length, rail_extension)
     
     ! Calculate motion for the reference point
     !  Linear motion
+    if (.not.allocated(rail_rp_disp)) then  ! we don't use it, set it to zero for no effect.
+        allocate(rail_rp_disp(6))
+        rail_rp_disp = 0.d0
+    endif
+        
     !  Note, no account for rail rp rotation taken into account, this could be generalized but requires the rail height. 
     dx_rp = [0.d0, 0.d0, - (rail_length + rail_rp_disp(3))] 
     !  Rotational motion
@@ -64,8 +70,8 @@ implicit none
     u_rp_start(4) = return_angle
     
     u_rp_end = u_rp_start
-    u_rp_end(3) = rail_length + rail_extension
-    u_rp_end(4) = u_rp_end(3)*rot_per_length
+    u_rp_end(3) = u_rp_start(3) + rail_length + rail_extension
+    u_rp_end(4) = u_rp_start(4) + (u_rp_end(3)-u_rp_start(3))*rot_per_length
     
     ! Set boundary conditions for the reference point
     call set_rp_bc(wheel_rp_disp, u_rp_start, u_rp_end)
@@ -94,9 +100,7 @@ implicit none
             ubc(k_cdofs) = u_new
         enddo
     enddo
-    
     call get_fdofs(ubc, cdofs, uf, fdofs)
-    
     do old_ang_ind=1,num_elem_roll
         do x_ind = 1,num_x_node
             node_dofs = get_node_dofs([old_ang_ind, x_ind])
@@ -151,7 +155,6 @@ implicit none
     kff = kstiff(fdofs, fdofs)
     !    dgesv(       n, nrhs,   a,      lda, ipiv,  b,      ldb, info )
     call dgesv(num_fdof,    1, kff, num_fdof, ipiv, uf, num_fdof, info)
-
     if (info /= 0) then
         write(*,*) 'Could not solve for wheel displacements'
         call xit()

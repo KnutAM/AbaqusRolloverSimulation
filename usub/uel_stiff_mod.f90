@@ -12,7 +12,7 @@ implicit none
     
     call date_and_time(values=time_values)
     first_call_time = (time_values(5)*60 + time_values(6))*60 + time_values(7) + time_values(8)/1000.d0
-    write(*,"(A,I02,A,I02,A,I02,A,I03)") 'SET UEL TIME: ', time_values(5), ':', time_values(6), ':', time_values(7), '.', time_values(8)
+    write(*,"(A,I0.2,A,I0.2,A,I0.2,A,I0.3)") 'SET UEL TIME: ', time_values(5), ':', time_values(6), ':', time_values(7), '.', time_values(8)
 
 end subroutine
 

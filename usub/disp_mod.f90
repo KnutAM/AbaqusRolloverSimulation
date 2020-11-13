@@ -77,7 +77,7 @@ implicit none
 end subroutine get_bc_wheel_rp
 
 subroutine get_bc_wheel_contact(step_type, cycle_nr, node_label, node_jdof, bc_val)
-use step_type_mod, only : STEP_TYPE_MOVE_BACK
+use step_type_mod, only : STEP_TYPE_MOVE_BACK, STEP_TYPE_REAPPLY_LOAD
 use load_param_mod, only : get_contact_node_bc
 implicit none
     integer, intent(in)                 :: step_type
@@ -86,7 +86,7 @@ implicit none
     integer, intent(in)                 :: node_jdof
     double precision, intent(out)       :: bc_val
     
-    if (any(step_type == [STEP_TYPE_MOVE_BACK])) then
+    if (any(step_type == [STEP_TYPE_MOVE_BACK, STEP_TYPE_REAPPLY_LOAD])) then
         bc_val = get_contact_node_bc(node_label, node_jdof)
     else
         write(*,*) 'Did not expect request for wheel contact node boundary conditions for'

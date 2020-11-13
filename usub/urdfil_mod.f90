@@ -79,7 +79,6 @@ implicit none
             call expand_array(node_n, GUESS_NUM)
             call expand_array(node_val, [0, GUESS_NUM])
         endif
-        
         k1 = k1 + 1
         node_n(k1) = transfer(array(3), 1)
         node_val(:,k1) = array(4:(3+num_values))
@@ -91,7 +90,6 @@ implicit none
     ! Resize arrays to match number of nodes
     call contract_array(node_n, k1)
     call contract_array(node_val, [num_values, k1])
-    
     
 end subroutine
    

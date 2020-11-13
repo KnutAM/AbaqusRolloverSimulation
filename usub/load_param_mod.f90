@@ -90,11 +90,6 @@ implicit none
         update_cycles(num_cycles_specified+1) = huge(update_cycles(1))
         
         close(file_id)
-        write(*,*) 'LOADING DATA READ'
-        write(*,*) 'update_cycles: ', update_cycles
-        write(*,*) 'rolling_times: ', rolling_times
-        write(*,*) 'rot_per_lengths: ', rot_per_lengths
-        write(*,*) 'rail_extensions: ', rail_extensions
         call update_cycle(0)
         call setup_initial_rolling_cycle()
         
@@ -113,7 +108,6 @@ implicit none
     subroutine update_cycle(cycle_nr)
     implicit none
         integer, intent(in)     :: cycle_nr
-        write(*,"(A,I0)") 'Updating to cycle nr: ', cycle_nr
         rail_extension_last = rail_extension
         if (cycle_nr == 0) then ! Initial depression
             cycle_spec_ind = 1
@@ -130,11 +124,7 @@ implicit none
             rot_per_length = rot_per_lengths(cycle_spec_ind)
             rail_extension = rail_extensions(cycle_spec_ind)
         endif
-            
-        write(*,"(A,I0)") 'cycle_spec_ind: ', cycle_spec_ind
-        write(*,"(A,F0.3)") 'rolling_time: ', rolling_time
-        write(*,"(A,F0.3)") 'rot_per_length: ', rot_per_length
-        write(*,"(A,F0.3)") 'rail_extension: ', rail_extension
+        
         updated_cycle = cycle_nr
     end subroutine
 

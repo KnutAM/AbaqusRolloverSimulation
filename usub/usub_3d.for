@@ -71,7 +71,7 @@ subroutine uel(rhs,amatrx,svars,energy,ndofel,nrhs,nsvars,&
                props,nprops,coords,mcrd,nnode,u,du,v,a,jtype,time,dtime,&
                kstep,kinc,jelem,params,ndload,jdltyp,adlmag,predef,npredf,&
                lflags,mlvarx,ddlmag,mdload,pnewdt,jprops,njprop,period)
-    use uel_stiff_mod, only : uel_stiffness, allocate_uel_stiffness!, print_uel_time, set_uel_time
+    use uel_stiff_mod, only : uel_stiffness, allocate_uel_stiffness, print_uel_time, set_uel_time
     use uel_trans_mod, only : get_u_prim, get_f_glob, get_k_glob, get_phi
     use node_id_mod, only: are_uel_coords_obtained, set_uel_coords
     implicit none
@@ -97,8 +97,9 @@ subroutine uel(rhs,amatrx,svars,energy,ndofel,nrhs,nsvars,&
     
     
     if (not(allocated(uel_stiffness))) then
-        !call set_uel_time()
+        call set_uel_time()
         call allocate_uel_stiffness(props(1))
+        call print_uel_time('uel stiffness read in this many seconds: ')
     endif
     if (not(are_uel_coords_obtained())) call set_uel_coords(coords)
     
@@ -198,19 +199,15 @@ implicit none
     integer             :: node_type    ! 1: Reference point, 2: Contact node
     double precision    :: bc_val       ! Value from bc file    
     
-    write(*,"(A, I4, I4, I6, I2)") 'DISP: step, inc, node, jdof = ', kstep, kinc, node, jdof
     
-    if (.not.is_load_param_read()) then
-        call read_load_params()
-    endif
+    if (.not.is_load_param_read()) call read_load_params()
     
     cycle_nr = get_cycle_nr(kstep)
-    if (.not.is_updated(cycle_nr)) then
-        call update_cycle(cycle_nr)
-    endif
+    if (.not.is_updated(cycle_nr)) call update_cycle(cycle_nr)
     
     step_type = get_step_type(kstep)
     call get_node_type(node_label=node, node_coords=coords, node_type=node_type)
+    
     if (node_type == NODE_TYPE_RAIL_RP) then
         call get_bc_rail_rp(step_type, cycle_nr, time, jdof, bc_val)
     elseif (node_type == NODE_TYPE_WHEEL_RP) then

@@ -11,15 +11,25 @@ implicit none
 
     ! Use Abaqus' utility routine getoutdir to determine the full path to the base_name that resides
     ! in the current working directory. Open that file and return the file identifier. 
-    function get_fid(base_name) result(file_id)
+    function get_fid(base_name, the_action) result(file_id)
     use abaqus_utils_mod
     implicit none
-        character(len=*), intent(in):: base_name    ! Base name for file
-        integer                     :: file_id      ! File identifier for file to read
+        character(len=*), intent(in)            :: base_name    ! Base name for file
+        character(len=*), intent(in), optional  :: the_action   ! action for open, default: 'read'
+        integer                                 :: file_id      ! File identifier for file to read
         
-        integer                     :: io_status    ! Used to check that file opens sucessfully
-        integer                     :: cwd_length   ! Length of current path (used by getoutdir)
-        character(len=256)          :: filename     ! Filename (full path)
+        integer                                 :: io_status    ! Used to check that file opens 
+                                                                ! sucessfully
+        integer                                 :: cwd_length   ! Length of current path (used by 
+                                                                ! getoutdir)
+        character(len=256)                      :: filename     ! Filename (full path)
+        character(len=20)                       :: int_action   ! Internal action
+        
+        if (present(the_action)) then
+            int_action = the_action
+        else
+            int_action = 'read'
+        endif
         
         call getoutdir(filename, cwd_length)
         
@@ -30,7 +40,7 @@ implicit none
         
         write(filename, *) trim(filename)//'/'//trim(base_name)
             
-        open(newunit=file_id, file=trim(filename), iostat=io_status, action='read')
+        open(newunit=file_id, file=trim(filename), iostat=io_status, action=int_action)
         call check_iostat(io_status, 'Error opening "'//base_name//'"')
         
     end function get_fid

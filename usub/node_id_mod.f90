@@ -89,16 +89,18 @@ implicit none
     implicit none
         integer     :: mesh_size(2)
         
-        mesh_size = size(wheel_contact_node_labels)
+        mesh_size = [size(wheel_contact_node_labels,1), size(wheel_contact_node_labels,2)]
         
     end function
     
     subroutine setup_mesh_info(node_labels, node_coordinates)
     use sort_mod, only : unique
+    use usub_utils_mod, only : get_fid
     implicit none
         integer, intent(in)             :: node_labels(:)           ! size=(num_nodes)
         double precision, intent(in)    :: node_coordinates(:,:)    ! size=(3, num_nodes)
         
+        double precision, allocatable   :: rel_coords(:,:)
         double precision, allocatable   :: xcoords(:), uxcoords(:)
         double precision, allocatable   :: angles(:), uangles(:)
         double precision, allocatable   :: x_dist_square(:), a_dist_square(:)
@@ -108,18 +110,27 @@ implicit none
         integer                         :: ka, kx       ! Iterators in angular and x directions
         integer                         :: min_ind(1)   ! Index of identified point
         
+        ! Calculate coordinates relative the wheel center
+        allocate(rel_coords, source=node_coordinates)
+        if (.not.allocated(wheel_rp_coords)) then
+            write(*,*) 'wheel rp coords should have been allocated by now, exiting...'
+            call xit()
+        endif
+        do ka=1,3
+            rel_coords(ka,:) = rel_coords(ka,:) - wheel_rp_coords(ka)
+        enddo
+        
         nt = size(node_labels)
         allocate(xcoords(nt), angles(nt))
         allocate(x_dist_square(nt), a_dist_square(nt))
         
-        max_radius = sqrt(maxval(node_coordinates(2,:)**2 + node_coordinates(3, :)**2))
+        max_radius = sqrt(maxval(rel_coords(2,:)**2 + rel_coords(3, :)**2))
         
-        angles = atan2(-node_coordinates(3,:), -node_coordinates(2, :))
-        xcoords = node_coordinates(1,:)
+        angles = atan2(-rel_coords(3,:), -rel_coords(2, :))
+        xcoords = rel_coords(1,:)
         
         call unique(angles, uangles, POS_TOL/max_radius)
         call unique(xcoords, uxcoords, POS_TOL)
-        
         na = size(uangles)
         nx = size(uxcoords)
         
@@ -136,6 +147,12 @@ implicit none
                 if ((x_dist_square(min_ind(1))+a_dist_square(min_ind(1))) > 2*POS_TOL**2) then
                     write(*,*) 'setup_mesh_inds could not find the point'
                     write(*,"(A,I0,A,I0)") 'kx = ', kx, ', ka = ', ka
+                    write(*,"(A,2F10.5)") 'Expected coordinates (x, ang): ', &
+                            uxcoords(kx), uangles(ka)
+                    write(*,"(A,2F10.5)") 'Closest coordinates (x, ang): ', &
+                            xcoords(min_ind(1)), angles(min_ind(1))
+                    write(*,"(A,2F10.5)") 'Error                       : ', &
+                            sqrt((x_dist_square(min_ind(1))+a_dist_square(min_ind(1)))/2.0), POS_TOL
                     call xit()
                 endif
             enddo
