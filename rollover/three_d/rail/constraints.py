@@ -120,14 +120,15 @@ def add_ctrl_point(the_model, y_coord):
     rail_inst = the_assy.instances[names.rail_inst]
     
     rp_coord = (0.0, y_coord, 0.0)
+    rp_node = rail_part.Node(coordinates=rp_coord)
+    rail_part.Set(name=names.rail_rp_set, nodes=mesh.MeshNodeArray(nodes=(rp_node,)))
+    # rail_rp = rail_part.ReferencePoint(point=rp_coord)
+    #rp_key = rail_part.referencePoints.keys()[-1]
     
-    rail_rp = rail_part.ReferencePoint(point=rp_coord)
-    rp_key = rail_part.referencePoints.keys()[-1]
+    #the_model.rootAssembly.regenerate()
     
-    the_model.rootAssembly.regenerate()
-    
-    the_assy.Set(name=names.rail_rp_set, 
-                 referencePoints=(rail_inst.referencePoints[rp_key],))
+    #the_assy.Set(name=names.rail_rp_set, 
+    #             referencePoints=(rail_inst.referencePoints[rp_key],))
                  
     return rp_coord
     
@@ -196,10 +197,10 @@ def add(the_model, rail_length, c_set_name, rp_set_name=None, rp_coord=None, r_s
         if dof == 3 and use_rp:    # z-dof. 
             # Extension
             dz = zc - zr
-            terms.append( (dz / rail_length, rp_set_name, dof) )
-            # Bending
+            terms.append( (dz / rail_length, get_inst_set_name(rp_set_name), dof) )
+            # Bending, 4=ur1: Rotation around x-axis
             dy = yc - yrp
-            terms.append( (dy * dz / rail_length, rp_set_name, 4) )     # 4=ur1=phi_x^
+            terms.append( (dy * dz / rail_length, get_inst_set_name(rp_set_name), 4) )  
             
         if len(terms) > 1:  # Only add equation if required. If only one term (i.e. = 0), this 
                             # should be added as a regular boundary condition.

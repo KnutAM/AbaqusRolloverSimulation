@@ -89,7 +89,11 @@ def setup(the_model, rolling_length, rolling_radius, vertical_load,
     # Define regions
     assy = the_model.rootAssembly
     rail_inst = assy.instances[names.rail_inst]
-    rail_rp = assy.sets[names.rail_rp_set] if names.rail_rp_set in assy.sets.keys() else None
+    if names.rail_rp_set in rail_inst.sets.keys():
+        rail_rp = rail_inst.sets[names.rail_rp_set]  
+    else:
+        rail_rp = None
+        
     rail_cn = rail_inst.sets[names.rail_contact_nodes]
     rail_bot = rail_inst.sets[names.rail_bottom_nodes]
     
@@ -295,7 +299,7 @@ def setup_step(the_model, name, prev_name, step_time, min_num, max_num, amp=RAMP
                          timePeriod=step_time,
                          initialInc=step_time/min_num,
                          minInc=step_time/max_num,
-                         maxInc=step_time/max_num,
+                         maxInc=step_time/min_num,
                          maxNumInc=max_num,
                          amplitude=amp,
                          nlgeom=ON)

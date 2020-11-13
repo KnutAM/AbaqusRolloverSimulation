@@ -50,7 +50,6 @@ def from_folder(the_model, folder, translation, stiffness=210.e3):
                                 type=DEFORMABLE_BODY)
     # Add wheel control (center) reference point
     rp_node = wheel_part.Node(coordinates=(0.0, 0.0, 0.0))
-    wheel_part.ReferencePoint(point=rp_node)
     
     # Add wheel contact mesh
     nodes = [wheel_part.Node(coordinates=coord) for coord in coords]
