@@ -33,6 +33,7 @@ from rollover.three_d.rail import include as rail_include
 from rollover.three_d.wheel import include as wheel_include
 from rollover.three_d.utils import contact
 from rollover.three_d.utils import loading
+from rollover.three_d.utils import fil_output
 
 def main():
     # Read in rollover parameters
@@ -58,6 +59,9 @@ def main():
     
     # Add wheel uel to input file
     wheel_include.add_wheel_super_element_to_inp(rollover_model, wheel_stiffness)
+    
+    # Add results file output
+    fil_output.add(rollover_model, param['loading']['num_cycles'])
     
     write_rp_coord(param['wheel']['translation'], [0.0, 0.0, 0.0])
     
