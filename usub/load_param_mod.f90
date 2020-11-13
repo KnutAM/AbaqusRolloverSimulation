@@ -195,7 +195,7 @@ implicit none
         double precision                :: time_increment   ! time(3)
         
         if (jdof <= 3) then ! Linear displacement, give value to go to
-            time_in_step = time(2)
+            time_in_step = time(1)
             bc_val = u_rp_bc_start(jdof) + (u_rp_bc_end(jdof)-u_rp_bc_start(jdof))*(time_in_step/rolling_time)
         elseif (jdof <=6) then  ! Rotation, give value increment
             time_increment = time(3)
