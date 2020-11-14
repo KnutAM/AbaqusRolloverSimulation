@@ -1,11 +1,11 @@
 {
  "rail": {
-          "model_file": "rail_example.cae",
+          "model_file": "rail_test_4mm.cae",
           "shadow_extents": [15, 15],
-          "use_rail_rp": false
+          "use_rail_rp": true
          },
  "wheel": {
-           "folder": "C:/MyWork/ProjectsWorkFolders/MU34/Project_2020_C_RolloverSimulation/AbaqusRolloverSimulation/data/wheels/wheel_example",
+           "folder": "C:/MyWork/ProjectsWorkFolders/MU34/Project_2020_C_RolloverSimulation/AbaqusRolloverSimulation/data/wheels/wheel_example_2mm",
            "translation": [0.0, 490, 0.0],
            "stiffness": 210.0e3
            },
@@ -18,11 +18,13 @@
              "inbetween_step_time": 1.0e-6,
              "inbetween_max_incr": 100,
              "rolling_length": 30.0,
+             "rolling_radius": 460.0,
              "max_incr": 1000,
              "min_incr": 60,
+             "num_cycles": 2,
              "cycles": [1],
              "vertical_load": [150.0e3],
-             "speed": [30.0],
+             "speed": [30.0e3],
              "slip": [0.01511335013],
              "rail_ext": [0.0]
              }
