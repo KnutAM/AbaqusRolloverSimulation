@@ -14,7 +14,7 @@ from rollover.utils import naming_mod as names
 from rollover.utils import inp_file_edit as inp_edit
 
 
-def from_folder(the_model, folder, translation, stiffness=210.e3):
+def from_folder(the_model, folder, translation, stiffness=210.e3, symmetric=False):
     """Include a wheel super element from a folder.
     
     :param the_model: The full model 
@@ -35,6 +35,9 @@ def from_folder(the_model, folder, translation, stiffness=210.e3):
     
     :param stiffness: The wheel's modulus of elasticity
     :type stiffness: float
+    
+    :param symmetric: Should a symmetry set in the yz-plane be created?
+    :type symmetric: bool
     
     :returns: stiffness
     :rtype: float
@@ -66,6 +69,8 @@ def from_folder(the_model, folder, translation, stiffness=210.e3):
     wheel_part.Set(name=names.wheel_rp_set, nodes=mesh.MeshNodeArray(nodes=(rp_node,)))
     wheel_part.Set(name=names.wheel_contact_nodes, nodes=mesh.MeshNodeArray(nodes=nodes))
     wheel_part.Surface(name=names.wheel_contact_surf, side2Elements=wheel_part.elements)
+    if symmetric:
+        wheel_part.Set(name=names.wheel_sym_set, nodes=wheel_part.nodes.getByBoundingBox(xMin=-1.e-6, xMax=1.e-6))
     
     # Add a zero stiffness section and very thin section.
     region = regionToolset.Region(elements=wheel_part.elements)

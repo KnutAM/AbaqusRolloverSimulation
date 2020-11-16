@@ -22,8 +22,10 @@ wheel_dummy_contact_sect = 'WHEEL_DUMMY_CONTACT'
 wheel_contact_surf = 'WHEEL_CONTACT_SURFACE'
 wheel_rp_set = 'WHEEL_RP'
 wheel_inner_set = 'WHEEL_SHAFT'
-rail_rp_set = 'RAIL_RP'
+wheel_sym_set = 'SYMMETRY'
 wheel_contact_nodes = 'CONTACT_NODES'
+
+rail_rp_set = 'RAIL_RP'
 rail_contact_nodes = 'CONTACT_NODES'
 rail_shadow_surf = 'RAIL_SHADOW_SURF'
 # Contact surf excluding shadow regions:
@@ -31,6 +33,7 @@ rail_contact_surf = 'RAIL_CONTACT_SURFACE'
 # Contact surf including shadow regions:
 rail_full_contact_surf = 'RAIL_FULL_CONTACT_SURFACE'
 rail_bottom_nodes = 'BOTTOM_NODES'
+rail_sym_set = 'SYMMETRY'
 rail_set = 'RAIL_SET'
 rail_side_sets = ['SIDE1_SET', 'SIDE2_SET']
 rail_shadow_set = 'SHADOW_RAIL'
@@ -39,8 +42,11 @@ rail_shadow_sets = [rail_shadow_set + s for s in ['1', '2']]
 # BC and interactions
 rail_rp_bc = 'RAIL_RP'
 rail_bottom_bc = 'FIX_BOTTOM'
+rail_sym_bc = 'RAIL_SYM_BC'
+
 wheel_rp_bc = 'WHEEL_CTRL'
 wheel_vert_load = 'WHEEL_VLOAD'
+wheel_sym_bc = 'WHEEL_SYM_BC'
 
 # Step naming
 # Formatting of names

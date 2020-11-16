@@ -266,6 +266,8 @@ def create_sets(rail_part, c_set_name, r_set_name=None):
         found_r_nodes = r_nodes.getByBoundingBox(**search_bb)
         if len(found_r_nodes) > 1:
             raise ValueError('Multiple nodes found')
+        if len(found_r_nodes) == 0:
+            raise ValueError('No matching node found, check that mesh is matching')
         
         if get_c_set_name(c_node.label) not in rail_part.sets.keys():
             c_node_set_names.append(get_c_set_name(c_node.label))

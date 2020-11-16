@@ -86,7 +86,7 @@ def create(rail_profile, rail_length, refine_region=None, sym_dir=None, material
 def create_sets(rail_part, rail_length, refine_region=None, sym_dir=None):
     """Create (1) a set on each side of the rail with names from names.rail_side_sets, (2) the 
     contact surface and set on the top of the rail with name names.rail_contact_surf and (3) a set 
-    on the bottom of the rail
+    on the bottom of the rail. If sym_dir is given, create a set with all faces in the yz-plane.
     
     :param rail_part: The part in which the sets will be created
     :type rail_part: Part (Abaqus object)
@@ -119,6 +119,11 @@ def create_sets(rail_part, rail_length, refine_region=None, sym_dir=None):
     
     bottom_faces = get_bottom_faces(rail_part)
     rail_part.Set(name=names.rail_bottom_nodes, faces=part.FaceArray(faces=bottom_faces))
+    
+    if sym_dir is not None:
+        rail_part.Set(name=names.rail_sym_set, 
+                      faces=rail_part.faces.getByBoundingBox(xMin=-1.e-6, xMax=1.e-6))
+    
     
 
 def get_bottom_faces(rail_part):

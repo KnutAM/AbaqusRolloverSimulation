@@ -89,11 +89,7 @@ def setup(the_model, rolling_length, rolling_radius, vertical_load,
     # Define regions
     assy = the_model.rootAssembly
     rail_inst = assy.instances[names.rail_inst]
-    if names.rail_rp_set in rail_inst.sets.keys():
-        rail_rp = rail_inst.sets[names.rail_rp_set]  
-    else:
-        rail_rp = None
-        
+    
     rail_cn = rail_inst.sets[names.rail_contact_nodes]
     rail_bot = rail_inst.sets[names.rail_bottom_nodes]
     
@@ -101,23 +97,50 @@ def setup(the_model, rolling_length, rolling_radius, vertical_load,
     wheel_rp = wheel_inst.sets[names.wheel_rp_set]
     wheel_cn = wheel_inst.sets[names.wheel_contact_nodes]
     
+    # .Optional regions
+    # ..Rail reference point
+    if names.rail_rp_set in rail_inst.sets.keys():
+        rail_rp = rail_inst.sets[names.rail_rp_set]  
+        rail_rp_exists = True
+        bottom_u3=UNSET
+    else:
+        rail_rp_exists = False
+        bottom_u3=0.0
+        
+    # ..Check if symmetry bc should be applied and if so get symmetry plane sets
+    rail_sym_exists = names.rail_sym_set in rail_inst.sets.keys()
+    rail_sym_set = rail_inst.sets[names.rail_sym_set] if rail_sym_exists else None
+    
+    wheel_sym_exists = names.wheel_sym_set in wheel_inst.sets.keys()
+    wheel_sym_set = wheel_inst.sets[names.wheel_sym_set] if wheel_sym_exists else None
+    
+    if rail_sym_exists != wheel_sym_exists:
+        raise Exception('Either both or none of wheel and rail must be symmetric')
+    else:
+        sym_bc = rail_sym_exists
+    if sym_bc:
+        rail_cn, rail_cn_sym_edge = make_sym_sets(the_model)
+    
     # Setup boundary conditions valid from the beginning
-    if rail_rp is not None:
+    if rail_rp_exists:
         rail_rp_bc = the_model.DisplacementBC(name=names.rail_rp_bc, 
                                               createStepName=names.step0, 
                                               u1=SET, u2=SET, u3=SET, 
                                               ur1=SET, ur2=SET, ur3=SET,
                                               region=rail_rp,
                                               distributionType=USER_DEFINED)
-        rail_rp_exists = True
-        bottom_u3=UNSET
-    else:
-        rail_rp_exists = False
-        bottom_u3=0.0
     
     the_model.DisplacementBC(name=names.rail_bottom_bc, createStepName=names.step0, 
                              region=rail_bot, u1=0.0, u2=0.0, u3=bottom_u3)
     
+    if sym_bc:
+        rail_sym_bc = the_model.DisplacementBC(name=names.rail_sym_bc,
+                                               createStepName=names.step0,
+                                               u1=SET, region=rail_sym_set)
+        wheel_sym_bc = the_model.DisplacementBC(name=names.wheel_sym_bc,
+                                                createStepName=names.step0,
+                                                u1=SET, region=wheel_sym_set)
+                                                
     # Setup the initial depression step
     step_name = setup_step(the_model, names.step1, names.step0, 
                            inbetween_step_time, min(5,inbetween_max_incr),
@@ -162,13 +185,19 @@ def setup(the_model, rolling_length, rolling_radius, vertical_load,
         if cycle_nr == 1:   # Setup bc for first time
             wheel_cn_bc = the_model.DisplacementBC(name='WHEEL_CN_BC', createStepName=step_name,
                                                    region=wheel_cn, distributionType=USER_DEFINED)
-            rail_cn_bc = the_model.VelocityBC(name='RAIL_CN_BC', createStepName=step_name,
-                                              region=rail_cn)
+            rail_cn_bcs = [the_model.VelocityBC(name='RAIL_CN_BC', createStepName=step_name,
+                                                  region=rail_cn)]
+            if sym_bc:
+                rail_cn_bcs.append(the_model.VelocityBC(name='RAIL_CN_EDGE_BC', 
+                                                        createStepName=step_name,
+                                                        region=rail_cn_sym_edge))
         
         # All wheel contact nodes controlled by DISP subroutine:
         wheel_cn_bc.setValuesInStep(stepName=step_name, u1=0.0, u2=0.0, u3=0.0)
         # All rail contact nodes locked:
-        rail_cn_bc.setValuesInStep(stepName=step_name, v1=0.0, v2=0.0, v3=0.0)
+        rail_cn_bcs[0].setValuesInStep(stepName=step_name, v1=0.0, v2=0.0, v3=0.0)
+        if sym_bc:
+            rail_cn_bcs[1].setValuesInStep(stepName=step_name, v2=0.0, v3=0.0)
         
         # 3: REAPPLY WHEEL RP LOAD STEP --------------------------------
         step_name = setup_step(the_model, names.get_step_reapply(cycle_nr+1), step_name, 
@@ -183,8 +212,10 @@ def setup(the_model, rolling_length, rolling_radius, vertical_load,
         
         # All wheel contact nodes free (no longer ctrl by DISP subroutine):
         wheel_cn_bc.setValuesInStep(stepName=step_name, u1=FREED, u2=FREED, u3=FREED)
+        
         # All rail contact nodes free:
-        rail_cn_bc.setValuesInStep(stepName=step_name, v1=FREED, v2=FREED, v3=FREED)
+        for rail_cn_bc in rail_cn_bcs:
+            rail_cn_bc.setValuesInStep(stepName=step_name, v1=FREED, v2=FREED, v3=FREED)
         
         # next cycle ---------------------------------------------------
     
@@ -304,3 +335,55 @@ def setup_step(the_model, name, prev_name, step_time, min_num, max_num, amp=RAMP
                          amplitude=amp,
                          nlgeom=ON)
     return name
+    
+def make_sym_sets(the_model):
+    """ Based on the contact node set and the symmetric node set, create 
+    2 new sets: 
+    
+    - One set that contains all nodes in the contact node set, except 
+      those that also are in the symmetric node set
+    - One set that contains the nodes in both the contact node set and
+      the symmetric node set.
+    
+    :param the_model: The model containing the rail part with the sets 
+                      initial sets and to which the new sets are added
+    :type the_model: Model object (Abaqus)
+    
+    :returns: A list of the created sets, see list above. The sets 
+              belong to the rail instance.
+    :rtype: list[ Set object (Abaqus) ]
+    
+    """
+    
+    rail_part = the_model.parts[names.rail_part]
+    cn_set = rail_part.sets[names.rail_contact_nodes]
+    sym_set = rail_part.sets[names.rail_sym_set]
+    
+    # Find node in the contact node set and in the yz-plane:
+    TOL = 1.e-6
+    cn_nodes = cn_set.nodes
+    contact_sym_edge_nodes = cn_nodes.getByBoundingBox(xMin=-TOL, xMax=TOL)
+    contact_sym_edge_set_p = rail_part.Set(name='RAIL_CONTACT_SYM_EDGE',
+                                           nodes=contact_sym_edge_nodes)
+    
+    contact_set_bb = cn_nodes.getBoundingBox()
+    cn_x_min = contact_set_bb['low'][0]
+    cn_x_max = contact_set_bb['high'][0]
+    if abs(cn_x_min) < TOL: # Rail in positive x direction
+        contact_set_reduced_nodes = cn_nodes.getByBoundingBox(xMin=TOL)
+    elif abs(cn_x_max) < TOL: # Rail in negative x direction
+        contact_set_reduced_nodes = cn_nodes.getByBoundingBox(xMax=-TOL)
+    else:
+        raise ValueError('A symmetric rail should be soley on one side of the yz-plane')
+    
+    contact_set_reduced_p = rail_part.Set(name='RAIL_CONTACT_SET_REDUCED',
+                                        nodes=contact_set_reduced_nodes)
+    
+    # Return the instance sets:
+    the_model.rootAssembly.regenerate()
+    rail_inst = the_model.rootAssembly.instances[names.rail_inst]
+    contact_set_reduced = rail_inst.sets['RAIL_CONTACT_SET_REDUCED']
+    contact_sym_edge_set = rail_inst.sets['RAIL_CONTACT_SYM_EDGE']
+    
+    
+    return contact_set_reduced, contact_sym_edge_set
