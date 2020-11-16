@@ -41,7 +41,7 @@ implicit none
     integer, parameter  :: NODE_TYPE_WHEEL_CONTACT = 3
     
     ! Internal parameters
-    double precision, parameter         :: POS_TOL = 1.e-3
+    double precision, parameter         :: POS_TOL = 1.e-2
     
     ! Temporary storage until used, then deallocated
     double precision, allocatable, save :: uel_coords(:,:)
