@@ -1,11 +1,11 @@
 {
  "rail": {
-          "model_file": "rail_test_4mm.cae",
+          "model_file": ":/rails/rail_example.cae",
           "shadow_extents": [15, 15],
           "use_rail_rp": true
          },
  "wheel": {
-           "folder": ":/wheels/wheel_example_2mm",
+           "folder": ":/wheels/wheel_example",
            "translation": [0.0, 490, 0.0],
            "stiffness": 210.0e3
            },

@@ -3,14 +3,12 @@ Python library to setup rollover simulation in Abaqus for CHARMEC
 
 `git clone --recurse-submodules git@bitbucket.org:knutan/abaqusrolloversimulation.git`
 
-## Contributors
+### Contributors
 * Knut Andreas Meyer 
 * Rostyslav Skrypnyk
 
-## Project structure
-
+### Project structure
 The following top-level folders and file are provided
-
 - `rollover`: The python library used to setup and run the Abaqus rollover simulations (imported, but not run directly)
 - `scripts_abq`: Abaqus python scripts that are designed to be called as `abaqus cae noGUI=<script.py>`
 - `scripts_py`: Python scripts that should be called by `python <script.py>`
@@ -18,14 +16,39 @@ The following top-level folders and file are provided
 - `doc`: Documentation
 - `tests`: ***To be completed*** 
 - `data`: Folder containing user data (e.g. profile sketches). Everything in this folder, apart from example data, should be ignored by git.
-- `abaqus_v6.env`: Abaqus environment file that allows the user to setup their local environment. See "Abaqus environment file".
-
-## Running for the first time 
 
 ### Requirements
 * Abaqus Standard setup to compile fortran user subroutines. Note special requirements below if the `ifort` version higher than 16.
 * Python 2.7 or higher.
 
+
+## Steps to run for the first time 
+Before you start, run the python script `setup.py` located in `rollover`. This only has to be done once. If you wish to, you may copy the file `abaqus_v6.env` to your home directory (`%HOME%` on Windows and `~` on Linux). Otherwise, you have to copy this file to Abaqus' working directory (where you call the scripts from, or Abaqus' standard directory)
+
+1. Create the user subroutine
+   * Go to the `usub` folder, and run `abaqus make library=usub_3d.for` 
+   * Copy the generated `usub_3d-std.obj` to `data/usub`
+2. Create a wheel super element
+   * Create a folder outside the repository. 
+   * Copy the `wheel_settings.json` file from the `data/wheel_settings` folder to the new folder.
+   * Call `abaqus cae noGUI=<path_to_create_wheel_3d.py>` from the new folder. `<path_to_create_wheel_3d.py>` is the (absolute or relative) path to the Abaqus python script `create_wheel_3d.py` in the `script_abq` folder. 
+   * Copy the created folder, `wheel_example`, to `data/wheels/` 
+3. Create a basic rail
+
+   * Create a folder outside the repository. 
+   * Copy the `rail_settings.json` file from the `data/rail_settings` folder to the new folder.
+   * Call `abaqus cae noGUI=<path_to_create_rail_3d.py>` from the new folder. `<path_to_create_rail_3d.py>` is the (absolute or relative) path to the Abaqus python script `create_rail_3d.py` in the `script_abq` folder. 
+   * This creates the file `rail_example.cae`. You can open this file and adjust the mesh, redefine the material, etc. Try modifying the mesh. After that, run the script `make_rail_mesh_symmetric.py` from within Abaqus (`File`-`Run script`). This ensures that the meshes are equal on both ends of the rail, which is a requirement for the methodology to work. Finally, save the file. 
+
+   * Finally, copy the `rail_example.cae` into `data/rails/`
+4. Setup the rollover simulation
+
+   * Create a folder outside the repository.
+   * Copy the `rollover_settings.json` file from the `data/rollover_settings.json` folder to the new folder. 
+   * Call `abaqus cae noGUI=<path_to_create_rollover_3d.py>` from the new folder. `<path_to_create_rollover_3d.py>` is the (absolute or relative) path to the Abaqus python script `create_rollover_3d.py` in the `script_abq` folder. 
+   * This creates the file `rollover.cae` from which you can generate an input file and run the analysis. Remember to give the path to `usub_3d-std.obj` in the `data/usub` folder. 
+
+## Further details 
 ### Input data
 The `json` format is used for the input data. Mostly, the files should be written with a similar formatting as for a Python dictionary. However, there are a few important differences:
 * Booleans are written `true` and `false`, as opposed to `True` and `False`.

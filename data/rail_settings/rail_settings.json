@@ -1,31 +1,18 @@
 {
-    "material": {
-        "material_model": "chaboche",
-        "mpar": {
-            "E": 210000.0,
-            "nu": 0.3,
-            "Y0": 500.0,
-            "Qinf": 100.0,
-            "biso": 4.0,
-            "Cmod": [
-                20000.0,
-                10.0
-            ],
-            "gamma": [
-                400.0,
-                0.0
-            ]
-        }
-    },
-    "rail_profile": ":/rail_profiles/BV50_simple.sat",
-    "rail_length": 30.0,
-    "rail_name": "rail_example",
-    "refine_region": [[-7, 25],[7,35]],
-    "point_in_refine_cell": [
-        0.0,
-        29.0,
-        1.0
-    ],
-    "fine_mesh": 1.0,
-    "coarse_mesh": 10.0
+ "material": 
+ {
+  "material_model": "chaboche",
+   "mpar": { "E": 210000.0, "nu": 0.3,
+             "Y0": 500.0, "Qinf": 100.0, "biso": 4.0,
+             "Cmod": [ 20000.0, 10.0 ],
+             "gamma": [400.0, 0.0 ]
+           }
+ },
+ "rail_profile": ":/rail_profiles/BV50_simple.sat",
+ "rail_length": 30.0,
+ "rail_name": "rail_example",
+ "refine_region": [[-7, 25],[7,35]],
+ "point_in_refine_cell": [0.0, 29.0, 1.0 ],
+ "fine_mesh": 1.0,
+ "coarse_mesh": 10.0
 }
