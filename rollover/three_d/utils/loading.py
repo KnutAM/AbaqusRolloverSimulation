@@ -71,8 +71,8 @@ def setup(the_model, rolling_length, rolling_radius, vertical_load,
     :type min_incr: int
     
     
-    :returns: None
-    :rtype: None
+    :returns: Number of cycles used
+    :rtype: int
     
     """
     
@@ -219,6 +219,7 @@ def setup(the_model, rolling_length, rolling_radius, vertical_load,
         
         # next cycle ---------------------------------------------------
     
+    return num_cycles
     
 def write_loading_file(initial_depression_speed, rolling_length, rolling_radius,
                        cycles, load, speed, slip, rail_ext):
