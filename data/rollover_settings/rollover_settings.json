@@ -5,7 +5,7 @@
           "use_rail_rp": true
          },
  "wheel": {
-           "folder": "C:/MyWork/ProjectsWorkFolders/MU34/Project_2020_C_RolloverSimulation/AbaqusRolloverSimulation/data/wheels/wheel_example_2mm",
+           "folder": ":/wheels/wheel_example_2mm",
            "translation": [0.0, 490, 0.0],
            "stiffness": 210.0e3
            },

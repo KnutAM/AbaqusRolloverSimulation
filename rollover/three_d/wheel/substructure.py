@@ -19,6 +19,7 @@ from abaqus import mdb
 import part, sketch, mesh, job, interaction
 
 # Project imports
+from rollover.local_paths import data_path
 from rollover.three_d.utils import sketch_tools
 from rollover.utils import abaqus_python_tools as apt
 from rollover.utils import inp_file_edit as inpfile
@@ -127,6 +128,9 @@ def generate_2d_mesh(wheel_model, wheel_profile, mesh_sizes, wheel_contact_pos, 
     wheel_part = wheel_model.parts[names.wheel_part]
     
     # Create profile
+    if wheel_profile.startswith(':/'):
+        wheel_profile = data_path + wheel_profile[1:]
+        
     profile_sketch = sketch_tools.import_sketch(wheel_model, wheel_profile, 
                                                 name='wheel_2d_profile')
     wheel_part.BaseShell(sketch=profile_sketch)

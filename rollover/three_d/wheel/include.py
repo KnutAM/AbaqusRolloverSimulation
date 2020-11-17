@@ -12,6 +12,7 @@ import regionToolset, mesh
 
 from rollover.utils import naming_mod as names
 from rollover.utils import inp_file_edit as inp_edit
+from rollover.local_paths import data_path
 
 
 def from_folder(the_model, folder, translation, stiffness=210.e3, symmetric=False):
@@ -21,7 +22,9 @@ def from_folder(the_model, folder, translation, stiffness=210.e3, symmetric=Fals
     :type the_model: Model object (Abaqus)
     
     :param folder: The path to the folder containing the wheel super 
-                   element. The folder must contain
+                   element. A path starting with ':/' is equivalent to 
+                   the full path starting from the data folder. The 
+                   folder must contain
                    
                    - names.uel_coordinates_file
                    - names.uel_elements_file
@@ -46,6 +49,9 @@ def from_folder(the_model, folder, translation, stiffness=210.e3, symmetric=Fals
     
     wheel_stiffness = stiffness
     
+    if folder.startswith(':/'):
+        folder = data_path + folder[1:]
+        
     coords = np.load(folder + '/' + names.uel_coordinates_file)
     element_connectivity = np.load(folder + '/' + names.uel_elements_file)
     

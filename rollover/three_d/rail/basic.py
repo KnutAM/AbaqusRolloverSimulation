@@ -13,6 +13,7 @@ from abaqus import mdb
 import part, regionToolset
 
 # Project imports
+from rollover.local_paths import data_path
 from rollover.utils import naming_mod as names
 from rollover.utils import get_utils as get
 from rollover.utils import abaqus_python_tools as apt
@@ -69,6 +70,9 @@ def create(rail_profile, rail_length, refine_region=None, sym_dir=None, material
     :rtype: Model (Abaqus object)
 
     """
+    if rail_profile.startswith(':/'):
+        rail_profile = data_path + rail_profile[1:]
+        
     rail_model = apt.create_model(names.rail_model)
     profile_sketch = sketch_tools.import_sketch(rail_model, rail_profile, name='rail_profile')
     rail_part = rail_model.Part(name=names.rail_part, dimensionality=THREE_D, type=DEFORMABLE_BODY)

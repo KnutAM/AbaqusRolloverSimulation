@@ -7,6 +7,7 @@ rollover analysis
 from abaqus import mdb
 from abaqusConstants import *
 
+from rollover.local_paths import data_path
 from rollover.utils import naming_mod as names
 from rollover.three_d.rail import shadow_regions as rail_shadow_regions
 from rollover.three_d.rail import constraints as rail_constraints
@@ -82,7 +83,8 @@ def get_part_from_file(the_model, model_file):
     :rtype: None
 
     """
-    
+    if model_file.startswith(':/'):
+        model_file = data_path + model_file[1:]
     mdb.openAuxMdb(pathName=model_file)
     mdb.copyAuxMdbModel(fromName=names.rail_model, toName=names.rail_model)
     mdb.closeAuxMdb()

@@ -17,7 +17,7 @@
             ]
         }
     },
-    "rail_profile": "C:/MyWork/ProjectsWorkFolders/MU34/Project_2020_C_RolloverSimulation/AbaqusRolloverSimulation/data/rail_profiles/BV50_simple.sat",
+    "rail_profile": ":/rail_profiles/BV50_simple.sat",
     "rail_length": 30.0,
     "rail_name": "rail_example",
     "refine_region": [[-7, 25],[7,35]],
