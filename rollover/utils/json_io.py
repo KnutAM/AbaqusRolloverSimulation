@@ -64,10 +64,12 @@ def u_to_str_in_dict(dict_to_convert):
     new_dict = {}
     for key in dict_to_convert:
         if isinstance(dict_to_convert[key], unicode):
-            new_dict[key] = str(dict_to_convert[key])
+            new_dict[str(key)] = str(dict_to_convert[key])
         elif isinstance(dict_to_convert[key], dict):
-            new_dict[key] = u_to_str_in_dict(dict_to_convert[key])
+            new_dict[str(key)] = u_to_str_in_dict(dict_to_convert[key])
+        elif isinstance(dict_to_convert[key], list):
+            new_dict[str(key)] = [str(itm) if isinstance(itm, unicode) else itm for itm in dict_to_convert[key]]
         else:
-            new_dict[key] = dict_to_convert[key]
+            new_dict[str(key)] = dict_to_convert[key]
     
     return new_dict
