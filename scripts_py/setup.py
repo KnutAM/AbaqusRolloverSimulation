@@ -35,13 +35,13 @@ def create_local_paths():
         fid.write('# This file should not be version controlled, ' + __file__ + ' is.\n\n')
         
         fid.write('# Path to top of repository\n')
-        fid.write('rollover_repo_path = ' + rollover_repo_path + '\n\n')
+        fid.write('rollover_repo_path = "' + rollover_repo_path + '"\n\n')
         
         fid.write('# Path to data folder (containing examples and user generated data)\n')
-        fid.write('data_path = ' + data_path + '\n\n')
+        fid.write('data_path = "' + data_path + '"\n\n')
         
         fid.write('# Path to user subroutine folder\n')
-        fid.write('# usub_path = ' + usub_path + '\n\n')
+        fid.write('usub_path = "' + usub_path + '"\n\n')
     
     return rollover_repo_path
         
@@ -58,7 +58,7 @@ def create_abaqus_env(rollover_repo_path):
     
 def get_rollover_path_spec(rollover_repo_path):
     rollover_path_spec = ('import sys \n' 
-                          + 'rollover_repo_path = ' + rollover_repo_path + '\n'
+                          + 'rollover_repo_path = "' + rollover_repo_path + '"\n'
                           + 'if rollover_repo_path not in sys.path:\n'
                           + '    sys.path.append(rollover_repo_path)\n'
                           + 'del rollover_repo_path \n')
