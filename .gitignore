@@ -1,6 +1,9 @@
-*.pyc
+# Local path file:
+rollover/local_paths.py
+abaqus_v6.env
 
 # Compiled files
+*.pyc
 *.mod
 *.exe
 *.obj
