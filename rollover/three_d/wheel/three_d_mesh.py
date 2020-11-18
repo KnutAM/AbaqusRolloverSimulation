@@ -25,7 +25,7 @@ def generate(wheel_model, mesh_size):
     
     wheel_model.PartFromInputFile(inputFileName=input_file)
     wheel_part = wheel_model.parts[names.wheel_part]
-    return wheel_part
+    return wheel_part, mesh_3d['angles']
     
 
 def get_2d_mesh(wheel_part):
@@ -118,7 +118,8 @@ def make_3d_mesh_quad(mesh_2d, mesh_size):
                                  edge_op_node_num)
     
     mesh_3d = {'nodes': nodes,
-               'elements': {'N15': wedge15_elems, 'N20': hex20_elems}}
+               'elements': {'N15': wedge15_elems, 'N20': hex20_elems},
+               'angles': angles}
     
     return mesh_3d
     

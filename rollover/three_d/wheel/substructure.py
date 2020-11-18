@@ -66,13 +66,16 @@ def generate(wheel_param):
         # position and works with second order accuracy.
         # Need to re-assign the wheel part, as we delete and recreate 
         # this part.
-        wheel_part = three_d_mesh.generate(wheel_model, wheel_param['mesh_sizes'][0])
+        wheel_part, mesh_angles = three_d_mesh.generate(wheel_model, wheel_param['mesh_sizes'][0])
+        # Need to take special care to not include a half element
+        wheel_angles = get_wheel_angles(mesh_angles, wheel_param['wheel_angles'])
     else: # Use Abaqus' sweep function (note: Lower coordinate accuracy, 
           # could be replaced by an easier function in three_d_mesh!)
         generate_3d_mesh(wheel_model, wheel_param['mesh_sizes'])
+        wheel_angles = wheel_param['wheel_angles']
     
     # Create retained node set
-    create_retained_set(wheel_part, wheel_param['wheel_angles'], contact_2d_nodes)
+    create_retained_set(wheel_part, wheel_angles, contact_2d_nodes)
     
     # Create inner node set
     create_inner_set(wheel_part, section_bb)
@@ -86,6 +89,38 @@ def generate(wheel_param):
     return job
     
 
+def get_wheel_angles(mesh_angles, wheel_angles):
+    """ Get the limits, wheel_angles, such that an element is not split
+    
+    :param mesh_angles: Division of circumferential mesh elements in 
+                        [0, 2*pi)
+    :type mesh_angles: np.array
+    
+    :param wheel_angles: Lower and upper bound for wheel angle to be 
+                         retained.
+    :type wheel_angles: list[ float ]
+    
+    :returns: The adjusted wheel angles to avoid splitting an element.
+    :rtype: list[ float ]
+    """
+    
+    # Adjust angles to be in interval [pi, -pi)
+    ang_plus = mesh_angles[mesh_angles<=np.pi]
+    ang_minus= mesh_angles[mesh_angles>np.pi] - 2*np.pi
+    angles = np.concatenate((ang_minus, ang_plus))
+    
+    # Find indices such that we at least include the requested range
+    min_ind = np.argmax(angles>wheel_angles[0]) - 1
+    max_ind = np.argmax(angles>wheel_angles[1])
+    
+    # Determine adjusted angles. Add/subtract small value to avoid 
+    # numerical issues later when checking if nodes are inside or 
+    # outside the interval
+    adj_wheel_angles = [angles[min_ind]-1.e-6, angles[max_ind]+1.e-6]
+    
+    return adj_wheel_angles
+    
+    
 def generate_2d_mesh(wheel_model, wheel_profile, mesh_sizes, wheel_contact_pos, partition_line, 
                      fine_mesh_edge_bb=None, quadratic_order=True):
     """Generate a mesh of the wheel profile. 
