@@ -21,9 +21,11 @@ import part, sketch, mesh, job, interaction
 # Project imports
 from rollover.local_paths import data_path
 from rollover.three_d.utils import sketch_tools
+from rollover.three_d.wheel import three_d_mesh
 from rollover.utils import abaqus_python_tools as apt
 from rollover.utils import inp_file_edit as inpfile
 from rollover.utils import naming_mod as names
+from rollover.utils import general as gen_tools
 
 
 # Constants
@@ -55,17 +57,22 @@ def generate(wheel_param):
                                   type=DEFORMABLE_BODY)
     
     # Create the 2d section mesh
-    possible_section_param = list(generate_2d_mesh.__code__.co_varnames)
-    possible_section_param.remove('wheel_model')
-    wheel_section_param = {key: wheel_param[key] for key in wheel_param 
-                           if key in possible_section_param}
-    section_bb = generate_2d_mesh(wheel_model, **wheel_section_param)
+    wheel_section_param = gen_tools.extract_function_args(generate_2d_mesh, wheel_param, num_first=1)
+    section_bb, contact_2d_nodes = generate_2d_mesh(wheel_model, **wheel_section_param)
     
     # Revolve 2d mesh to obtain 3d mesh
-    generate_3d_mesh(wheel_model, wheel_param['mesh_sizes'])
+    if wheel_param['quadratic_order']:
+        # Use direct input editing, gives better accuracy of node 
+        # position and works with second order accuracy.
+        # Need to re-assign the wheel part, as we delete and recreate 
+        # this part.
+        wheel_part = three_d_mesh.generate(wheel_model, wheel_param['mesh_sizes'][0])
+    else: # Use Abaqus' sweep function (note: Lower coordinate accuracy, 
+          # could be replaced by an easier function in three_d_mesh!)
+        generate_3d_mesh(wheel_model, wheel_param['mesh_sizes'])
     
     # Create retained node set
-    create_retained_set(wheel_part, wheel_param['wheel_angles'])
+    create_retained_set(wheel_part, wheel_param['wheel_angles'], contact_2d_nodes)
     
     # Create inner node set
     create_inner_set(wheel_part, section_bb)
@@ -81,9 +88,7 @@ def generate(wheel_param):
 
 def generate_2d_mesh(wheel_model, wheel_profile, mesh_sizes, wheel_contact_pos, partition_line, 
                      fine_mesh_edge_bb=None, quadratic_order=True):
-    """Generate a mesh of the wheel profile. A set 
-    `section_contact_nodes` is created containing the nodes involved in 
-    the contact. 
+    """Generate a mesh of the wheel profile. 
     
     :param wheel_model: The model containing the wheel part
     :type wheel_model: Model object (Abaqus)
@@ -121,7 +126,8 @@ def generate_2d_mesh(wheel_model, wheel_profile, mesh_sizes, wheel_contact_pos, 
     :type quadratic_order: bool
     
     :returns: Bounding box for the generated mesh, given by points with 
-              keys 'low' and 'high'
+              keys 'low' and 'high' and a list of coordinates for the 
+              contact nodes.
     :rtype: None
 
     """
@@ -183,12 +189,12 @@ def generate_2d_mesh(wheel_model, wheel_profile, mesh_sizes, wheel_contact_pos, 
     fine_mesh_node_array = mesh.MeshNodeArray(nodes=fine_mesh_nodes)
     section_contact_nodes = fine_mesh_node_array.getByBoundingBox(xMin=wheel_contact_pos[0], 
                                                                   xMax=wheel_contact_pos[1])
-    wheel_part.Set(name='section_contact_nodes', nodes=section_contact_nodes)
+    contact_nodes_2d_coord = [n.coordinates for n in section_contact_nodes]
     
-    return wheel_part.nodes.getBoundingBox()
+    return wheel_part.nodes.getBoundingBox(), contact_nodes_2d_coord
 
 
-def generate_3d_mesh(wheel_model, mesh_sizes):
+def generate_3d_mesh_aba(wheel_model, mesh_sizes):
     """ Given a wheel_model containing a meshed planar 3d wheel section 
     (in the xy-plane with y the radial direction), create a 3d revolved
     mesh.
@@ -220,13 +226,12 @@ def generate_3d_mesh(wheel_model, mesh_sizes):
     wheel_part.deleteMesh()
     
 
-def create_retained_set(wheel_part, wheel_angles):
+def create_retained_set(wheel_part, wheel_angles, contact_2d_nodes):
     """Create a set for the retained dofs
     
-    The wheel part should have a 3d-revolved mesh and a set 
-    'section_contact_nodes' containing the nodes in the section that should be 
-    retained. This function will create a node set with the 
-    corresponding nodes that are within the angular interval specified 
+    The wheel part should have a 3d-revolved mesh. This function will 
+    create a node set with the nodes at positions corresponding to
+    contact_2d_nodes that are within the angular interval specified 
     by wheel_angles.
     
     :param wheel_part: The wheel part containing the orphan 3d mesh
@@ -237,16 +242,20 @@ def create_retained_set(wheel_part, wheel_angles):
                          nodes
     :type wheel_angles: list[ float ] (len=2)
     
+    :param contact_2d_nodes: List of coordinates in the xy-plane 
+                             (negative y) describing which node 
+                             positions to retain in the 3d-mesh.
+    :type contact_2d_nodes: list[ list[ float ] ]
+    
     :returns: None
     :rtype: None
 
     """
     set_name = names.wheel_contact_nodes
-    contact_line_nodes = wheel_part.sets['section_contact_nodes'].nodes
-    tmp_set = get_nodes_in_ang_int(wheel_part, wheel_angles, contact_line_nodes[0].coordinates)
+    tmp_set = get_nodes_in_ang_int(wheel_part, wheel_angles, contact_2d_nodes[0])
     wheel_part.Set(name=set_name, objectToCopy=tmp_set)
-    for node in contact_line_nodes[1:]:
-        tmp_set = get_nodes_in_ang_int(wheel_part, wheel_angles, node.coordinates)
+    for coord in contact_2d_nodes[1:]:
+        tmp_set = get_nodes_in_ang_int(wheel_part, wheel_angles, coord)
         wheel_part.SetByBoolean(name=set_name, sets=(wheel_part.sets[set_name], tmp_set))
     
     # Remove the final temporary set

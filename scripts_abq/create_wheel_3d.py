@@ -42,16 +42,16 @@ def main():
     wheel_param = json_io.read(names.wheel_settings_file)
     
     create_substructure(wheel_param)
+    mdb.saveAs(pathName='wheel_substructure')
+    # create_user_element(wheel_param)
     
-    create_user_element(wheel_param)
-    
-    save_user_element(wheel_param)
+    # save_user_element(wheel_param)
     
     
     
 def create_substructure(wheel_param):
     job = wheel_substr.generate(wheel_param)
-    
+    return None
     job.submit()
     job.waitForCompletion()
     

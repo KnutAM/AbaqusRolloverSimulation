@@ -29,6 +29,7 @@ for module in sys.modules.values():
 from rollover.utils import json_io
 from rollover.utils import naming_mod as names
 from rollover.utils import abaqus_python_tools as apt
+from rollover.utils import general as gen_tools
 from rollover.three_d.rail import include as rail_include
 from rollover.three_d.wheel import include as wheel_include
 from rollover.three_d.utils import contact
@@ -81,19 +82,10 @@ def write_rp_coord(wheel_rp_coord, rail_rp_coord):
        
 def check_input(param):
     
-    def get_arguments(function, num_first=0):
-        num_all = function.__code__.co_argcount
-        all_arg = function.__code__.co_varnames[num_first:num_all]
-        num_def = len(function.__defaults__)
-        num_man = len(all_arg) - num_def
-        man_arg = all_arg[:num_man]
-        
-        return all_arg, man_arg
-
     def check_param(params, function, num_first=0):
         failed = False
         name = function.__name__
-        all_arg, man_arg = get_arguments(function, num_first)
+        all_arg, man_arg = gen_tools.get_arguments(function, num_first)
         for marg in man_arg:
             if marg not in params:
                 print('Function "' + name + '" requires argument "' + marg + '"')
