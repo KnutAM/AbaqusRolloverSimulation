@@ -41,17 +41,21 @@ def main():
     # Read in wheel section parameters
     wheel_param = json_io.read(names.wheel_settings_file)
     
-    create_substructure(wheel_param)
-    mdb.saveAs(pathName='wheel_substructure')
-    # create_user_element(wheel_param)
+    #create_substructure(wheel_param)
+    #mdb.saveAs(pathName='wheel_substructure')
     
-    # save_user_element(wheel_param)
+    create_user_element(wheel_param)
+    
+    save_user_element(wheel_param)
+    
+    super_wheel.create_test_part()
+    mdb.saveAs(pathName='WHEEL_TEST_IMP.cae')
     
     
     
 def create_substructure(wheel_param):
     job = wheel_substr.generate(wheel_param)
-    return None
+    
     job.submit()
     job.waitForCompletion()
     

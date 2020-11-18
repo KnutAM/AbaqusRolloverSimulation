@@ -138,11 +138,11 @@ def get_elements(elem_2d_con, angle_inds, corner_node_num_2d, edge_node_num_2d,
             # Corner nodes
             for j in range(2):
                 for cr in corner_rows:
-                    elems[-1].append(corner_node_num[cr, angle_inds[i+j]])
+                    elems[-1].append(corner_node_num[cr, angle_inds[i+(1-j)]])
             # Edge nodes in plane
             for j in range(2):
                 for er in edge_rows:
-                    elems[-1].append(edge_ip_node_num[er, angle_inds[i+j]])
+                    elems[-1].append(edge_ip_node_num[er, angle_inds[i+(1-j)]])
             # Edge nodes between planes
             for cr in corner_rows:
                 elems[-1].append(edge_op_node_num[cr, angle_inds[i]])
