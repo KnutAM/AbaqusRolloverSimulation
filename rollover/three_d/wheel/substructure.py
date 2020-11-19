@@ -216,15 +216,25 @@ def generate_2d_mesh(wheel_model, wheel_profile, mesh_sizes, wheel_contact_pos, 
     # Mesh wheel
     wheel_part.generateMesh()
     
-    fine_mesh_nodes = []
+    # Get nodes to be retained, ensure that elements are not split
+    fine_mesh_edge_nodes = []
+    fine_mesh_edge_elems = []
     for e in fine_mesh_edges:
         for n in e.getNodes():
-            fine_mesh_nodes.append(n)
+            fine_mesh_edge_nodes.append(n)
+        for el in e.getElements():
+            fine_mesh_edge_elems.append(el)
     
-    fine_mesh_node_array = mesh.MeshNodeArray(nodes=fine_mesh_nodes)
-    section_contact_nodes = fine_mesh_node_array.getByBoundingBox(xMin=wheel_contact_pos[0], 
-                                                                  xMax=wheel_contact_pos[1])
-    contact_nodes_2d_coord = [n.coordinates for n in section_contact_nodes]
+    contact_elems = fine_mesh_edge_elems.getByBoundingBox(xMin=wheel_contact_pos[0], 
+                                                          xMax=wheel_contact_pos[1])
+    contact_nodes = []
+    for el in contact_elems:
+        for node in el.getNodes():
+            if node not in contact_nodes:   # Check: not already added
+                if node in fine_mesh_edge_nodes:    # Check: is on edge
+                    contact_nodes.append(node)
+                    
+    contact_nodes_2d_coord = [n.coordinates for n in contact_nodes]
     
     return wheel_part.nodes.getBoundingBox(), contact_nodes_2d_coord
 
