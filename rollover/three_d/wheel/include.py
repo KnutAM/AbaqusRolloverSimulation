@@ -63,12 +63,14 @@ def from_folder(the_model, folder, translation, stiffness=210.e3, symmetric=Fals
     # Add wheel contact mesh
     nodes = [wheel_part.Node(coordinates=coord) for coord in coords]
     elems = []
+    elem_shape = QUAD4 if len(element_connectivity[0])==4 else QUAD8
     for ec in element_connectivity:
         enodes = [nodes[i] for i in ec]
-        elems.append(wheel_part.Element(nodes=enodes, elemShape=QUAD4))
+        elems.append(wheel_part.Element(nodes=enodes, elemShape=elem_shape))
     
     # Set element type to membrane elements
-    membrane_element_type = mesh.ElemType(elemCode=M3D4, elemLibrary=STANDARD)
+    elem_code = M3D4 if elem_shape==QUAD4 else M3D8
+    membrane_element_type = mesh.ElemType(elemCode=elem_code, elemLibrary=STANDARD)
     wheel_part.setElementType(regions=(wheel_part.elements, ), elemTypes=(membrane_element_type, ))
     
     # Create sets and surfaces
