@@ -455,12 +455,17 @@ def save_uel(stiffness, coordinates, elements):
     np.save(file=names.uel_elements_file, arr=elements)
 
     
-def create_test_part(elem_shape=QUAD8):
+def create_test_part(quadratic_elements=True):
     """ Create a test part to verify that the elements and nodes are 
     identified correctly
     
     """
     
+    if quadratic_elements:
+        elem_shape=QUAD8
+    else:
+        elem_shape=QUAD4
+        
     coords = np.load('uel_coordinates.npy')
     element_connectivity = np.load('uel_elements.npy')
     
