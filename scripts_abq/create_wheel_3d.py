@@ -60,7 +60,7 @@ def create_substructure(wheel_param):
     
     
 def create_user_element(wheel_param):
-    super_wheel.get_uel_mesh()
+    super_wheel.get_uel_mesh(wheel_param['quadratic_order'])
     
     
 def save_user_element(wheel_param):

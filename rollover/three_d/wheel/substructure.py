@@ -3,8 +3,6 @@
 1) Create a 2-d wheel section mesh using abaqus cae
 2) Based on this mesh, generate an input file for a full 3d-wheel 
 3) Run the input file to obtain the substructure stiffness matrix
-4) Add the stiffness matrix to a static library that can be referenced when creating the user 
-   subroutine
 
 .. codeauthor:: Knut Andreas Meyer
 """
@@ -225,8 +223,9 @@ def generate_2d_mesh(wheel_model, wheel_profile, mesh_sizes, wheel_contact_pos, 
         for el in e.getElements():
             fine_mesh_edge_elems.append(el)
     
-    contact_elems = fine_mesh_edge_elems.getByBoundingBox(xMin=wheel_contact_pos[0], 
-                                                          xMax=wheel_contact_pos[1])
+    fine_mesh_edge_elem_array = mesh.MeshElementArray(elements=fine_mesh_edge_elems)
+    contact_elems = fine_mesh_edge_elem_array.getByBoundingBox(xMin=wheel_contact_pos[0], 
+                                                               xMax=wheel_contact_pos[1])
     contact_nodes = []
     for el in contact_elems:
         for node in el.getNodes():
@@ -239,7 +238,7 @@ def generate_2d_mesh(wheel_model, wheel_profile, mesh_sizes, wheel_contact_pos, 
     return wheel_part.nodes.getBoundingBox(), contact_nodes_2d_coord
 
 
-def generate_3d_mesh_aba(wheel_model, mesh_sizes):
+def generate_3d_mesh(wheel_model, mesh_sizes):
     """ Given a wheel_model containing a meshed planar 3d wheel section 
     (in the xy-plane with y the radial direction), create a 3d revolved
     mesh.
