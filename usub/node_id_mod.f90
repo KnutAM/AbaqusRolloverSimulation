@@ -21,6 +21,7 @@ implicit none
     public  :: get_node_dofs            ! function(mesh_inds) result(node_dofs)
     public  :: get_mesh_size            ! function() result(size(wheel_contact_node_labels))
     public  :: get_angle_incr           ! function() result(the_angle_incr)
+    public  :: get_element_order        ! function() result(the_element_order)
     
     ! Node type
     public  :: is_wheel_rp_node         ! function(node_label) result (is_wheel_rp)
@@ -55,7 +56,8 @@ implicit none
     integer, allocatable, save          :: wheel_contact_node_labels(:,:)
     double precision, allocatable, save :: wheel_contact_node_coords(:,:,:)
     integer, allocatable, save          :: wheel_contact_node_dofs(:,:,:)
-    double precision, save              :: angle_incr
+    integer, save                       :: element_order=0
+    double precision, save              :: angle_incr=0
     
     
     contains
@@ -109,6 +111,7 @@ implicit none
         integer                         :: nt, na, nx   ! Number of nodes (total, angular, x)
         integer                         :: ka, kx       ! Iterators in angular and x directions
         integer                         :: min_ind(1)   ! Index of identified point
+        integer                         :: n_filled     ! Number of filled positions    
         
         ! Calculate coordinates relative the wheel center
         allocate(rel_coords, source=node_coordinates)
@@ -136,30 +139,42 @@ implicit none
         
         allocate(wheel_contact_node_labels(na, nx))
         allocate(wheel_contact_node_coords(3, na, nx))
-        
+        wheel_contact_node_labels = -1
+        wheel_contact_node_coords = 0.d0
         do kx=1,nx
             x_dist_square = (uxcoords(kx) - xcoords)**2
             do ka=1,na
                 a_dist_square = ((uangles(ka) - angles)*max_radius)**2
                 min_ind = minloc(x_dist_square + a_dist_square)
-                wheel_contact_node_labels(ka, kx) = node_labels(min_ind(1))
-                wheel_contact_node_coords(:, ka, kx) = node_coordinates(:, min_ind(1))
-                if ((x_dist_square(min_ind(1))+a_dist_square(min_ind(1))) > 2*POS_TOL**2) then
-                    write(*,*) 'setup_mesh_inds could not find the point'
-                    write(*,"(A,I0,A,I0)") 'kx = ', kx, ', ka = ', ka
-                    write(*,"(A,2F10.5)") 'Expected coordinates (x, ang): ', &
-                            uxcoords(kx), uangles(ka)
-                    write(*,"(A,2F10.5)") 'Closest coordinates (x, ang): ', &
-                            xcoords(min_ind(1)), angles(min_ind(1))
-                    write(*,"(A,2F10.5)") 'Error                       : ', &
-                            sqrt((x_dist_square(min_ind(1))+a_dist_square(min_ind(1)))/2.0), POS_TOL
-                    call xit()
+                if ((x_dist_square(min_ind(1))+a_dist_square(min_ind(1))) < 2*POS_TOL**2) then                    
+                    wheel_contact_node_labels(ka, kx) = node_labels(min_ind(1))
+                    wheel_contact_node_coords(:, ka, kx) = node_coordinates(:, min_ind(1))
                 endif
             enddo
         enddo
-        
-        angle_incr = (uangles(na) - uangles(1))/(na-1)
-        
+        n_filled = na*nx - (-sum(wheel_contact_node_labels, mask=(wheel_contact_node_labels==-1)))
+        if (n_filled == na*nx) then
+            element_order = 1
+        elseif (n_filled == nt) then
+            element_order = 2
+        else
+            write(*,*) 'Could not find all node positions.'
+            write(*,*) n_filled, nt, na, nx
+            write(*,*) 'Identified positions (kx along rows, ka along cols):'
+            write(*,"(10X)", advance="no")
+            do kx=1,nx
+                write(*, "(I5)", advance="no") kx
+            enddo
+            write(*,*) ''
+            do ka=1,na
+                write(*, "(I10)", advance="no") ka
+                do kx=1,nx
+                    write(*, "(I5)", advance="no") wheel_contact_node_labels(ka, kx)
+                enddo
+                write(*,*) ''
+            enddo
+        endif
+        angle_incr = element_order*(uangles(na) - uangles(1))/(na-1)
         ! Allocate here as we have na and nx defined
         allocate(wheel_contact_node_dofs(3, na, nx))
         call get_wheel_contact_node_dofs()
@@ -193,6 +208,14 @@ implicit none
         double precision        :: the_angle_incr
         
         the_angle_incr = angle_incr
+        
+    end function
+    
+    function get_element_order() result(the_element_order)
+    implicit none
+        integer                 :: the_element_order
+        
+        the_element_order = element_order
         
     end function
     

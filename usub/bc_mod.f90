@@ -6,7 +6,8 @@ contains
 
 subroutine set_bc(contact_node_disp, wheel_rp_disp, rail_rp_disp, cycle_nr)
 use load_param_mod, only : update_cycle, get_rolling_par, set_rp_bc, set_contact_node_bc
-use node_id_mod, only : get_angle_incr, get_mesh_size, get_inds, get_node_coords, get_node_dofs
+use node_id_mod, only : get_angle_incr, get_mesh_size, get_element_order, get_inds, &
+                        get_node_coords, get_node_dofs
 use find_mod, only : find
 implicit none
     double precision, intent(in)    :: contact_node_disp(:,:,:) ! Contact node disp after rolling
@@ -29,10 +30,16 @@ implicit none
     
     integer                         :: mesh_size(2)
     integer                         :: mesh_inds(2)
-    integer                         :: num_ang_node             ! Number of contact nodes along angular direction
+    integer                         :: element_order            ! Element order (1 or 2)    
+    integer                         :: num_ind_roll             ! Number of node inds rolled
+                                                                ! element_order*num_elem_roll
+    integer                         :: na                       ! Number of contact nodes along angular direction
     integer                         :: old_ang_ind              ! Iterator for old nodes in contact, ang dir
     integer                         :: new_ang_ind              ! Iterator for new nodes in contact, ang dir
-    integer                         :: num_x_node               ! Number of contact nodes along x-direction
+    integer                         :: nx                       ! Number of contact nodes along x-direction
+    integer                         :: dx                       ! Increment in x index
+    integer                         :: nt                       ! Total number of contact nodes
+    integer                         :: n_el_x, n_el_a           ! Elements along x and ang direction    
     integer                         :: x_ind                    ! Iterator for nodes along x-direction
     integer                         :: num_c_dofs               ! Number of constrained dofs
     integer, allocatable            :: cdofs(:), fdofs(:)       ! List of constrained and free dofs indices
@@ -77,19 +84,45 @@ implicit none
     call set_rp_bc(wheel_rp_disp, u_rp_start, u_rp_end)
     
     ! Set boundary conditions for the wheel contact nodes
+    element_order = get_element_order()
     mesh_size = get_mesh_size()
-    num_ang_node = mesh_size(1) ! Number of nodes in angular direction on wheel
-    num_x_node = mesh_size(2)   ! Number of nodes in x-direction on wheel
+    na = mesh_size(1) ! Number of nodes in angular direction on wheel
+    nx = mesh_size(2)   ! Number of nodes in x-direction on wheel
     
-    num_c_dofs = 6 + 3*(num_ang_node - num_elem_roll)*num_x_node
+    
+    num_ind_roll = element_order*num_elem_roll
+    
+    if (element_order == 1) then
+        !nt = (n_el_a+1)*(n_el_x+1)
+        num_c_dofs = 6 + 3*(na - num_ind_roll)*nx
+    else
+        !nt = (2*n_el_a+1)*(2*n_el_x+1) - (n_el_a*n_el_x)
+        !nt = 3*n_el_a*n_el_x + 2*(n_el_a+n_el_x) + 1
+        !nt = n_el_a*(3*n_el_x + 2) + 2*n_el_x + 1
+        n_el_x = (nx-1)/element_order
+        n_el_a = (na-1)/element_order
+        num_c_dofs = 6 + 3*((n_el_a-num_elem_roll)*(3*n_el_x + 2) + 2*n_el_x + 1)
+    endif
+    
     
     allocate(ubc(num_c_dofs), cdofs(num_c_dofs))
     ubc(1:6) = u_rp_start
     cdofs(1:6) = [1,2,3,4,5,6]
     k_cdofs = [4,5,6]
-    do old_ang_ind=1,(num_ang_node-num_elem_roll)
-        new_ang_ind = old_ang_ind + num_elem_roll
-        do x_ind = 1,num_x_node
+    dx = element_order
+    
+    do old_ang_ind=1,(na-num_ind_roll)
+        new_ang_ind = old_ang_ind + num_ind_roll
+        
+        if (element_order == 2) then
+            if (dx == 2) then
+                dx = 1
+            else
+                dx = 2
+            endif
+        endif
+        
+        do x_ind = 1,nx,dx
             x0_new = get_node_coords([new_ang_ind, x_ind])
             x_old = get_node_coords([old_ang_ind, x_ind]) + contact_node_disp(:, old_ang_ind, x_ind)
             x_new = x_old + dx_rp
@@ -100,9 +133,10 @@ implicit none
             ubc(k_cdofs) = u_new
         enddo
     enddo
+    
     call get_fdofs(ubc, cdofs, uf, fdofs)
-    do old_ang_ind=1,num_elem_roll
-        do x_ind = 1,num_x_node
+    do old_ang_ind=1,num_ind_roll
+        do x_ind = 1,nx
             node_dofs = get_node_dofs([old_ang_ind, x_ind])
             fdof_inds = find(fdofs, node_dofs(1)) + [0, 1, 2]
             call set_contact_node_bc([old_ang_ind, x_ind], uf(fdof_inds))
