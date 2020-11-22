@@ -57,7 +57,15 @@ def get_elem_by_face_type(source_face, elems=None):
     
     for i, e in enumerate(elem_by_face_type):
         if len(e)>0:
-            elems['face' + str(i+1) + 'Elements'] = mesh.MeshElementArray(elements=e)
+            key = 'face' + str(i+1) + 'Elements'
+            if key in elems:
+                els = [el for el in elems[key]]
+                for el in e:
+                    els.append(el)
+            else:
+                els = e
+                
+            elems[key] = mesh.MeshElementArray(elements=els)
 
     return elems
     
