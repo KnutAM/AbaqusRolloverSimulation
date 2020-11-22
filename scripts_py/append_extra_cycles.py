@@ -1,5 +1,11 @@
 import sys, os, re
 
+repo_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if not repo_path in sys.path:
+    sys.path.append(repo_path)
+    
+from rollover.utils import naming_mod as names
+
 def main(argv):
 	num_multiply = int(argv[1]) if len(argv) > 1 else 2
 	inp_fname = argv[2] if len(argv) > 2 else 'rollover.inp'
@@ -17,7 +23,7 @@ def get_step_def_str(inp_fname):
     num_cycles = 0
     with open(inp_fname, 'r') as inp:
         for line in inp:
-            if line.startswith('*Step, name=return_00002'):
+            if line.startswith('*Step, name=' + names.get_step_rolling(2)):
                 start_appending = True
             if start_appending:
                 if not line.startswith('** '):
