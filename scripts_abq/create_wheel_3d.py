@@ -43,6 +43,7 @@ def main():
     
     # Create and run the substructure generation job
     create_substructure(wheel_param)
+    mdb.saveAs(pathName=wheel_param['wheel_name'])
     
     # Extract the results from the substructure generation, organize
     # mesh, and save to files
