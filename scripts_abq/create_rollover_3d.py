@@ -73,6 +73,15 @@ def main():
     
     mdb.saveAs(pathName=names.model)
     
+    # Create job after saving cae file, because job will not have sufficient options to run from 
+    # cae, in particular user subroutine path.
+    write_input_file()
+
+
+def write_input_file():
+    the_job = mdb.Job(name=names.job, model=names.model)
+    the_job.writeInput(consistencyChecking=OFF)
+    
 
 def write_rp_coord(wheel_rp_coord, rail_rp_coord):
     with open(names.rp_coord_file, 'w') as fid:
