@@ -67,6 +67,8 @@ implicit none
         enddo
     enddo
     
+    close(file_id)
+    
 end subroutine allocate_uel_stiffness
    
 function get_ndof() result(ndof)

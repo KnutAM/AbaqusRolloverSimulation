@@ -372,6 +372,7 @@ implicit none
         call check_iostat(io_stat, 'Could not read wheel_rp_coords from "'//rp_node_coords_file_name//'"')
         read(file_id, *, iostat=io_stat) rail_rp_coords
         call check_iostat(io_stat, 'Could not read rail_rp_coords from "'//rp_node_coords_file_name//'"')
+        close(file_id)
         
     end subroutine
     
