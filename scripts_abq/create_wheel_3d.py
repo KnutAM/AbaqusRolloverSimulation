@@ -2,7 +2,7 @@
 
 The dictionary described by the 'wheel_settings.json' file should
 contain the keywords according to 
-:py:func:`rollover.three_d.wheel.create.substructure` as well as
+:py:func:`~rollover.three_d.wheel.create.substructure` as well as
 `'wheel_name'` giving the name of the folder to which the user element
 files will be saved along with a copy of the `'wheel_settings.json'` 
 file

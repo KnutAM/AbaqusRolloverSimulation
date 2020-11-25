@@ -20,19 +20,15 @@ src = repo + '/rollover'
 
 project_paths = [repo,
                  repo + '/scripts_abq',
+                 repo + '/scripts_py',
                  src,
-#                src + '/utils',
-#                src + '/three_d',
-#                src + '/three_d/rail',
-#                src + '/three_d/wheel',
-#                src + '/three_d/utils',
                  ]
 for p in project_paths:
     sys.path.insert(0, p)
 
 # -- Project information -----------------------------------------------------
 
-project = u'abaqusrolloversimulation'
+project = u'Rollover simulation'
 copyright = u'2020, Rostyslav Skrypnyk'
 author = u'Rostyslav Skrypnyk'
 
@@ -68,7 +64,8 @@ extensions = [
 autodoc_mock_imports = ["abaqus", "abaqusConstants", "assembly",
                         "regionToolset", "mesh", "section",
                         "material", "odbAccess", "mdb", "part",
-                        "sketch", "load", "step","interaction","job"]
+                        "sketch", "load", "step","interaction","job",
+                        "RAMP"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

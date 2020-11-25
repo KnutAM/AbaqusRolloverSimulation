@@ -1,95 +1,154 @@
 AbaqusRollover API reference
-============================
+****************************
 
-Wheel
------
+Abaqus scripts
+==============
 
-scripts_abq.wheel_super_element
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. automodule:: wheel_super_element
+Create wheel
+------------
+.. automodule:: create_wheel_3d
+   :members:
+   :undoc-members:
+
+Create rail
+------------
+.. automodule:: create_rail_3d
+   :members:
+   :undoc-members:
+
+Create rollover
+---------------
+.. automodule:: create_rollover_3d
+   :members:
+   :undoc-members:
+
+Utility scripts
+---------------
+
+Make rail mesh periodic 
+^^^^^^^^^^^^^^^^^^^^^^^
+.. automodule:: make_rail_mesh_symmetric
    :members:
    :undoc-members:
    
-Rail
-----
-
-
-scripts_abq.develop_3d
-^^^^^^^^^^^^^^^^^^^^^^
-.. automodule:: develop_3d
+Reload modules
+^^^^^^^^^^^^^^
+.. automodule:: reload_modules
    :members:
    :undoc-members:
-
+   
+Python scripts
+==============
 
 Rollover library
 ================
 
-Rail
+Rail (3d)
 -----------------
 
-three_d.rail.rail_constraints
+rollover.three_d.rail.basic
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. automodule:: rollover.three_d.rail.basic
+   :members:
+   :undoc-members:
+
+rollover.three_d.rail.mesher
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. automodule:: rollover.three_d.rail.mesher
+   :members:
+   :undoc-members:
+   
+rollover.three_d.rail.include
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. automodule:: rollover.three_d.rail.rail_constraints
+.. automodule:: rollover.three_d.rail.include
+   :members:
+   :undoc-members:
+
+rollover.three_d.rail.shadow_regions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. automodule:: rollover.three_d.rail.shadow_regions
+   :members:
+   :undoc-members:
+
+rollover.three_d.rail.constraints
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. automodule:: rollover.three_d.rail.constraints
    :members:
    :undoc-members:
    
-rollover.three_d.rail.create_basic_rail
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. automodule:: rollover.three_d.rail.create_basic_rail
-   :members:
-   :undoc-members:
 
-three_d.rail.mesh_rail
-^^^^^^^^^^^^^^^^^^^^^^
-.. automodule:: rollover.three_d.rail.mesh_rail
-   :members:
-   :undoc-members:
-   
-three_d.rail.create_shadow_regions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. automodule:: rollover.three_d.rail.create_shadow_regions
-   :members:
-   :undoc-members:
+Wheel (3d)
+----------
 
-Wheel
------
-
-three_d.wheel.substructure
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+rollover.three_d.wheel.substructure
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. automodule:: rollover.three_d.wheel.substructure
    :members:
    :undoc-members:
+   
+rollover.three_d.wheel.three_d_mesh
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. automodule:: rollover.three_d.wheel.three_d_mesh
+   :members:
+   :undoc-members:
 
-three_d.wheel.super_element
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+rollover.three_d.wheel.super_element
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. automodule:: rollover.three_d.wheel.super_element
    :members:
    :undoc-members:
 
-Utility
--------
 
-three_d.utils.sketch_tools
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Utilities (3d)
+--------------
+
+rollover.three_d.utils.contact
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. automodule:: rollover.three_d.utils.contact
+   :members:
+   :undoc-members:
+   
+rollover.three_d.utils.fil_output
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. automodule:: rollover.three_d.utils.fil_output
+   :members:
+   :undoc-members:
+   
+rollover.three_d.utils.loading
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. automodule:: rollover.three_d.utils.loading
+   :members:
+   :undoc-members:
+
+rollover.three_d.utils.mesh_tools
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. automodule:: rollover.three_d.utils.mesh_tools
+   :members:
+   :undoc-members:
+   
+rollover.three_d.utils.odb_output
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. automodule:: rollover.three_d.utils.odb_output
+   :members:
+   :undoc-members:
+   
+rollover.three_d.utils.sketch_tools
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. automodule:: rollover.three_d.utils.sketch_tools
    :members:
    :undoc-members:
    
-utils.setup_material_mod
-^^^^^^^^^^^^^^^^^^^^^^^^
-.. automodule:: rollover.utils.setup_material_mod
-   :members:
-   :undoc-members:
-
-
-three_d.utils.mesh_tools
-^^^^^^^^^^^^^^^^^^^^^^^^
-.. automodule:: rollover.three_d.utils.mesh_tools
-   :members:
-   :undoc-members:
-
-three_d.utils.symmetric_mesh_module
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+rollover.three_d.utils.symmetric_mesh_module
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. automodule:: rollover.three_d.utils.symmetric_mesh_module
+   :members:
+   :undoc-members:
+
+Utilities (general)
+-------------------
+
+All general utilities?
+^^^^^^^^^^^^^^^^^^^^^^^^
+.. automodule:: rollover.utils
    :members:
    :undoc-members:
