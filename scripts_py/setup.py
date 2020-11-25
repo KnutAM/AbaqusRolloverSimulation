@@ -27,6 +27,10 @@ def create_local_paths():
 
     data_path = os.path.abspath(rollover_repo_path + '/data')
     usub_path = os.path.abspath(rollover_repo_path + '/usub')
+    
+    data_path = data_path.replace('\\', '/')
+    usub_path = usub_path.replace('\\', '/')
+    
 
     with open(rollover_repo_path + '/rollover/local_paths.py', 'w') as fid:
         fid.write('# Automatically generated module by ' + os.path.abspath(__file__) + '\n')
