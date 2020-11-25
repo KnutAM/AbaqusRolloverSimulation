@@ -13,17 +13,6 @@ import sys
 from abaqusConstants import *
 import interaction
 
-# Reload modules (tmp while developing)
-for module in sys.modules.values():
-    try:
-        if 'rollover' in module.__file__:
-            reload(module)
-    except AttributeError:
-        pass    # Seems like not all items in sys.modules.values() contain __file__
-                # This is ok, as those containing 'rollover' will. 
-    except NameError:
-        pass    # Reload only works for python 2 without loading modules
-
 
 # Project library imports
 from rollover.utils import json_io
