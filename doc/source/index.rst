@@ -12,7 +12,6 @@ Rollover simulation using Abaqus
    :caption: Contents:
    
    intro
-   cross_ref_example   
    usage
    tutorials
    examples
