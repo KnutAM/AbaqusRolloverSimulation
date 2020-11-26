@@ -64,12 +64,29 @@ def create(the_model, extend_lengths, Emod=1.0, nu=0.3, thickness=1.e-9):
     shadow_region = rail_part.SetByBoolean(name=names.rail_shadow_set, 
                                            sets=tuple([rail_part.sets[name] 
                                                        for name in names.rail_shadow_sets]))
+    
     # Set element type to membrane elements
-    et3 = mesh.ElemType(elemCode=M3D3, elemLibrary=STANDARD, secondOrderAccuracy=OFF)
-    et4 = mesh.ElemType(elemCode=M3D4, elemLibrary=STANDARD, secondOrderAccuracy=OFF)
-    et6 = mesh.ElemType(elemCode=M3D6, elemLibrary=STANDARD, secondOrderAccuracy=ON)
-    et8 = mesh.ElemType(elemCode=M3D8, elemLibrary=STANDARD, secondOrderAccuracy=ON)
-    membrane_elem_types = (et3, et4, et6, et8)
+    # Determine the element order by checking how many nodes in each 
+    # element
+    num_element_nodes = []
+    for elem in shadow_region.elements:
+        num_el_nodes = len(elem.connectivity)
+        if num_el_nodes not in num_element_nodes:
+            num_element_nodes.append(num_el_nodes)
+        
+            
+    if (all([n in num_element_nodes for n in [3, 6]]) 
+        or all([n in num_element_nodes for n in [4, 6]])):
+        raise NotImplementedError('Mixed linear and quadratic elements ' 
+                                  + 'in contact region not implemented')
+    elif any([n in num_element_nodes for n in [3, 4]]):
+        et_TRI = mesh.ElemType(elemCode=M3D3, elemLibrary=STANDARD, secondOrderAccuracy=OFF)
+        et_QUAD = mesh.ElemType(elemCode=M3D4, elemLibrary=STANDARD, secondOrderAccuracy=OFF)
+    else:
+        et_TRI = mesh.ElemType(elemCode=M3D6, elemLibrary=STANDARD, secondOrderAccuracy=ON)
+        et_QUAD = mesh.ElemType(elemCode=M3D8, elemLibrary=STANDARD, secondOrderAccuracy=ON)
+    
+    membrane_elem_types = (et_TRI, et_QUAD)
     rail_part.setElementType(regions=(shadow_region.elements, ), elemTypes=membrane_elem_types)
     
     rail_part.SectionAssignment(region=shadow_region, sectionName=names.rail_shadow_sect)
