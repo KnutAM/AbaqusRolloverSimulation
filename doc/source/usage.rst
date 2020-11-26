@@ -250,6 +250,8 @@ the following settings:
       rail. 
    *  ``"stiffness"``: The stiffness (elastic modulus) of the wheel. 
       Its Poissons ratio is fixed at 0.3 from the wheel generation. 
+   *  ``"symmetric"`` (optional): Should symmetry in the yz-plane be 
+      applied, defaults to ``false``.
    
 *  ``"loading"``
 
