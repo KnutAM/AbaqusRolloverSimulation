@@ -23,16 +23,15 @@ To apply the "wormhole" boundary condition for the wheel, a set of user
 subroutines (usub) are used. So in order to setup and run 
 the simulation, the user must do the following steps
 
-1. Create the rail ("Rail ``.cae`` file")
-2. Create the wheel ("Wheel folder")
-3. Compile the user subroutines ("usub (``.obj/.o`` file)")
-4. Create the rollover simulation ("Input files")
-5. Run the abaqus simulation
+1. `Create the rail`_ ("Rail ``.cae`` file")
+2. `Create the wheel`_ ("Wheel folder")
+3. `Compile user subroutines`_ ("usub (``.obj/.o`` file)"). 
+   Normally not required each time
+4. `Create the rollover simulation`_ ("Input files")
+5. `Run simulation`_
 
-Normally, the usub step is not required each time. This only changes if
-additional user subroutines (e.g. umat) are also being used in the 
-simulation. The following sections describe in detail how each of these 
-four steps are conducted.
+Most of the scripts rely on a ``.json`` formatted settings file, for 
+further details on this format see `The json format`_. 
 
 Create the rail
 ===============
@@ -348,9 +347,32 @@ would be created.
 
 Run simulation
 ==============
+To run the simulation the following (generated) files are 
+required to be in the simulation directory:
 
+*  ``rollover.inp`` (can have different name): The Abaqus input file
+*  ``load_param.txt`` (must have this name): 
+   Automatically generated file in the same 
+   directory as ``rollover.inp`` when creating rollver. 
+   Describes the loading parameters 
+*  ``uel_stiffness.txt`` (must have this name): 
+   File specifying the wheel stiffness matrix. 
+   Automatically generated when creating the wheel, automatically copied
+   to the same directory as ``rollover.inp`` when creating rollover
+*  ``rp_coord.txt`` (must have this name): 
+   File specifying the location of the reference points.
+   Automatically generated in the same folder as ``rollover.inp`` 
+   when creating rollover.
 
+In addition, the user subroutine object file must be available, but 
+it does not need to reside in the simulation directory, but can be in 
+a separate directory and its path specified as <path_to_usub>.
 
+Run the simulation by
+
+.. code-block:: bash
+
+   abaqus job=rollover user=<path_to_usub>
 
 
 Generic instructions
@@ -361,10 +383,51 @@ described.
 
 The json format
 ---------------
+The ``json`` format is used for the input data. Mostly, the files 
+should be written with a similar formatting as for a Python dictionary. 
+However, there are a few important differences:
+
+*  Booleans are written ``true`` and ``false``, 
+   as opposed to ``True`` and ``False``.
+*  All strings (keywords and variables) must be enclosed in double 
+   quotes (single quotes are not accepted).
+*  Exponential formats must be written ``A.BeC`` 
+   (as opposed to ``A.eC``) where ``A``, ``B``, and ``C`` are integers. 
+   E.g. ``1.0e-3`` is ok, but not ``1.e-3``.
+*  Python's ``None`` is written as ``null``.
+*  Comma is not allowed after the last item in a dictionary
+
+To ensure the correct data format, one can write the following code in 
+Python to generate the ``json`` file:
+
+.. code-block::
+
+   import json
+   filename = 'example.json'	# Give the filename that you want to save to
+
+   # Define the parameters you want to save as a Python dictionary
+   param = {'key1': [1,2,3],	# Example of list data
+           'key2': 'this is a string example data' # Example of string data
+           }
+   with open(filename, 'w') as fid:
+      # Using indent=1 for nicer output, but not required
+      json.dump(param, fid, indent=1)	
 
 
 The data folder and how to specify paths
 ----------------------------------------
+In the repository, there is a folder named "data". This contains some
+examples (which are version controlled). However, additional contents 
+added to the subfolders are ignored by the version control and are 
+suitable for adding data that can be reused later. Examples include 
+profile sketches, generated wheels and rails, and 
+compiled user subroutines. 
+
+To simplify the use of contents from this folder, path inputs in the 
+``*_settings.json`` files can be relative the data folder. To do this, 
+the path should start by ``":/"``, e.g. ``":/rails/rail_example.cae"``.
+Otherwise, and absolute or relative (to the Abaqus working directory) 
+path can be specified. 
 
 
 Creating a profile sketch
