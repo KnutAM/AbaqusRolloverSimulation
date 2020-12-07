@@ -265,9 +265,12 @@ def create_sets(rail_part, c_set_name, r_set_name=None):
                      for dim, pos, offset in zip(['x', 'y', 'z'], c_node.coordinates, offset_vec)}
         found_r_nodes = r_nodes.getByBoundingBox(**search_bb)
         if len(found_r_nodes) > 1:
-            raise ValueError('Multiple nodes found')
+            rail_part.Set(name='ERROR_MULTIPLE_NODES_FOUND', nodes=found_r_nodes)
+            raise ValueError('Multiple nodes found, located in set "ERROR_MULTIPLE_NODES_FOUND"')
         if len(found_r_nodes) == 0:
-            raise ValueError('No matching node found, check that mesh is matching')
+            rail_part.Set(name='ERROR_NO_MATCHING_NODE', nodes=mesh.MeshNodeArray(nodes=[c_node]))
+            raise ValueError('No matching node found to node in set "ERROR_NO_MATCHING_NODE". '
+                             + 'Check that mesh is matching')
         
         if get_c_set_name(c_node.label) not in rail_part.sets.keys():
             c_node_set_names.append(get_c_set_name(c_node.label))

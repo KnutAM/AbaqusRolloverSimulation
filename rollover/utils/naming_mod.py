@@ -3,11 +3,13 @@
 # Recommended to import as "import naming_mod as names"
 # Hence, the variables will not contain name, and will be written as e.g. 
 # names.step0
-
+test = 'ok'
 # Model, job and odb naming
 model = 'rollover'
 rail_model = 'RAIL'
 job = model
+rail_sub_job = 'RAIL_SUBSTRUCTURE'
+rail_sub_id = 2
 
 # Part, instance and section names
 wheel_part = 'WHEEL'
@@ -38,6 +40,8 @@ rail_set = 'RAIL_SET'
 rail_side_sets = ['SIDE1_SET', 'SIDE2_SET']
 rail_shadow_set = 'SHADOW_RAIL'
 rail_shadow_sets = [rail_shadow_set + s for s in ['1', '2']]
+rail_substructure = 'RAIL_SUBSTRUCTURE'
+rail_substructure_interface_set = 'RAIL_SUBSTR_INTERFACE'
 
 # BC and interactions
 rail_rp_bc = 'RAIL_RP'

@@ -11,6 +11,7 @@ from rollover.local_paths import data_path
 from rollover.utils import naming_mod as names
 from rollover.three_d.rail import shadow_regions as rail_shadow_regions
 from rollover.three_d.rail import constraints as rail_constraints
+from rollover.three_d.rail import substructure as rail_substruct
 
 
 def from_file(the_model, model_file, shadow_extents, use_rail_rp=False):
@@ -44,6 +45,9 @@ def from_file(the_model, model_file, shadow_extents, use_rail_rp=False):
     
     rail_part = the_model.parts[names.rail_part]
     rail_length = get_rail_z_extent(rail_part)
+    
+    if names.rail_substructure_cell in rail_part.sets.keys():
+        rail_substruct.create(the_model)
     
     rail_shadow_regions.create(the_model, shadow_extents)
     

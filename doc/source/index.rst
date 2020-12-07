@@ -15,6 +15,7 @@ Rollover simulation using Abaqus
    usage
    tutorials
    examples
+   plugins
    api_reference
    indices_and_tables
 ..

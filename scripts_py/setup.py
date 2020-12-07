@@ -27,9 +27,11 @@ def create_local_paths():
 
     data_path = os.path.abspath(rollover_repo_path + '/data')
     usub_path = os.path.abspath(rollover_repo_path + '/usub')
+    doc_path = os.path.abspath(rollover_repo_path + '/doc/build')
     
     data_path = data_path.replace('\\', '/')
     usub_path = usub_path.replace('\\', '/')
+    doc_path = doc_path.replace('\\', '/')
     
 
     with open(rollover_repo_path + '/rollover/local_paths.py', 'w') as fid:
@@ -46,6 +48,9 @@ def create_local_paths():
         
         fid.write('# Path to user subroutine folder\n')
         fid.write('usub_path = "' + usub_path + '"\n\n')
+        
+        fid.write('# Path to documentation folder\n')
+        fid.write('doc_path = "' + doc_path + '"\n\n')
     
     return rollover_repo_path
         
