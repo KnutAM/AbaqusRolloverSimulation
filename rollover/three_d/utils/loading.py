@@ -130,8 +130,9 @@ def setup(the_model, rolling_length, rolling_radius, vertical_load,
                                               region=rail_rp,
                                               distributionType=USER_DEFINED)
     
-    the_model.DisplacementBC(name=names.rail_bottom_bc, createStepName=names.step0, 
-                             region=rail_bot, u1=0.0, u2=0.0, u3=bottom_u3)
+    if not names.rail_substructure in the_model.parts.keys():
+        the_model.DisplacementBC(name=names.rail_bottom_bc, createStepName=names.step0, 
+                                 region=rail_bot, u1=0.0, u2=0.0, u3=bottom_u3)
     
     if sym_bc:
         rail_sym_bc = the_model.DisplacementBC(name=names.rail_sym_bc,

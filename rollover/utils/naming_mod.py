@@ -93,3 +93,6 @@ substr_mtx_file = 'ke.mtx'
 uel_stiffness_file = 'uel_stiffness.txt'
 uel_coordinates_file = 'uel_coordinates.npy'
 uel_elements_file = 'uel_elements.npy'
+
+## Rail substructure
+substructure_interface_mesh_file = 'interface_mesh.json'

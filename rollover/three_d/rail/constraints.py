@@ -45,7 +45,7 @@ import regionToolset, mesh
 
 from rollover.utils import naming_mod as names
 
-def create(the_model, rail_length, use_rail_rp):
+def create(the_model, rail_length, use_rail_rp, has_substructure=False):
     """Add the rail constraint sets and equations. 
     
     .. note:: `the_model` must fulfill the following requirements
@@ -73,6 +73,9 @@ def create(the_model, rail_length, use_rail_rp):
                         and included in the constraint equations?
     :type use_rail_rp: bool
     
+    :param has_substructure: Does the model include a rail substructure?
+    :type has_substructure: bool
+    
     :returns: None
     :rtype: None
 
@@ -88,6 +91,9 @@ def create(the_model, rail_length, use_rail_rp):
     retained_sets_collection = [sr_sets, shr_sets1, shr_sets2]
     
     if use_rail_rp:
+        if has_substructure:
+            raise NotImplementedError('Combination of rail substructure and reference point not '
+                                      + 'supported yet')
         rp_coord = add_ctrl_point(the_model, y_coord=0.0)
         rail_rp_set = names.rail_rp_set
         bc_sets, br_sets = create_sets(rail_part, names.rail_bottom_nodes)
@@ -100,7 +106,6 @@ def create(the_model, rail_length, use_rail_rp):
     for c_sets, r_sets in zip(constrained_sets_collection, retained_sets_collection):
         for c_set, r_set in zip(c_sets, r_sets):
             add(the_model, rail_length, c_set, rail_rp_set, rp_coord, r_set)
-    
 
 def add_ctrl_point(the_model, y_coord):
     """Add the rail control point that is used to determine rail tension and bending 

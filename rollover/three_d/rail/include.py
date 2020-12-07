@@ -41,18 +41,20 @@ def from_file(the_model, model_file, shadow_extents, use_rail_rp=False):
 
     """
     
-    get_part_from_file(the_model, model_file)
+    has_substruct = get_part_from_file(the_model, model_file)
     
     rail_part = the_model.parts[names.rail_part]
     rail_length = get_rail_z_extent(rail_part)
     
-    if names.rail_substructure_cell in rail_part.sets.keys():
-        rail_substruct.create(the_model)
-    
     rail_shadow_regions.create(the_model, shadow_extents)
     
     the_model.rootAssembly.Instance(name=names.rail_inst, part=rail_part, dependent=ON)
-    rail_constraints.create(the_model, rail_length, use_rail_rp)
+    if has_substruct:
+        substr_part = the_model.parts[names.rail_substructure]
+        the_model.rootAssembly.Instance(name=names.rail_substructure, part=substr_part, 
+                                        dependent=ON)
+                                        
+    rail_constraints.create(the_model, rail_length, use_rail_rp, has_substruct)
     
     
 def get_rail_z_extent(rail_part):
@@ -96,6 +98,9 @@ def get_part_from_file(the_model, model_file):
     the_model.Part(names.rail_part, source_rail_model.parts[names.rail_part])
     the_model.copyMaterials(sourceModel=source_rail_model)
     the_model.copySections(sourceModel=source_rail_model)
+    
+    if names.rail_substructure in source_rail_model.parts.keys():
+        the_model.Part(names.rail_substructure, source_rail_model.parts[names.rail_substructure])
     
     del mdb.models[names.rail_model]
 
