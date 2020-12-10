@@ -65,7 +65,8 @@ def use_substructure(rail_model, sub_str_job, sub_str_id):
     
 def remove_substructure_geometry(rail_part):
     substructure_set = rail_part.sets[names.rail_substructure]
-    del rail_part.sets[names.rail_bottom_nodes]
+    if names.rail_bottom_nodes in rail_part.sets.keys():
+        del rail_part.sets[names.rail_bottom_nodes]
     
     int_faces, aux_set_name = create_boundary_face_set(rail_part, substructure_set, 
                                                        names.rail_substructure_interface_set, 
@@ -92,7 +93,7 @@ def get_info(rail_part):
     return rail_info
 
     
-def generate(rail_model, rail_info):
+def generate(rail_model, rail_info, run_job=True):
     substructure_model = mdb.Model(name='RAIL_SUBSTRUCTURE', objectToCopy=rail_model)
     
     rail_part = substructure_model.parts[names.rail_part]
@@ -105,7 +106,11 @@ def generate(rail_model, rail_info):
     
     make_orphan_mesh(rail_part, rail_part.sets[retain_cell_set_name])
     
+    rail_part.mergeNodes(nodes=rail_part.nodes, tolerance=1.e-6)
+    
     redefine_sets(rail_part, rail_info, interface_node_coords)
+    
+    renumber_nodes(rail_part)
     
     setup_elastic_section(substructure_model, rail_part, Emod=210.e3, nu=0.3)
     
@@ -132,9 +137,11 @@ def generate(rail_model, rail_info):
                                       
     # Run job
     substr_job = mdb.Job(name=names.rail_sub_job, model=substructure_model.name)
-    substr_job.submit()
-    substr_job.waitForCompletion()
-    
+    if run_job:
+        substr_job.submit()
+        substr_job.waitForCompletion()
+    else:
+        substr_job.writeInput()
     
 def make_interface_orphan_surface_mesh(rail_model):
     rail_part = rail_model.parts[names.rail_part]
@@ -232,18 +239,44 @@ def make_orphan_mesh(the_part, delete_mesh_cell_set):
     """
     
     the_part.deleteMesh(regions=delete_mesh_cell_set.cells)
+    '''
     ents = regionToolset.Region(vertices=the_part.vertices,
                                 edges=the_part.edges,
                                 faces=the_part.faces,
                                 cells=the_part.cells)
+                                '''
+    ents = regionToolset.Region(cells=the_part.cells)
     
     the_part.deleteMeshAssociationWithGeometry(geometricEntities=ents,
                                                addBoundingEntities=True)
     
     for key in the_part.features.keys():
         the_part.features[key].suppress()
+
     
+def renumber_nodes(rail_part):
+    ret_nodes = rail_part.sets[names.rail_substructure_interface_set]
+    all_nodes = rail_part.Set(name='_TMP_all_nodes', nodes=rail_part.nodes)
+    rem_nodes = rail_part.SetByBoolean(name='_TMP_rem_nodes', 
+                                       sets=(all_nodes, ret_nodes),
+                                       operation=DIFFERENCE)
+                                       
+    max_lab = max([n.label for n in all_nodes.nodes])
+    num_ret = len(ret_nodes.nodes)
     
+    rail_part.renumberNode(nodes=rem_nodes.nodes, 
+                           startLabel=max_lab+1, increment=1)
+    
+    rail_part.renumberNode(nodes=ret_nodes.nodes, 
+                           startLabel=1, increment=1)
+    
+    rail_part.renumberNode(nodes=rem_nodes.nodes, 
+                           startLabel=num_ret+1, increment=1)
+        
+    for name in ['_TMP_all_nodes', '_TMP_rem_nodes']:
+        del rail_part.sets[name]
+    
+
 def setup_elastic_section(the_model, the_part, Emod=210.e3, nu=0.3):
     material = the_model.Material(name='Elastic')
     material.Elastic(table=((Emod, nu), ))
@@ -331,7 +364,6 @@ def add_interface_mesh(rail_part):
         
         add_elems = mesh.MeshElementArray(elements=orph_elements[if_face_ind])
         add_region = regionToolset.Region(elements=add_elems)
-        rail_part.Set(name='face' + str(if_face_ind), elements=add_elems)
         point_nodes = get_matching_nodes(rail_part, face_points, add_region)
         rail_part.copyMeshPattern(elemFaces=add_region, targetFace=face, 
                                   nodes=point_nodes, coordinates=face_points)

@@ -107,6 +107,9 @@ def create(the_model, rail_length, use_rail_rp, has_substructure=False):
         for c_set, r_set in zip(c_sets, r_sets):
             add(the_model, rail_length, c_set, rail_rp_set, rp_coord, r_set)
 
+    
+
+
 def add_ctrl_point(the_model, y_coord):
     """Add the rail control point that is used to determine rail tension and bending 
     

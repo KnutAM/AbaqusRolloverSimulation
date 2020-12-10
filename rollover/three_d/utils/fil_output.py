@@ -19,22 +19,22 @@ def add(the_model, num_cycles):
         assy.regenerate()
     
     kwb = the_model.keywordBlock
-    
+    use_substr = names.rail_substructure in the_model.parts.keys()
     rail_rp = names.rail_rp_set if names.rail_rp_set in assy.sets.keys() else None
     
     # Setup output after first rollover
-    add_to_step(kwb, 'COORD, U', names.get_step_rolling(1), rail_rp)
+    add_to_step(kwb, 'COORD, U', names.get_step_rolling(1), rail_rp, use_substr)
     
     
     for cycle_nr in range(2,num_cycles+1):
-        add_to_step(kwb, '', names.get_step_return(cycle_nr), rail_rp)
-        add_to_step(kwb, 'U', names.get_step_rolling(cycle_nr), rail_rp)
+        add_to_step(kwb, '', names.get_step_return(cycle_nr), rail_rp, use_substr)
+        add_to_step(kwb, 'U', names.get_step_rolling(cycle_nr), rail_rp, use_substr)
         
         
-def add_to_step(kwb, varstr, step_name, rail_rp=None):
-    
-    wheel_cn_set = names.wheel_inst + '.' + names.wheel_contact_nodes
-    wheel_rp_set = names.wheel_inst + '.' + names.wheel_rp_set
+def add_to_step(kwb, varstr, step_name, rail_rp=None, use_substr=False):
+    sep = '_' if use_substr else '.'
+    wheel_cn_set = names.wheel_inst + sep + names.wheel_contact_nodes
+    wheel_rp_set = names.wheel_inst + sep + names.wheel_rp_set
     
     sets = [wheel_cn_set, wheel_rp_set]
     if rail_rp is not None:

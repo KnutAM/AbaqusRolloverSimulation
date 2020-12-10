@@ -86,12 +86,16 @@ def setup(the_model, rolling_length, rolling_radius, vertical_load,
     write_loading_file(initial_depression/inbetween_step_time, rolling_length, 
                        rolling_radius, cycles, vertical_load, speed, slip, rail_ext)
     
+    # Check if rail substructure is used
+    use_rail_substructure = names.rail_substructure in the_model.parts.keys()
+    
     # Define regions
     assy = the_model.rootAssembly
     rail_inst = assy.instances[names.rail_inst]
     
     rail_cn = rail_inst.sets[names.rail_contact_nodes]
-    rail_bot = rail_inst.sets[names.rail_bottom_nodes]
+    if not use_rail_substructure:
+        rail_bot = rail_inst.sets[names.rail_bottom_nodes]
     
     wheel_inst = assy.instances[names.wheel_inst]
     wheel_rp = wheel_inst.sets[names.wheel_rp_set]
@@ -130,7 +134,7 @@ def setup(the_model, rolling_length, rolling_radius, vertical_load,
                                               region=rail_rp,
                                               distributionType=USER_DEFINED)
     
-    if not names.rail_substructure in the_model.parts.keys():
+    if not use_rail_substructure:
         the_model.DisplacementBC(name=names.rail_bottom_bc, createStepName=names.step0, 
                                  region=rail_bot, u1=0.0, u2=0.0, u3=bottom_u3)
     

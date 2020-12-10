@@ -36,28 +36,34 @@ def main():
     # Create the model
     rollover_model = apt.create_model(names.model)
     # rollover_model = mdb.models[names.model]
+    print('model created')
     # Include the rail part
-    rail_include.from_file(rollover_model, **param['rail'])
-    
+    num_nodes, num_elems = rail_include.from_file(rollover_model, **param['rail'])
+    print('rail included')
     # Include the wheel part
-    wheel_stiffness = wheel_include.from_folder(rollover_model, **param['wheel'])
-    
+    wheel_stiffness = wheel_include.from_folder(rollover_model, 
+                                                start_labels=(num_nodes+1, num_elems+1),
+                                                **param['wheel'])
+    print('wheel included')
     # Setup contact
     contact.setup(rollover_model, **param['contact'])
-    
+    print('contact setup')
     # Setup loading steps
     num_cycles = loading.setup(rollover_model, **param['loading'])
-    
+    print('loading setup')
     # Add odb field output if not standard
     if 'field_output' in param:
         odb_output.add(rollover_model, param['field_output'], num_cycles)
-    
+    print('field output setup')
     # Add wheel uel to input file
-    wheel_include.add_wheel_super_element_to_inp(rollover_model, wheel_stiffness)
-    
+    wheel_include.add_wheel_super_element_to_inp(rollover_model, wheel_stiffness, 
+                                                 param['wheel']['folder'],
+                                                 param['wheel']['translation'])
+                                                 
+    print('wheel included in input')
     # Add results file output
     fil_output.add(rollover_model, num_cycles)
-    
+    print('fil output added')
     write_rp_coord(param['wheel']['translation'], [0.0, 0.0, 0.0])
     
     mdb.saveAs(pathName=names.model)

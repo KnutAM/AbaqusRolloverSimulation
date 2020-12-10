@@ -36,8 +36,8 @@ def from_file(the_model, model_file, shadow_extents, use_rail_rp=False):
                         and included in the constraint equations?
     :type use_rail_rp: bool
     
-    :returns: None
-    :rtype: None
+    :returns: Number of nodes, Number of elements
+    :rtype: list[ int ]
 
     """
     
@@ -47,14 +47,31 @@ def from_file(the_model, model_file, shadow_extents, use_rail_rp=False):
     rail_length = get_rail_z_extent(rail_part)
     
     rail_shadow_regions.create(the_model, shadow_extents)
-    
-    the_model.rootAssembly.Instance(name=names.rail_inst, part=rail_part, dependent=ON)
+    num_nodes = len(rail_part.nodes)
+    num_elems = len(rail_part.elements)
     if has_substruct:
         substr_part = the_model.parts[names.rail_substructure]
-        the_model.rootAssembly.Instance(name=names.rail_substructure, part=substr_part, 
-                                        dependent=ON)
-                                        
+        substr_part.Set(name='RETAINED_NODES', 
+                        nodes=substr_part.nodes.sequenceFromLabels(substr_part.retainedNodes))
+        ss_inst = the_model.rootAssembly.Instance(name=names.rail_substructure, part=substr_part, 
+                                                  dependent=ON)
+        num_nodes += len(substr_part.nodes)
+        num_elems += len(substr_part.elements)
+        
+    rail_inst = the_model.rootAssembly.Instance(name=names.rail_inst, part=rail_part, dependent=ON)
+    num_nodes += len(the_model.rootAssembly.nodes)
+    
     rail_constraints.create(the_model, rail_length, use_rail_rp, has_substruct)
+    
+    if has_substruct:
+        # Apply tie between the compatible meshes
+        retained=rail_inst.sets[names.rail_substructure_interface_set]
+        constrained=ss_inst.sets['RETAINED_NODES']
+        the_model.Tie(name='SUBSTRUCTURE_TIE', master=retained, slave=constrained,
+                      positionToleranceMethod=SPECIFIED, positionTolerance=1.e-6,
+                      adjust=ON)
+    
+    return num_nodes, num_elems
     
     
 def get_rail_z_extent(rail_part):
@@ -99,8 +116,10 @@ def get_part_from_file(the_model, model_file):
     the_model.copyMaterials(sourceModel=source_rail_model)
     the_model.copySections(sourceModel=source_rail_model)
     
-    if names.rail_substructure in source_rail_model.parts.keys():
+    has_substruct = names.rail_substructure in source_rail_model.parts.keys()
+    if has_substruct:
         the_model.Part(names.rail_substructure, source_rail_model.parts[names.rail_substructure])
     
     del mdb.models[names.rail_model]
 
+    return has_substruct

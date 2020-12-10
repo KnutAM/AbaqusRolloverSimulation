@@ -73,6 +73,36 @@ def add_after(keyword_block, string_to_add, find_strings=None):
     keyword_block.insert(line_num, string_to_add)
 
 
+def add_before(keyword_block, string_to_add, find_strings=None):
+    """Add `string_to_add` before the first line in to keyword_block 
+    that contains all strings in `find_strings`. 
+    
+    :param keyword_block: The Abaqus keywordBlock that contains the 
+                          keyword to be written to the input file
+    :type keyword_block: KeywordBlock object (Abaqus)
+    
+    :param string_to_add: The string to add to the input file
+    :type string_to_add: str
+    
+    :param find_strings: List of strings that the line prior after which 
+                         `string_to_add` should be added must contain. 
+                         If `find_strings`=None, add in beginning of the
+                         input file
+    :type category: list[ str ]
+    
+    :returns: None
+    :rtype: None
+
+    """
+    
+    if find_strings is None:
+        line_num = len(keyword_block.sieBlocks)
+    else:
+        line_num = find_strings_in_iterable(keyword_block.sieBlocks, find_strings)-1
+    
+    keyword_block.insert(line_num, string_to_add)
+    
+
 def find_strings_in_iterable(iterable, find_strings, min_ind=0):
     """Find the lowest index >= min_ind of a string in `iterable` that 
     contains all strings in `find_strings`
