@@ -55,9 +55,11 @@ def main():
     
 def create_substructure(wheel_param):
     job = wheel_substr.generate(wheel_param)
-
     job.submit()
     job.waitForCompletion()
+    if job.status != COMPLETED:
+        mdb.saveAs(pathName=wheel_param['wheel_name'])
+        raise Exception('Abaqus job failed, please see ' + job.name + '.log')
     
     
 def create_user_element(wheel_param):
