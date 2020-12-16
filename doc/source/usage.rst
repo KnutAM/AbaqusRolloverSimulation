@@ -5,15 +5,8 @@ This document describes the overall workflow for how to setup and run a
 rollover simulation. For more details, please see :doc:`tutorials` and 
 :doc:`examples`.
 
-|program_work_flow|
-
 |program_work_flow_png|
 
-
-.. |program_work_flow| image:: /img/program_work_flow.pdf
-          :align: middle
-          :alt: more info
-          
 .. |program_work_flow_png| image:: /img/program_work_flow.png
           :align: middle
           :alt: more info
@@ -402,7 +395,7 @@ However, there are a few important differences:
 To ensure the correct data format, one can write the following code in 
 Python to generate the ``json`` file:
 
-.. code-block::
+.. code-block:: python
 
    import json
    filename = 'example.json'	# Give the filename that you want to save to
