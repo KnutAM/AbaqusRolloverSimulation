@@ -307,8 +307,11 @@ def get_cycle_data(cycle_nr, cycles, cycle_data):
     return [data[ind] for data in cycle_data]
 
     
-def setup_step(the_model, name, prev_name, step_time, min_num, max_num, amp=RAMP):
-    """ Setup a new step.
+def setup_step(the_model, name, prev_name, step_time, min_num, max_num, amp=step.RAMP):
+    """ 
+    setup_step(the_model, name, prev_name, step_time, min_num, max_num, amp=step.RAMP)
+
+    Setup a new step.
     
     :param the_model:
     :type the_model:
