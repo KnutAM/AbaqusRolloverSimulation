@@ -33,7 +33,7 @@ class RolloverForm(AFXForm):
         # Wheel settings
         w = []
         w.append(kwa.add('folder: ', 'wheel', ':/wheels/wheel_example'))
-        w.append(kwa.add('translation: ', 'trans', '0.0, 480.0, 0.0'))
+        w.append(kwa.add('translation: ', 'trans', '0.0, 460.0, 0.0'))
         w.append(kwa.add('stiffness: ', 'stiffness', 210.0e3))
         self.settings['wheel'] = w[:]
         
@@ -49,7 +49,7 @@ class RolloverForm(AFXForm):
         ls.append(kwa.add('time inbetween: ', 't_ib', 1.e-6))
         ls.append(kwa.add('inbetween max incr: ', 'n_inc_ib', 100))
         ls.append(kwa.add('rolling length: ', 'L_roll', 50.0))
-        ls.append(kwa.add('rolling radius: ', 'R_roll', 960.0/2.0))
+        ls.append(kwa.add('rolling radius: ', 'R_roll', 920.0/2.0))
         ls.append(kwa.add('max increments: ', 'max_incr', 1000))
         ls.append(kwa.add('min increments: ', 'min_incr', 50))
         ls.append(kwa.add('num cycles: ', 'N', 1))
@@ -102,13 +102,14 @@ class RolloverDB(AFXDataDialog):
                     rgu.add_file_input(form, form.kw[label],
                                        'Folder (*)',
                                        aligner=va[title],
-                                       label=label, fw=fw)
+                                       label=label, fw=fw,
+                                       fh_opts=AFXSELECTFILE_DIRECTORY)
                 else:
                     AFXTextField(va[title], fw, label, 
                                  form.kw[label])
         
         # Create table input for output settings
-        tab['output'] = FXTabItem(p=TabBook, text=title)
+        tab['output'] = FXTabItem(p=TabBook, text='output')
         vf_opts = FRAME_RAISED|FRAME_THICK|LAYOUT_FILL_X
         vf['output'] = FXVerticalFrame(TabBook, opts=vf_opts)  
         num_row = 2

@@ -19,7 +19,7 @@ class RailForm(AFXForm):
         self.cmd = AFXGuiCommand(self, 'create_rail', 'plugin_cmd')
         
         # Define keywords to be input arguments to function in self.cmd
-        profile = ':/rail_profiles/BV50.sat'
+        profile = ':/rail_profiles/UIC60_head.sat'
         self.profile = {'kw': AFXStringKeyword(self.cmd, 'profile', 
                                                TRUE, 
                                                defaultValue=profile),
@@ -31,13 +31,13 @@ class RailForm(AFXForm):
                                 # the fields appear in the given order
         kwa = KwAdder(self.cmd, self.kw)
         
-        kwa.add('rail cae name: ', 'name', 'rail')
+        kwa.add('rail cae name: ', 'name', 'rail_example')
         kwa.add('rail length: ', 'length', 50.0)
-        kwa.add('mesh size: ', 'mesh_size', 5.0)
-        kwa.add('r_xmin: ', 'r_x_min', -10.0)
-        kwa.add('r_ymin: ', 'r_y_min', -10.0)
-        kwa.add('r_xmax: ', 'r_x_max', +10.0)
-        kwa.add('r_ymax: ', 'r_y_max', +10.0)
+        kwa.add('mesh size: ', 'mesh_size', '2.0, 10')
+        kwa.add('r_xmin: ', 'r_x_min', -7.0)
+        kwa.add('r_ymin: ', 'r_y_min', -5.0)
+        kwa.add('r_xmax: ', 'r_x_max', +7.0)
+        kwa.add('r_ymax: ', 'r_y_max', +5.0)
         kwa.add('r_x: ', 'r_x', 0.0)
         kwa.add('r_y: ', 'r_y', -1.0)
         kwa.add('sym_sign: ', 'sym_sign', 0)

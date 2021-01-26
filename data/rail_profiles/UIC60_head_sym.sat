@@ -1,0 +1,74 @@
+2000 0 1 0           
+18 Abaqus 2017 - 2402 14 ACIS 24.0.2 NT 24 Sat Dec 12 18:47:11 2020 
+1 9.9999999999999995e-007 1e-010 
+-0 body $1 -1 -1 $-1 $2 $-1 $3 F #
+-1 string_attrib-name_attrib-gen-attrib $-1 -1 $-1 $-1 $0 2 1 1 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @18 HKS_ATTRIB_BODY_ID @1 1 #
+-2 lump $-1 -1 -1 $-1 $-1 $4 $0 F #
+-3 transform $-1 -1 1 0 0 0 1 0 0 0 1 0 0 0 1 no_rotate no_reflect no_shear #
+-4 shell $-1 -1 -1 $-1 $-1 $-1 $-1 $5 $2 F #
+-5 wire $-1 -1 -1 $-1 $-1 $6 $4 $-1 out F #
+-6 coedge $-1 -1 -1 $-1 $7 $8 $-1 $9 forward $5 $-1 #
+-7 coedge $-1 -1 -1 $-1 $10 $6 $-1 $11 forward $5 $-1 #
+-8 coedge $-1 -1 -1 $-1 $6 $12 $-1 $13 forward $5 $-1 #
+-9 edge $14 -1 -1 $-1 $15 0 $16 16.445744446345596 $6 $17 forward @7 unknown T 0 -45.379780925072538 0 16.445744446345596 -45.379780925072538 1.0070114147906248e-015 #
+-10 coedge $-1 -1 -1 $-1 $18 $7 $-1 $19 forward $5 $-1 #
+-11 edge $20 -1 -1 $-1 $16 0 $21 19.671604895865087 $7 $22 forward @7 unknown T 16.445744446345596 -45.379780925072538 0 35.060372431890372 -39.018360946891839 0 #
+-12 coedge $-1 -1 -1 $-1 $23 $8 $-1 $24 forward $5 $-1 #
+-13 edge $25 -1 -1 $-1 $26 0 $15 45.379780925072538 $8 $27 forward @7 unknown T 0 -45.379780925072538 0 0 0 0 #
+-14 integer_attrib-name_attrib-gen-attrib $-1 -1 $-1 $-1 $9 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300068 #
+-15 vertex $28 -1 -1 $-1 $13 $29 #
+-16 vertex $30 -1 -1 $-1 $11 $31 #
+-17 straight-curve $-1 -1 -1 $-1 0 -45.379780925072538 1.0070114147906248e-015 1 0 -6.123233995736766e-017 I I #
+-18 coedge $-1 -1 -1 $-1 $10 $32 $-1 $33 forward $5 $-1 #
+-19 edge $34 -1 -1 $-1 $21 -1.2414962067360737 $35 0.049958395721943716 $10 $36 forward @7 unknown T 35.060372431890372 -39.018360946891839 0 37.090229932812747 -36.029741386986181 0 #
+-20 integer_attrib-name_attrib-gen-attrib $-1 -1 $-1 $-1 $11 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300034 #
+-21 vertex $37 -1 -1 $-1 $11 $38 #
+-22 straight-curve $-1 -1 -1 $-1 16.445744446345596 -45.379780925072538 0 0.94626890302465938 0.32338083302587328 0 I I #
+-23 coedge $-1 -1 -1 $-1 $32 $12 $-1 $39 forward $5 $-1 #
+-24 edge $40 -1 -1 $-1 $26 -1.5707963267948966 $41 -1.5366963852429274 $12 $42 forward @7 unknown T -5.5109105961630892e-014 -0.17440400125946098 0 10.227999999999996 0 0 #
+-25 integer_attrib-name_attrib-gen-attrib $-1 -1 $-1 $-1 $13 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300067 #
+-26 vertex $43 -1 -1 $-1 $24 $44 #
+-27 straight-curve $-1 -1 -1 $-1 0 0 0 0 -1 0 I I #
+-28 integer_attrib-name_attrib-gen-attrib $-1 -1 $45 $-1 $15 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300118 #
+-29 point $-1 -1 -1 $-1 0 -45.379780925072538 0 #
+-30 integer_attrib-name_attrib-gen-attrib $-1 -1 $46 $-1 $16 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300059 #
+-31 point $-1 -1 -1 $-1 16.445744446345596 -45.379780925072538 0 #
+-32 coedge $-1 -1 -1 $-1 $18 $23 $-1 $47 forward $5 $-1 #
+-33 edge $48 -1 -1 $-1 $49 0 $35 21.7568842074913 $18 $50 forward @7 unknown T 36 -36.029741386986188 0 37.086486949446282 -14.30000239805981 0 #
+-34 integer_attrib-name_attrib-gen-attrib $-1 -1 $-1 $-1 $19 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300039 #
+-35 vertex $51 -1 -1 $-1 $33 $52 #
+-36 ellipse-curve $-1 -1 -1 $-1 34.090229932812747 -36.179554237817861 0 0 0 1 3.0000000000000013 0 0 1 I I #
+-37 integer_attrib-name_attrib-gen-attrib $-1 -1 $53 $-1 $21 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300061 #
+-38 point $-1 -1 -1 $-1 35.060372431890372 -39.018360946891839 0 #
+-39 edge $54 -1 -1 $-1 $41 -1.5366964256963591 $55 -1.3370975211237273 $23 $56 forward @7 unknown T 10.227999999999959 -2.3025770231850657 0 26.02672525651634 -0.17440400125946098 0 #
+-40 integer_attrib-name_attrib-gen-attrib $-1 -1 $-1 $-1 $24 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300027 #
+-41 vertex $57 -1 -1 $-1 $24 $58 #
+-42 ellipse-curve $-1 -1 -1 $-1 0 -300 0 -0 -0 -1 300 0 0 1 I I #
+-43 integer_attrib-name_attrib-gen-attrib $-1 -1 $59 $-1 $26 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300000 #
+-44 point $-1 -1 -1 $-1 -5.5109105961630892e-014 0 0 #
+-45 integer_attrib-name_attrib-gen-attrib $-1 -1 $-1 $28 $15 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300117 #
+-46 integer_attrib-name_attrib-gen-attrib $-1 -1 $-1 $30 $16 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300059 #
+-47 edge $60 -1 -1 $-1 $55 -1.3370975211237273 $49 -0.049958395721940912 $32 $61 forward @7 unknown T 26.026725256516368 -14.300002398059815 0 35.999999999999986 -2.3025770231850622 0 #
+-48 integer_attrib-name_attrib-gen-attrib $-1 -1 $-1 $-1 $33 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300031 #
+-49 vertex $62 -1 -1 $-1 $47 $63 #
+-50 straight-curve $-1 -1 -1 $-1 36 -14.30000239805981 0 0.04993761694389056 -0.99875233887784487 0 I I #
+-51 integer_attrib-name_attrib-gen-attrib $-1 -1 $64 $-1 $35 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300062 #
+-52 point $-1 -1 -1 $-1 37.086486949446282 -36.029741386986188 0 #
+-53 integer_attrib-name_attrib-gen-attrib $-1 -1 $-1 $37 $21 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300064 #
+-54 integer_attrib-name_attrib-gen-attrib $-1 -1 $-1 $-1 $39 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300028 #
+-55 vertex $65 -1 -1 $-1 $39 $66 #
+-56 ellipse-curve $-1 -1 -1 $-1 7.5005365677264537 -80.127896377925637 0 -0 -0 -1 80.000000000000028 0 0 1 I I #
+-57 integer_attrib-name_attrib-gen-attrib $-1 -1 $67 $-1 $41 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300040 #
+-58 point $-1 -1 -1 $-1 10.227999999999923 -0.17440400125940414 0 #
+-59 integer_attrib-name_attrib-gen-attrib $-1 -1 $-1 $43 $26 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300000 #
+-60 integer_attrib-name_attrib-gen-attrib $-1 -1 $-1 $-1 $47 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300029 #
+-61 ellipse-curve $-1 -1 -1 $-1 23.016219594588019 -14.94919141833039 0 -0 -0 -1 12.999999999999986 0 0 1 I I #
+-62 integer_attrib-name_attrib-gen-attrib $-1 -1 $68 $-1 $49 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300044 #
+-63 point $-1 -1 -1 $-1 35.999999999999986 -14.300002398059815 0 #
+-64 integer_attrib-name_attrib-gen-attrib $-1 -1 $-1 $51 $35 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300065 #
+-65 integer_attrib-name_attrib-gen-attrib $-1 -1 $69 $-1 $55 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300042 #
+-66 point $-1 -1 -1 $-1 26.026725256516325 -2.3025770231850515 0 #
+-67 integer_attrib-name_attrib-gen-attrib $-1 -1 $-1 $57 $41 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300040 #
+-68 integer_attrib-name_attrib-gen-attrib $-1 -1 $-1 $62 $49 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300044 #
+-69 integer_attrib-name_attrib-gen-attrib $-1 -1 $-1 $65 $55 2 4 2 1 1 1 1 1 1 1 1 1 1 1 0 1 1 1 @16 SKETCH_ENTITY_ID 300042 #
+End-of-ACIS-data 

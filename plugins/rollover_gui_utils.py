@@ -99,9 +99,10 @@ class PartDB(AFXDataDialog):
         # gb = FXGroupBox(hf, 'Diagram', LAYOUT_FILL_Y|FRAME_GROOVE)
 
 
-def add_file_input(form, form_kw, patterns, aligner, label, fw=50):
+def add_file_input(form, form_kw, patterns, aligner, label, fw=50,
+                   fh_opts=AFXSELECTFILE_EXISTING):
     hf = FXHorizontalFrame(p=aligner)
-    fh = DBFileHandler(form, form_kw, patterns)
+    fh = DBFileHandler(form, form_kw, patterns, opts=fh_opts)
     AFXTextField(hf, fw, label, form_kw, 
                  opts=AFXTEXTFIELD_STRING|LAYOUT_CENTER_Y)
     icon = afxGetIcon('fileOpen', AFX_ICON_SMALL )
@@ -111,19 +112,25 @@ def add_file_input(form, form_kw, patterns, aligner, label, fw=50):
 
 class DBFileHandler(FXObject):
 
-    def __init__(self, form, form_kw, patterns='*'):
+    def __init__(self, form, form_kw, patterns='*', 
+                 opts=AFXSELECTFILE_EXISTING):
         self.form = form
         self.patterns = patterns
         self.patternTgt = AFXIntTarget(0)
         self.fileNameKw = form_kw
-        self.readOnlyKw = AFXBoolKeyword(None, 'readOnly', AFXBoolKeyword.TRUE_FALSE)
+        self.readOnlyKw = AFXBoolKeyword(None, 'readOnly', 
+                                         AFXBoolKeyword.TRUE_FALSE)
+        self.opts = opts
         FXObject.__init__(self)
-        FXMAPFUNC(self, SEL_COMMAND, AFXMode.ID_ACTIVATE, DBFileHandler.activate)
+        FXMAPFUNC(self, SEL_COMMAND, AFXMode.ID_ACTIVATE, 
+                  DBFileHandler.activate)
+
 
     def activate(self, sender, sel, ptr):
-       fileDb = AFXFileSelectorDialog(getAFXApp().getAFXMainWindow(), 'Select a File',
-           self.fileNameKw, self.readOnlyKw,
-           AFXSELECTFILE_ANY, self.patterns, self.patternTgt)
+       fileDb = AFXFileSelectorDialog(getAFXApp().getAFXMainWindow(), 
+                                      'Select', self.fileNameKw, 
+                                      self.readOnlyKw, self.opts, 
+                                      self.patterns, self.patternTgt)
        fileDb.setReadOnlyPatterns('*.odb')
        fileDb.create()
        fileDb.showModal()

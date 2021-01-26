@@ -31,15 +31,15 @@ class WheelForm(AFXForm):
                                 # the fields appear in the given order
         kwa = KwAdder(self.cmd, self.kw)
         
-        kwa.add('wheel save folder: ', 'name', 'wheel')
+        kwa.add('wheel save folder: ', 'name', 'wheel_example')
         kwa.add('fine mesh: ', 'mesh_fine', 5.0)
         kwa.add('coarse mesh: ', 'mesh_coarse', 20.0)
         kwa.add('use quadratic: ', 'quadratic', 0)
         kwa.add('min angle: ', 'c_ang_min', -0.033)
-        kwa.add('max angle: ', 'c_ang_max', +0.100)
+        kwa.add('max angle: ', 'c_ang_max', +0.167)
         kwa.add('min x contact: ', 'c_x_min', -10.0)
         kwa.add('max x contact: ', 'c_x_max', +10.0)
-        kwa.add('partition radius: ', 'partition_r', 454.0)
+        kwa.add('partition line y: ', 'partition_r', -454.0)
         
         
     def getFirstDialog(self):

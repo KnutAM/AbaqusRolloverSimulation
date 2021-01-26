@@ -11,12 +11,16 @@
 !rail_settings/rail_settings.json
 #  Rail profiles
 !/rail_profiles/
-!rail_profiles/BV50.sat
-!rail_profiles/BV50_half.sat
+!rail_profiles/UIC60.sat
+!rail_profiles/UIC60_head.sat
+!rail_profiles/UIC60_sym.sat
+!rail_profiles/UIC60_head_sym.sat
 #  Wheel profiles
 !/wheel_profiles/
-!wheel_profiles/rs200_ro460_ri300_s60.sat
-!wheel_profiles/rs200_ro460_ri300_s60_sym.sat
+!wheel_profiles/rs200_ro460_ri300_w60.sat
+!wheel_profiles/rs200_ro460_ri300_w60_sym.sat
+!wheel_profiles/ro460_ri300_w44_sym.sat
+!wheel_profiles/S1002_D1000_straight
 #  Wheel settings
 !/wheel_settings/
 !wheel_settings/wheel_settings.json

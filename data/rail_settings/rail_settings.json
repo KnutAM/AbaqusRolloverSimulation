@@ -8,11 +8,11 @@
              "gamma": [400.0, 0.0 ]
            }
  },
- "rail_profile": ":/rail_profiles/BV50_simple.sat",
+ "rail_profile": ":/rail_profiles/UIC60_head.sat",
  "rail_length": 30.0,
  "rail_name": "rail_example",
- "refine_region": [[-7, 25],[7,35]],
- "point_in_refine_cell": [0.0, 29.0, 1.0 ],
- "fine_mesh": 1.0,
+ "refine_region": [[-7, -5],[7, 5]],
+ "point_in_refine_cell": [0.0, -1.0, 1.0 ],
+ "fine_mesh": 2.0,
  "coarse_mesh": 10.0
 }

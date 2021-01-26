@@ -25,6 +25,23 @@ from rollover.three_d.utils import fil_output
 
 
 
+def get_csv(csv, type):
+    """ Convert a comma separated string of values to list of given type
+    :param csv: Comma separated string
+    :type csv: str
+    
+    :param type: a type casting function, e.g. float, int, str
+    :type type: function
+    
+    :returns: A list of values of type type
+    :rtype: list[type]
+    """
+    
+    if type==str:
+        return [str(itm).strip() for itm in csv.split(',')]
+    else:
+        return [type(itm) for itm in csv.split(',')]
+
 def create_rail(profile, name, length, mesh_size, 
                 r_x_min, r_y_min, r_x_max, r_y_max, r_x, r_y, sym_sign=0):
     """Create a rail model from plugin input
@@ -39,8 +56,8 @@ def create_rail(profile, name, length, mesh_size,
     :param length: Length of rail to be extruded
     :type length: float
     
-    :param mesh_size: Mesh size to be used
-    :type mesh_size: float
+    :param mesh_size: Mesh size to be used: fine, coarse (csv data)
+    :type mesh_size: str
     
     :param r_x_min: x-coordinate of refinement cell corner nr 1. The 
                     refinement cell also specifies the contact region
@@ -74,8 +91,10 @@ def create_rail(profile, name, length, mesh_size,
                                    refine_region=refinement_cell, 
                                    sym_dir=sym_dir)
     rail_part = rail_model.parts[names.rail_part]
+    fine_mesh, coarse_mesh = get_csv(mesh_size, float)
+    
     rail_mesh.create_basic(rail_part, point_in_refine_cell, 
-                           fine_mesh=mesh_size, coarse_mesh=mesh_size)
+                           fine_mesh=fine_mesh, coarse_mesh=coarse_mesh)
 
     mdb.saveAs(pathName=name)
     
@@ -249,12 +268,6 @@ def create_rollover(rail, shadow, use_rp, wheel, trans, stiffness,
     :returns: None
     
     """
-    def get_csv(csv, type):
-        if type==str:
-            return [str(itm).strip() for itm in csv.split(',')]
-        else:
-            return [type(itm) for itm in csv.split(',')]
-        
     rp = {'model_file': rail,
           'shadow_extents': get_csv(shadow, float),
           'use_rail_rp': use_rp==1}
@@ -328,11 +341,11 @@ def create_rollover(rail, shadow, use_rp, wheel, trans, stiffness,
         fid.write(('%25.15e'*3 + '\n') % tuple(wheel_rp_coord))
         fid.write(('%25.15e'*3 + '\n') % tuple(rail_rp_coord))
     
-    # Save model database
-    mdb.saveAs(pathName=names.model)
-    
     # Write input file
     the_job = mdb.Job(name=names.job, model=names.model)
     the_job.writeInput(consistencyChecking=OFF)
+    
+    # Save model database
+    mdb.saveAs(pathName=names.model)
     
 
