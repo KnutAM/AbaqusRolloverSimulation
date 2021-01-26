@@ -43,7 +43,9 @@ class KwAdder():
         :param default: The default value for given entry
         :type default: float, int, or str
         
-        :returns: None
+        :returns: Returns the given key
+        :rtype: str
+        
         """
         
         if isinstance(default, float):
@@ -58,7 +60,10 @@ class KwAdder():
         else:
             raise ValueError('AFX?Keyword not supported for type'
                              + type(default))
- 
+        
+        return key
+        
+        
 class PartDB(AFXDataDialog):
 
     def __init__(self, form):
@@ -92,6 +97,16 @@ class PartDB(AFXDataDialog):
             AFXTextField(va, 12, label, form.kw[label], 0)
         
         # gb = FXGroupBox(hf, 'Diagram', LAYOUT_FILL_Y|FRAME_GROOVE)
+
+
+def add_file_input(form, form_kw, patterns, aligner, label, fw=50):
+    hf = FXHorizontalFrame(p=aligner)
+    fh = DBFileHandler(form, form_kw, patterns)
+    AFXTextField(hf, fw, label, form_kw, 
+                 opts=AFXTEXTFIELD_STRING|LAYOUT_CENTER_Y)
+    icon = afxGetIcon('fileOpen', AFX_ICON_SMALL )
+    FXButton(p=hf, text=label, ic=icon, tgt=fh, sel=AFXMode.ID_ACTIVATE,
+             opts=BUTTON_NORMAL|LAYOUT_CENTER_Y, pl=1, pr=1, pt=1, pb=1)
 
 
 class DBFileHandler(FXObject):
