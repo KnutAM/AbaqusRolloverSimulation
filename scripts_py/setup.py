@@ -11,14 +11,32 @@ are ignored by git:
   This file should be added either to the working directory of the 
   simulation, or to the user's home directory (%HOME% on Windows and ~ 
   on Linux)
+  
+- `usub_rollover.obj` or `usub_rollover.o`
+  Basic user subroutine required to run rollover simulation. Is saved in 
+  the data/usub directory
 
 """
 
-import os
+from __future__ import print_function
+import os, sys, shutil
+import create_usub
 
-def main():
-    rollover_repo_path = create_local_paths()
+def main(argv):
+    print('Running initial setup of rollover.')
+    print('Use input argument 0 to supress compilation of subroutine')
+    rollover_repo_path, data_path = create_local_paths()
+    print('local path module, "local_paths.py", created')
     create_abaqus_env(rollover_repo_path)
+    print('abaqus environment file, "abaqus_v6.env", created')
+    compile = True
+    if len(argv)>1:
+        if int(argv[1]) == 0:
+            compile = False
+    if compile:
+            print('compiling abaqus user subroutine')
+            compile_default_usub(data_path)
+            print('subroutine compilation completed')
     
 
 def create_local_paths():
@@ -52,7 +70,7 @@ def create_local_paths():
         fid.write('# Path to documentation folder\n')
         fid.write('doc_path = "' + doc_path + '"\n\n')
     
-    return rollover_repo_path
+    return rollover_repo_path, data_path
         
 
 def create_abaqus_env(rollover_repo_path):
@@ -62,7 +80,6 @@ def create_abaqus_env(rollover_repo_path):
     with open(rollover_repo_path + '/abaqus_v6.env', 'w') as fid:
         fid.write(rollover_path_spec)
         fid.write(ifort_adaptation)
-    
     
     
 def get_rollover_path_spec(rollover_repo_path):
@@ -112,5 +129,25 @@ def get_shell_output(cmd):
     return out_str
 
     
+def compile_default_usub(data_path):
+    folder_list, file_list = create_usub.get_default_usubs()
+    tmp_dir = create_usub.create_tmpdir(folder_list)
+    os.chdir(tmp_dir)
+    usub_file = create_usub.combine_usub_files(file_list)
+    usub_ofile = create_usub.make_library(usub_file)
+    os.chdir('..')
+    usub_data_path = os.path.abspath(data_path + '/usub/')
+    usub_ofile_name = 'usub_rollover.' + usub_ofile.split('.')[-1]
+    try:
+        
+        shutil.copyfile(tmp_dir + '/' + usub_ofile, 
+                        usub_data_path + '/' + usub_ofile_name)
+    except FileNotFoundError as e:
+        print('Compilation failed, please see build.log file in ' + tmp_dir)
+        raise e
+    
+    shutil.rmtree(tmp_dir)
+    
+
 if __name__ == '__main__':
-    main()
+    main(sys.argv)
