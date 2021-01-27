@@ -2,11 +2,12 @@
 
 """
 from __future__ import print_function
-import shutil
+import os, shutil
 
 from abaqus import mdb
 from abaqusConstants import *
 
+from rollover import local_paths
 from rollover.utils import naming_mod as names
 from rollover.utils import abaqus_python_tools as apt
 from rollover.three_d.rail import basic as rail_basic
@@ -42,8 +43,8 @@ def get_csv(csv, type):
     else:
         return [type(itm) for itm in csv.split(',')]
 
-def create_rail(profile, name, length, mesh_size, 
-                r_x_min, r_y_min, r_x_max, r_y_max, r_x, r_y, sym_sign=0):
+def create_rail(profile, name, length, mesh_size, pt_min, pt_max, pt, 
+                sym_sign=0):
     """Create a rail model from plugin input
     
     :param profile: Path to an Abaqus sketch profile saved as .sat file 
@@ -59,24 +60,15 @@ def create_rail(profile, name, length, mesh_size,
     :param mesh_size: Mesh size to be used: fine, coarse (csv data)
     :type mesh_size: str
     
-    :param r_x_min: x-coordinate of refinement cell corner nr 1. The 
-                    refinement cell also specifies the contact region
-    :type r_x_min: float
+    :param pt_min: point 1 in refine rectangle, csv data
+    :type pt_min: str
     
-    :param r_y_min: y-coordinate of refinement cell corner nr 1
-    :type r_y_min: float
+    :param pt_max: point 2 in refine rectangle, csv data
+    :type pt_max: str
     
-    :param r_x_max: x-coordinate of refinement cell corner nr 2
-    :type r_x_max: float
-    
-    :param r_y_max: y-coordinate of refinement cell corner nr 2
-    :type r_y_max: float
-    
-    :param r_x: x-coordinate of point within refinement cell
-    :type r_x: float
-    
-    :param r_y: y-coordinate of point within refinement cell
-    :type r_y: float
+    :param pt: point inside refine rectangle (overlapping rail geom),
+               csv data
+    :type pt: str
     
     :param sym_sign: Direction of symmetry normal (along x-axis), if 0
                      no symmetry is applied.
@@ -84,8 +76,9 @@ def create_rail(profile, name, length, mesh_size,
     
     """
     
-    refinement_cell = [[r_x_min, r_y_min], [r_x_max, r_y_max]]
-    point_in_refine_cell = [r_x, r_y, length/2.0]
+    refinement_cell = [get_csv(pt_min, float), get_csv(pt_max, float)]
+    point_in_refine_cell = get_csv(pt, float)
+    point_in_refine_cell.append(length/2.0) # Append z coordinate
     sym_dir = None if sym_sign == 0 else [sym_sign, 0, 0]
     rail_model = rail_basic.create(profile, length, 
                                    refine_region=refinement_cell, 
@@ -112,8 +105,8 @@ def periodicize_mesh():
     rail_part.generateMesh()
     
     
-def create_wheel(profile, name, mesh_fine, mesh_coarse, quadratic,
-                 c_ang_min, c_ang_max, c_x_min, c_x_max, partition_r):
+def create_wheel(profile, name, mesh, quadratic, ang_int, x_int, 
+                 partition_y):
     """Create a wheel super element from plugin input
     
     :param profile: Path to an Abaqus sketch profile saved as .sat file 
@@ -123,39 +116,30 @@ def create_wheel(profile, name, mesh_fine, mesh_coarse, quadratic,
     :param name: Name of file to save wheel as
     :type name: str
     
-    :param mesh_fine: Fine mesh size (contact surface)
-    :type mesh_fine: float
-    
-    :param mesh_coarse: Coarse mesh size (inside partition_r)
-    :type mesh_coarse: float
+    :param mesh: Mesh size, fine, coarse (csv data)
+    :type mesh_fine: str
     
     :param quadratic: Use quadratic elements? (0=false, 1=true)
     :type quadratic: int
     
-    :param c_ang_min: Lowest angle to include in contact
-    :type c_ang_min: float
+    :param ang_int: Angular interval to retain (min, max) csv data
+    :type ang_int: str
+        
+    :param x_int: x interval to retain (min, max) (csv data)
+    :type x_int: str
     
-    :param c_ang_max: Largest angle to include in contact
-    :type c_ang_max: float
-    
-    :param c_x_min: Minimum x-coordinate to include in contact/retain
-    :type c_x_min: float
-    
-    :param c_x_max: Maximum x-coordinate to include in contact/retain
-    :type c_x_max: float
-    
-    :param partition_r: Radius outside which to use the fine mesh
-    :type partition_r: float
+    :param partition_y: Y-coordinate outside which to use the fine mesh
+    :type partition_y: float
     
     """
     
     # Create wheel parameter dictionary 
     wheel_param = {'wheel_profile': profile, 
-                   'mesh_sizes': [mesh_fine, mesh_coarse],
+                   'mesh_sizes': get_csv(mesh, float),
                    'quadratic_order': quadratic == 1,
-                   'wheel_contact_pos': [c_x_min, c_x_max],
-                   'wheel_angles': [c_ang_min, c_ang_max],
-                   'partition_line': partition_r}
+                   'wheel_contact_pos': get_csv(x_int, float),
+                   'wheel_angles': get_csv(ang_int, float),
+                   'partition_line': partition_y}
     
     # Create wheel substructure
     job = wheel_substr.generate(wheel_param)
@@ -342,7 +326,11 @@ def create_rollover(rail, shadow, use_rp, wheel, trans, stiffness,
         fid.write(('%25.15e'*3 + '\n') % tuple(rail_rp_coord))
     
     # Write input file
-    the_job = mdb.Job(name=names.job, model=names.model)
+    obj_suff = '.o' if os.name == 'posix' else '.obj'
+    usub = local_paths.data_path + '/usub/usub_rollover' + obj_suff
+    
+    the_job = mdb.Job(name=names.job, model=names.model,
+                      userSubroutine=usub)
     the_job.writeInput(consistencyChecking=OFF)
     
     # Save model database

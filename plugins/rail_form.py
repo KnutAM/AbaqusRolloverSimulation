@@ -34,12 +34,9 @@ class RailForm(AFXForm):
         kwa.add('rail cae name: ', 'name', 'rail_example')
         kwa.add('rail length: ', 'length', 50.0)
         kwa.add('mesh size: ', 'mesh_size', '2.0, 10')
-        kwa.add('r_xmin: ', 'r_x_min', -7.0)
-        kwa.add('r_ymin: ', 'r_y_min', -5.0)
-        kwa.add('r_xmax: ', 'r_x_max', +7.0)
-        kwa.add('r_ymax: ', 'r_y_max', +5.0)
-        kwa.add('r_x: ', 'r_x', 0.0)
-        kwa.add('r_y: ', 'r_y', -1.0)
+        kwa.add('refine p1: ', 'pt_min', '-7.0, -5.0')
+        kwa.add('refine p2: ', 'pt_max', '7.0, 5.0')
+        kwa.add('refine p: ', 'pt', '0.0, -1.0')
         kwa.add('sym_sign: ', 'sym_sign', 0)
         
         
