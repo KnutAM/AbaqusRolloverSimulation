@@ -1,10 +1,5 @@
 Plugins
 *********
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-   
-   plugins/reload
-   plugins/create_substructure
-..
+Describe briefly how the plugins are made. No need to document every 
+interface etc. 

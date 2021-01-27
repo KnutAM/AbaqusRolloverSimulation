@@ -1,6 +1,6 @@
 """This module enable direct editing of input keywords in the input 
 file. Options not available in CAE can therefore be added via the 
-scripting interface. 
+scripting interface.
 
 .. codeauthor:: Knut Andreas Meyer
 """
@@ -56,13 +56,13 @@ def add_after(keyword_block, string_to_add, find_strings=None):
     
     :param find_strings: List of strings that the line prior after which 
                          `string_to_add` should be added must contain. 
-                         If `find_strings`=None, add in beginning of the
-                         input file
-    :type category: list[ str ]
+                         If `find_strings` = None, add in beginning of 
+                         the input file
+    :type find_strings: list[ str ]
     
     :returns: None
     :rtype: None
-
+    
     """
     
     if find_strings is None:
@@ -84,15 +84,15 @@ def add_before(keyword_block, string_to_add, find_strings=None):
     :param string_to_add: The string to add to the input file
     :type string_to_add: str
     
-    :param find_strings: List of strings that the line prior after which 
+    :param find_strings: List of strings that the line prior after which
                          `string_to_add` should be added must contain. 
-                         If `find_strings`=None, add in beginning of the
-                         input file
-    :type category: list[ str ]
+                         If `find_strings` = None, add in beginning of 
+                         the input file
+    :type find_strings: list[ str ]
     
     :returns: None
     :rtype: None
-
+    
     """
     
     if find_strings is None:
@@ -120,7 +120,7 @@ def find_strings_in_iterable(iterable, find_strings, min_ind=0):
     
     :returns: None
     :rtype: None
-
+    
     """
     
     for n, line in enumerate(iterable[min_ind:]):

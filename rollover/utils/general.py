@@ -7,7 +7,7 @@ in a new file instead.
 
 def get_arguments(function, num_first=0):
     """ Given a function, return all its arguments and the mandatory 
-    arguments. This can be used to check **kwargs type of input. 
+    arguments. This can be used to check `**kwargs` type of input. 
     num_first skips the first num_first arguments (that are mandatory)
     
     :param function: The function whose arguments should be obtained

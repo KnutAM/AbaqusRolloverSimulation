@@ -1,9 +1,8 @@
-How to use
-**********
+How to run using scripts
+************************
 
 This document describes the overall workflow for how to setup and run a 
-rollover simulation. For more details, please see :doc:`tutorials` and 
-:doc:`examples`.
+rollover simulation.
 
 |program_work_flow_png|
 

@@ -9,14 +9,16 @@ Rollover simulation using Abaqus
 
 .. toctree::
    :maxdepth: 2
+   :includehidden:
    :caption: Contents:
    
    intro
-   usage
-   tutorials
-   examples
+   install
+   workflow
    plugins
-   api_reference
+   scripts_abq
+   scripts_py
+   rollover_lib
    indices_and_tables
 ..
    fortran_reference
