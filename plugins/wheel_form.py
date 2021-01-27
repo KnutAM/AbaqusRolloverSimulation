@@ -45,25 +45,5 @@ class WheelForm(AFXForm):
     def getFirstDialog(self):
         return PartDB(self)
  
- 
-doc_dir = '' # Should get the doc build dir
 
-toolset = getAFXApp().getAFXMainWindow().getPluginToolset()
-helpUrl = os.path.join(doc_dir, 'plugins/example.html')
-
-pluginDesc = 'Create wheel super-element'
-
-toolset.registerGuiMenuButton(
-    object=WheelForm(toolset), buttonText='Rollover|Create wheel...',
-    kernelInitString='from rollover import plugin_cmd',
-    version='1.0', author='Knut Andreas Meyer',
-    description=pluginDesc,
-    helpUrl=helpUrl)
-    
-toolset.registerGuiToolButton('Rollover', 
-    object=WheelForm(toolset), buttonText='Create wheel',
-    kernelInitString='from rollover import plugin_cmd', # icon=icon,
-    version='1.0', author='Knut Andreas Meyer',
-    description=pluginDesc,
-    helpUrl=helpUrl)
 
