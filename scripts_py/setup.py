@@ -55,7 +55,7 @@ def create_local_paths():
     with open(rollover_repo_path + '/rollover/local_paths.py', 'w') as fid:
         fid.write('# Automatically generated module by ' + os.path.abspath(__file__) + '\n')
         fid.write('# Defines the local paths for the rollover library, this allows examples\n')
-        fid.write('# to run without additional changes')
+        fid.write('# to run without additional changes\n')
         fid.write('# This file should not be version controlled, ' + __file__ + ' is.\n\n')
         
         fid.write('# Path to top of repository\n')
