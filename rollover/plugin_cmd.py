@@ -43,7 +43,7 @@ def get_csv(csv, type):
     else:
         return [type(itm) for itm in csv.split(',')]
 
-def create_rail(profile, name, length, mesh_size, pt_min, pt_max, pt, 
+def create_rail(profile, name, length, mesh_size, pt_min, pt_max, 
                 sym_sign=0):
     """Create a rail model from plugin input
     
@@ -66,10 +66,6 @@ def create_rail(profile, name, length, mesh_size, pt_min, pt_max, pt,
     :param pt_max: point 2 in refine rectangle, csv data
     :type pt_max: str
     
-    :param pt: point inside refine rectangle (overlapping rail geom),
-               csv data
-    :type pt: str
-    
     :param sym_sign: Direction of symmetry normal (along x-axis), if 0
                      no symmetry is applied.
     :type sym_sign: int
@@ -77,8 +73,7 @@ def create_rail(profile, name, length, mesh_size, pt_min, pt_max, pt,
     """
     
     refinement_cell = [get_csv(pt_min, float), get_csv(pt_max, float)]
-    point_in_refine_cell = get_csv(pt, float)
-    point_in_refine_cell.append(length/2.0) # Append z coordinate
+    
     sym_dir = None if sym_sign == 0 else [sym_sign, 0, 0]
     rail_model = rail_basic.create(profile, length, 
                                    refine_region=refinement_cell, 
@@ -86,8 +81,10 @@ def create_rail(profile, name, length, mesh_size, pt_min, pt_max, pt,
     rail_part = rail_model.parts[names.rail_part]
     fine_mesh, coarse_mesh = get_csv(mesh_size, float)
     
-    rail_mesh.create_basic(rail_part, point_in_refine_cell, 
-                           fine_mesh=fine_mesh, coarse_mesh=coarse_mesh)
+    rail_mesh_param = {'fine_mesh': fine_mesh,
+                       'coarse_mesh': coarse_mesh,
+                       'refine_region': refinement_cell}
+    rail_mesh.create_basic_from_param(rail_part, rail_mesh_param)
 
     mdb.saveAs(pathName=name)
     

@@ -36,7 +36,6 @@ class RailForm(AFXForm):
         kwa.add('mesh size: ', 'mesh_size', '2.0, 10')
         kwa.add('refine p1: ', 'pt_min', '-7.0, -5.0')
         kwa.add('refine p2: ', 'pt_max', '7.0, 5.0')
-        kwa.add('refine p: ', 'pt', '0.0, -1.0')
         kwa.add('sym_sign: ', 'sym_sign', 0)
         
         

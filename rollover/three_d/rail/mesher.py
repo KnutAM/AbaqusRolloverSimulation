@@ -17,28 +17,46 @@ import part
 from rollover.utils import naming_mod as names
 from rollover.utils import get_utils as get
 from rollover.utils import abaqus_python_tools as apt
-
+from rollover.three_d.rail import basic as basic_rail
 from rollover.three_d.utils import symmetric_mesh_module as sm
 
 def create_basic_from_param(rail_part, rail_param):
-    """ Call :py:func:`rollover.three_d.rail.mesh.create_basic` with the settings from rail_param
+    """ Call :py:func:`~rollover.three_d.rail.mesh.create_basic` with 
+    the settings from rail_param
     
     :param rail_part: The part in which the sets will be created
     :type rail_part: Part (Abaqus object)
     
-    :param rail_param: dictionary containing input arguments to the create_basic function:
+    :param rail_param: dictionary containing input arguments to the 
+                       create_basic function:
                        
-                       - 'point_in_refine_cell'
                        - 'fine_mesh'
                        - 'coarse_mesh'
+                       
+                       Optionally, it can also contain 'refine_region' 
+                       specifying the region with fine mesh, otherwise
+                       a random cell in the part is chosen. This should 
+                       happen when only one cell exists, and the fine 
+                       mesh is applied to the entire rail. 
+                       'refine_region' is a list of two points in the 
+                       xy-plane, describing the rectangle used to 
+                       partition the rail. 
                        
     :type rail_param: dict
     
     :returns: None
     :rtype: None
     """
+    refine_region = rail_param['refine_region']
+    if refine_region is None:
+        # Find any point in the rail
+        point_in_refine_cell = rail_part.edges[0].pointOn() 
+    else:
+        # Get a point on the partition face
+        f, p = basic_rail.get_partition_face(rail_part, refine_region)
+        point_in_refine_cell = p
     
-    create_basic(rail_part, rail_param['point_in_refine_cell'], rail_param['fine_mesh'],
+    create_basic(rail_part, point_in_refine_cell, rail_param['fine_mesh'],
                  rail_param['coarse_mesh'])
 
 

@@ -57,9 +57,6 @@ contain the following settings:
   from which the contact surface will be defined. If not given, the 
   entire rail will be finely meshed, and the entire surface will be set 
   as contact surface.
-- ``"point_in_refine_cell"`` (mandatory): ``[x,y,z]`` A point that is 
-  inside the refined cell (i.e. both within "refine_region" and inside 
-  the sketched profile). 
 - ``"fine_mesh"`` (mandatory): The element size for the fine mesh
 - ``"coarse_mesh"`` (mandatory): The element size for the coarse mesh.
 - ``"sym_dir"`` (optional): The direction of the symmetry plane. If not
