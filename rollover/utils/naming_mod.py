@@ -1,9 +1,10 @@
-# Define names to be used throughout the code. All names that are referenced 
-# within multiple functions should be defined in this module.
-# Recommended to import as "import naming_mod as names"
-# Hence, the variables will not contain name, and will be written as e.g. 
-# names.step0
-test = 'ok'
+""" Define names to be used throughout the code. All names that are 
+    referenced within multiple functions should be defined in this 
+    module. Recommended to import as "import naming_mod as names"
+    Hence, the variables will not contain name, and will be written as 
+    e.g. names.step0
+"""
+
 # Model, job and odb naming
 model = 'rollover'
 rail_model = 'RAIL'
@@ -54,26 +55,68 @@ wheel_sym_bc = 'WHEEL_SYM_BC'
 
 # Step naming
 # Formatting of names
-def cycle_str(cycle_nr):    # Format cycle nr
+def cycle_str(cycle_nr):
+    """ Get string format for cycle number, use to get consistency 
+    with how many zeros are padded. 
+    :param cycle_nr: The cycle number
+    :type cycle_nr: int
+    
+    :returns: String with the cycle number
+    :rtype: str
+    """
     return str(cycle_nr).zfill(5)
+    
     
 step0 = 'Initial'   # Abaqus default
 step1 = 'Preload'   # Apply fixed displacement
 step2 = 'Loading'   # Apply the contact normal load
 
+
 def get_step_rolling(cycle_nr=1):
+    """ Get the step name for rolling step in cycle cycle_nr
+    :param cycle_nr: The cycle number
+    :type cycle_nr: int
+    
+    :returns: The step name
+    :rtype: str
+    """
+    
     return 'rolling_' + cycle_str(cycle_nr)
-    
+
+
 def get_step_return(cycle_nr=2):
+    """ Get the step name for return step in cycle cycle_nr
+    :param cycle_nr: The cycle number
+    :type cycle_nr: int
+    
+    :returns: The step name
+    :rtype: str
+    """
     return 'return_' + cycle_str(cycle_nr)
-    
+
+
 def get_step_reapply(cycle_nr=2):
+    """ Get the step name for reapply step in cycle cycle_nr
+    :param cycle_nr: The cycle number
+    :type cycle_nr: int
+    
+    :returns: The step name
+    :rtype: str
+    """
     return 'reapply_' + cycle_str(cycle_nr)
-    
+
+
 def get_step_release(cycle_nr=2):
+    """ Get the step name for release step in cycle cycle_nr
+    :param cycle_nr: The cycle number
+    :type cycle_nr: int
+    
+    :returns: The step name
+    :rtype: str
+    """
     return 'release_' + cycle_str(cycle_nr)
-    
-    
+
+
 # File names
 ## Rolover files
 rollover_settings_file = 'rollover_settings.json'

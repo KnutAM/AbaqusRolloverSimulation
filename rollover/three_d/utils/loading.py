@@ -225,7 +225,8 @@ def setup(the_model, rolling_length, rolling_radius, vertical_load,
         # next cycle ---------------------------------------------------
     
     return num_cycles
-    
+
+
 def write_loading_file(initial_depression_speed, rolling_length, rolling_radius,
                        cycles, load, speed, slip, rail_ext):
     """Write the loading file, `names.loading_file`, used by the user 
@@ -308,33 +309,33 @@ def get_cycle_data(cycle_nr, cycles, cycle_data):
 
     
 def setup_step(the_model, name, prev_name, step_time, min_num, max_num, amp=step.RAMP):
-    """ 
-    setup_step(the_model, name, prev_name, step_time, min_num, max_num, amp=step.RAMP)
+    """
 
     Setup a new step.
     
-    :param the_model:
-    :type the_model:
+    :param the_model: The model for which the step should be set up
+    :type the_model: Model object (Abaqus)
     
-    :param name:
-    :type name:
+    :param name: The name of the step
+    :type name: str
     
-    :param prev_name:
-    :type prev_name:
+    :param prev_name: The name of the previous step
+    :type prev_name: str
     
-    :param step_time:
-    :type step_time:
+    :param step_time: The total time duration of the step
+    :type step_time: float
     
-    :param min_num:
-    :type min_num: 
+    :param min_num: The minimum number of increments to take
+    :type min_num: int
     
-    :param max_num:
-    :type max_num: 
+    :param max_num: The maximum number of increments to take
+    :type max_num: int
     
-    :param amp:
-    :type amp: 
+    :param amp: Which amplitude type to use, defaults to ramping
+    :type amp: int (Abaqus constant)
     
     """
+    
     the_model.StaticStep(name=name, previous=prev_name,
                          timePeriod=step_time,
                          initialInc=step_time/min_num,
@@ -344,6 +345,7 @@ def setup_step(the_model, name, prev_name, step_time, min_num, max_num, amp=step
                          amplitude=amp,
                          nlgeom=ON)
     return name
+    
     
 def make_sym_sets(the_model):
     """ Based on the contact node set and the symmetric node set, create 
@@ -396,3 +398,4 @@ def make_sym_sets(the_model):
     
     
     return contact_set_reduced, contact_sym_edge_set
+
