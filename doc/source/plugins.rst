@@ -1,5 +1,6 @@
 Plugins
 *********
 
-Describe briefly how the plugins are made. No need to document every 
-interface etc. 
+This section describes how the plugins are coded. For information about
+how to use the plugins, please see ":doc:`using_cae`". 
+

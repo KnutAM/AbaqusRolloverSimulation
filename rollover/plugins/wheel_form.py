@@ -1,7 +1,7 @@
 import os, sys
 from abaqusGui import *
 from collections import OrderedDict
-from rollover_gui_utils import PartDB, KwAdder
+from rollover.plugins.rollover_gui_utils import PartDB, KwAdder
 
 
 class WheelForm(AFXForm):
@@ -16,7 +16,7 @@ class WheelForm(AFXForm):
         self.title = 'Create wheel'
         
         # Define command to be called
-        self.cmd = AFXGuiCommand(self, 'create_wheel', 'plugin_cmd')
+        self.cmd = AFXGuiCommand(self, 'create_wheel', 'commands')
         
         # Define keywords to be input arguments to function in self.cmd
         profile = ':/wheel_profiles/rs200_ro460_ri300_w60.sat'

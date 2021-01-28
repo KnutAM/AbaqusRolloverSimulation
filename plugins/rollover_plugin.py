@@ -2,10 +2,10 @@ import os, sys
 
 from abaqusGui import getAFXApp, FXXPMIcon
 from collections import OrderedDict
-from rail_form import RailForm
-from wheel_form import WheelForm
-from rollover_form import RolloverForm
-from rollover import icons as ic
+from rollover.plugins.rail_form import RailForm
+from rollover.plugins.wheel_form import WheelForm
+from rollover.plugins.rollover_form import RolloverForm
+from rollover.plugins import icons as ic
 
 toolset = getAFXApp().getAFXMainWindow().getPluginToolset()
 
@@ -22,13 +22,13 @@ icon = FXXPMIcon(getAFXApp(), ic.rail)
 toolset.registerGuiMenuButton(
     buttonText='Rollover|Create rail...',
     object=RailForm(toolset), 
-    kernelInitString='from rollover import plugin_cmd',
+    kernelInitString='from rollover.plugins import commands',
     version=ver, author=author, description=pluginDesc, helpUrl=helpUrl)
     
 toolset.registerGuiToolButton('Rollover', 
     buttonText='\tCreate rail', icon=icon,
     object=RailForm(toolset), 
-    kernelInitString='from rollover import plugin_cmd',
+    kernelInitString='from rollover.plugins import commands',
     version=ver, author=author, description=pluginDesc, helpUrl=helpUrl)
 
 # Create wheel
@@ -38,13 +38,13 @@ icon = FXXPMIcon(getAFXApp(), ic.wheel)
 
 toolset.registerGuiMenuButton(
     object=WheelForm(toolset), buttonText='Rollover|Create wheel...',
-    kernelInitString='from rollover import plugin_cmd',
+    kernelInitString='from rollover.plugins import commands',
     version=ver, author=author, description=pluginDesc, helpUrl=helpUrl)
     
 toolset.registerGuiToolButton('Rollover', 
     buttonText='\tCreate wheel', icon=icon,
     object=WheelForm(toolset), 
-    kernelInitString='from rollover import plugin_cmd',
+    kernelInitString='from rollover.plugins import commands',
     version=ver, author=author, description=pluginDesc, helpUrl=helpUrl)
 
 # Create rollover
@@ -55,12 +55,12 @@ icon = FXXPMIcon(getAFXApp(), ic.rollover)
 toolset.registerGuiMenuButton(
     object=RolloverForm(toolset), 
     buttonText='Rollover|Setup simulation...',
-    kernelInitString='from rollover import plugin_cmd',
+    kernelInitString='from rollover.plugins import commands',
     version=ver, author=author, description=pluginDesc, helpUrl=helpUrl)
     
 toolset.registerGuiToolButton('Rollover', icon=icon,
     object=RolloverForm(toolset), buttonText='\tSetup simulation',
-    kernelInitString='from rollover import plugin_cmd',
+    kernelInitString='from rollover.plugins import commands',
     version=ver, author=author, description=pluginDesc, helpUrl=helpUrl)
 
 # Make rail mesh periodic
@@ -69,13 +69,13 @@ helpUrl = os.path.join(doc_dir, 'plugins/example.html')
 icon = FXXPMIcon(getAFXApp(), ic.periodize)
 
 toolset.registerKernelMenuButton(
-    moduleName='rollover.plugin_cmd', 
+    moduleName='rollover.plugins.commands', 
     functionName='periodicize_mesh()',
     buttonText='Rollover|Tools|Periodize mesh',
     version=ver, author=author, description=pluginDesc, helpUrl=helpUrl)
 
 toolset.registerKernelToolButton('Rollover', 
-    moduleName='rollover.plugin_cmd', 
+    moduleName='rollover.plugins.commands', 
     functionName='periodicize_mesh()',
     buttonText='\tMake mesh periodic', icon=icon,
     version=ver, author=author, description=pluginDesc, helpUrl=helpUrl)

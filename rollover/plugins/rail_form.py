@@ -1,7 +1,7 @@
 import os, sys
 from abaqusGui import *
 from collections import OrderedDict
-from rollover_gui_utils import PartDB, KwAdder
+from rollover.plugins.rollover_gui_utils import PartDB, KwAdder
 
 
 class RailForm(AFXForm):
@@ -16,7 +16,7 @@ class RailForm(AFXForm):
         self.title = 'Create rail'
         
         # Define command to be called
-        self.cmd = AFXGuiCommand(self, 'create_rail', 'plugin_cmd')
+        self.cmd = AFXGuiCommand(self, 'create_rail', 'commands')
         
         # Define keywords to be input arguments to function in self.cmd
         profile = ':/rail_profiles/UIC60_head.sat'

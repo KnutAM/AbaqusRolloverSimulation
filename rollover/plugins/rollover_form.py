@@ -1,7 +1,7 @@
 import os, sys
 from abaqusGui import *
 from collections import OrderedDict
-import rollover_gui_utils as rgu
+import rollover.plugins.rollover_gui_utils as rgu
 
 
 class RolloverForm(AFXForm):
@@ -16,7 +16,7 @@ class RolloverForm(AFXForm):
         self.title = 'Create wheel'
         
         # Define command to be called
-        self.cmd = AFXGuiCommand(self, 'create_rollover', 'plugin_cmd')
+        self.cmd = AFXGuiCommand(self, 'create_rollover', 'commands')
         
         # Define keywords to be input arguments to function in self.cmd
         self.kw = OrderedDict() 
