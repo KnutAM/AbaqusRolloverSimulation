@@ -1,14 +1,33 @@
-"""
+""" This module is used to generate a 3d mesh based on a 2d section in
+the xy-plane that is revolved around the x-axis. Note that only 
+quadratic elements are supported. For linear elements, Abaqus' builtin
+routine works reasonably well (although the node coordinate accuracy 
+seem a bit low), see 
+:py:func:`~rollover.three_d.wheel.substructure.generate_3d_mesh`
 
 """
 from __future__ import print_function
 import numpy as np
 
-# import abaqus, part
 
 from rollover.utils import naming_mod as names
 
 def generate(wheel_model, mesh_size):
+    """ Based on a meshed 2d-profile of a wheel, generate a 3d-revolved
+    mesh with angular spacing such that the elements on the outer radius 
+    have a circumferential size of mesh_size.
+    
+    :param wheel_model: A model that contains a wheel part with a 2d 
+                        section mesh
+    :type wheel_model: Model object (Abaqus)
+    
+    :param mesh_size: The mesh size to decide the angular increments
+    :type mesh_size: float
+    
+    :returns: The wheel part and the angles for the element end planes
+    :type: tuple( Part object(Abaqus), np.array )
+    
+    """
     
     wheel_part = wheel_model.parts[names.wheel_part]
     # 1) Extract the 2d mesh
@@ -29,7 +48,24 @@ def generate(wheel_model, mesh_size):
     
 
 def get_2d_mesh(wheel_part):
-
+    """ Based on the wheel part, determine the 2d mesh information
+    
+    :param wheel_part: The wheel part containing the 2d mesh
+    :type wheel_part: Part object (Abaqus)
+    
+    :returns: Mesh specification with the following fields:
+              
+              - nodes: np.array with node coordinates
+              - elements: dictionary with keys according to number of 
+                nodes in element: N3,N4,N6,N8. Each item contains a list
+                of list of node labels
+              - edge_nodes: list of labels of nodes that belong to the 
+                edges of the elements (and not the corners)
+              - corner_nodes: list of labels of nodes that belong to the
+                corners of the elements. 
+    :rtype: dict
+    
+    """
     node_coords = np.array([n.coordinates for n in wheel_part.nodes])
     elements = {'N3': [], 'N4': [], 'N6': [], 'N8': []}
     edge_nodes = []
@@ -65,6 +101,34 @@ def get_2d_mesh(wheel_part):
     
 
 def make_3d_mesh_quad(mesh_2d, mesh_size):
+    """ Revolve a 2d-mesh into a 3d-mesh 
+    
+    :param mesh_2d: Mesh specification with the following fields:
+              
+                    - nodes: np.array with node coordinates
+                    - elements: dictionary with keys according to number 
+                      of nodes in element: N3,N4,N6,N8. 
+                      Each item contains a list of list of node labels
+                    - edge_nodes: list of labels of nodes that belong to 
+                      the edges of the elements (and not the corners)
+                    - corner_nodes: list of labels of nodes that belong 
+                      to the corners of the elements. 
+    :type mesh_2d: dict
+    
+    :param mesh_size: The circumferential mesh size at largest radius
+    :type mesh_size: float
+    
+    :returns: Mesh specification with the following fields:
+              
+              - nodes: np.array with node coordinates
+              - elements: dictionary with keys according to number 
+                of nodes in element: N15, N20. Each item contains a list
+                of list of node labels
+              - angles: np.array of angles for angular increments of 
+                elements. 
+    :rtype: dict
+    
+    """
     
     nodes_2d = mesh_2d['nodes']
     elems_2d = mesh_2d['elements']
@@ -126,7 +190,42 @@ def make_3d_mesh_quad(mesh_2d, mesh_size):
 
 def get_elements(elem_2d_con, angle_inds, corner_node_num_2d, edge_node_num_2d, 
                  corner_node_num, edge_ip_node_num, edge_op_node_num):
+    """ Get the node lists of the revolved elements belonging to a given
+    set of node lists of elements from the 2d mesh.
     
+    :param elem_2d_con: list of list of 2d nodes for each element
+    :type elem_2d_con: list[ list[ int ] ]
+    
+    :param angle_inds: indices of angles, counting 0, 1, 2, ..., N, 0
+    :type angle_inds: np.array
+    
+    :param corner_node_num_2d: node numbers of corner nodes from 2d
+    :type corner_node_num_2d: list[ int ]
+    
+    :param edge_node_num_2d: node numbers for edge nodes from 2d
+    :type edge_node_num_2d: list[ int ]
+    
+    :param corner_node_num: array of node numbers for corner nodes in 
+                            3d. First index refers to index in 
+                            corner_node_num_2d and second index to 
+                            angle_inds
+    :type corner_node_num: np.array( int )
+    
+    :param edge_ip_node_num: array of node numbers for in-plane nodes in
+                             3d. First index refers to index in 
+                             edge_node_num_2d and second to angle_inds
+    :type edge_ip_node_num: np.array( int )
+    
+    :param edge_op_node_num: array of node numbers for out-of-plane 
+                             nodes in 3d. First index refers to index
+                             in corner_node_num_2d and second to 
+                             angle_inds. 
+    :type edge_op_node_num: np.array( int )
+    
+    :returns: list of list containing element node labels for 3d mesh
+    :rtype: np.array
+    
+    """
     elems = []
     n = len(elem_2d_con[0])/2
     
@@ -151,7 +250,27 @@ def get_elements(elem_2d_con, angle_inds, corner_node_num_2d, edge_node_num_2d,
     
 
 def rotate_coords(coords, angles):
-    """ Rotate 2d coords in the xy-plane around the x-axis
+    """ Rotate 2d coords in the xy-plane around the x-axis. 
+    
+    .. note::
+        
+        The function supports either a list of coordinates or a list of
+        angles, not both at the same time
+    
+    :param coords: Coordinates in xy-plane to be rotated. Can also 
+                   contain z-coordinate, but this is ignored. 
+                   Can be either a single coordinate, or 2d array. In 
+                   the latter case, the last index should give the axis,
+                   i.e. size [N,2] or [N,3] where N is number of coords
+    :type coords: np.array
+    
+    :param angles: List of angles to rotate a single coordinate with. 
+    :type angles: float, int, list, np.array
+    
+    :returns: An array of rotated coordinates: [N, 3], where N is number
+              of coordinates, i.e. N=max(len(angles), coords.shape[0])
+    :rtype: np.array
+    
     """
     if isinstance(angles, (float, int)):
         rot_ang = [angles]
@@ -175,6 +294,24 @@ def rotate_coords(coords, angles):
     
 
 def save_3d_mesh_to_inp(mesh_3d):
+    """ Given a specification of the 3d mesh, save this to an input file
+    for use when generating substructure.
+    
+    :param mesh_3d: Mesh specification with the following fields:
+              
+                    - nodes: np.array with node coordinates
+                    - elements: dictionary with keys according to number 
+                      of nodes in element: N15, N20. Each item contains 
+                      a list of list of node labels
+                    - angles: np.array of angles for angular increments 
+                      of elements. 
+    :type mesh_3d: dict
+    
+    :returns: Relative path of input file
+    :rtype: str
+    
+    """
+    
     input_file = 'wheel_3d_mesh.inp'
     with open(input_file, 'w') as inp:
         inp.write('** Input file to save mesh (faster than creating mesh in abaqus cae)\n')

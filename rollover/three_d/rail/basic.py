@@ -128,7 +128,6 @@ def create_sets(rail_part, rail_length, refine_region=None, sym_dir=None):
         rail_part.Set(name=names.rail_sym_set, 
                       faces=rail_part.faces.getByBoundingBox(xMin=-1.e-6, xMax=1.e-6))
     
-    
 
 def get_bottom_faces(rail_part):
     """Return a list of faces that are on the bottom of the rail profile. These are identified by 
@@ -159,8 +158,27 @@ def get_bottom_faces(rail_part):
     
     
 def create_contact_face_set(rail_part, contact_cell, exclude_dir=None):
+    """ Create a face set and a surface for the contact region. 
+    
+    :param rail_part: The rail part
+    :type rail_part: Part object (Abaqus)
+    
+    :param contact_cell: The cell in the rail part that has the contact
+                         faces.
+    :type contact_cell: Cell object (Abaqus)
+    
+    :param exclude_dir: Normalized vector. If not none, and a face 
+                        normal aligns with this direction, the face is 
+                        excluded. 
+    :type exclude_dir: list, np.array
+    
+    :returns: None
+                        
+    """
+    
     # Get all faces on the contact cell
-    contact_cell_faces = [rail_part.faces[f_ind] for f_ind in contact_cell.getFaces()]
+    contact_cell_faces = [rail_part.faces[f_ind] 
+                          for f_ind in contact_cell.getFaces()]
     
     # Get all faces in the neighbouring cells
     neighbouring_cells = contact_cell.getAdjacentCells()
@@ -170,7 +188,8 @@ def create_contact_face_set(rail_part, contact_cell, exclude_dir=None):
             for f_ind in nc.getFaces():
                 neighbouring_faces.append(rail_part.faces[f_ind])
                 
-        # Get all faces in contact_cell that are external (i.e. not shared by neighbouring cells)
+        # Get all faces in contact_cell that are external 
+        # (i.e. not shared by neighbouring cells)
         external_faces = []
         for cf in contact_cell_faces:
             if cf not in neighbouring_faces:
@@ -178,7 +197,7 @@ def create_contact_face_set(rail_part, contact_cell, exclude_dir=None):
     else:
         external_faces = contact_cell_faces
             
-    # Get all external faces that do not have normal direction in z-direction
+    # Get external faces without normal in z-direction or exclude_dir
     contact_faces = []
     exclude_vec = np.array([0,0,0] if exclude_dir is None else exclude_dir)
     for ef in external_faces:
@@ -211,7 +230,8 @@ def get_end_faces(rail_part, zpos):
     
     
 def create_partition(rail_model, rail_part, refine_region):
-    """Create a partition by extruding the rectangle specified by refine_region
+    """Create a partition by extruding the rectangle specified by 
+    refine_region
         
     :param rail_model: The model to which the sketch will be added
     :type rail_model: Model (Abaqus object)
@@ -219,7 +239,8 @@ def create_partition(rail_model, rail_part, refine_region):
     :param rail_part: The part in which the sets will be created
     :type rail_part: Part (Abaqus object)
     
-    :param refine_region: Rectangle specifying partition with mesh refinement in contact region
+    :param refine_region: Rectangle specifying partition with mesh 
+                          refinement in contact region
     :type refine_region: list(list(float))
     
     :returns: None
@@ -256,6 +277,22 @@ def create_partition(rail_model, rail_part, refine_region):
                                          
     
 def get_partition_face(rail_part, refine_region):
+    """ Given the two points specifying the refine region rectangle,
+    find the face that is within this region by checking each corner of 
+    the rectangle.
+    
+    :param rail_part: The rail part
+    :type rail_part: Part object (Abaqus)
+    
+    :param refine_region: List of two points: [[x1,y1],[x2,y2]] 
+                          specifying the rectangle used to partition the
+                          rail's end face (at z=0)
+    :type refine_region: list[ list ]
+    
+    :returns: The face and the point used to find it
+    :rtype: tuple(Face object (Abaqus), np.array)
+    
+    """
     rel_length = 0.001
     def get_face(pa, pb):
         point = p1 + rel_length*(p2-p1)
@@ -285,6 +322,21 @@ def get_partition_face(rail_part, refine_region):
 
 
 def add_material_and_section(rail_model, rail_part, material):
+    """ Create the material specified and create one section for the 
+    entire rail.
+    
+    :param rail_model: The rail model
+    :type rail_model: Model object (Abaqus)
+    
+    :param rail_part: The rail part
+    :type rail_part: Part object (Abaqus)
+    
+    :param material: The material specification dictionary, see 
+                     material_spec in 
+                     :py:func:`~rollover.utils.setup_material_mod.add_material`
+    :type material: dict
+    
+    """
     setup_material.add_material(rail_model, material_spec=material, name='RAIL_MATERIAL')
     rail_model.HomogeneousSolidSection(name=names.rail_sect, material='RAIL_MATERIAL')
     region = regionToolset.Region(cells=rail_part.cells)
