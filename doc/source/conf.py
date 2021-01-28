@@ -29,7 +29,7 @@ for p in project_paths:
 # -- Project information -----------------------------------------------------
 
 project = u'Rollover simulation'
-copyright = u'2020, Knut Andreas Meyer, Rostyslav Skrypnyk'
+copyright = u'2021, Knut Andreas Meyer, Rostyslav Skrypnyk'
 author = u'Knut Andreas Meyer, Rostyslav Skrypnyk'
 
 # show_authors = True # display values of .. codeauthor:: directive.
@@ -42,9 +42,11 @@ release = u'1.0'
 
 # -- General configuration ---------------------------------------------------
 
+autodoc_member_order = 'bysource'   # Requires v>=1.0
+
 # If your documentation needs a minimal Sphinx version, state it here.
 #
-# needs_sphinx = '1.0'
+needs_sphinx = '1.0'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -127,7 +129,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'abaqusrolloversimulationdoc'
+htmlhelp_basename = 'Rolloverdoc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -154,8 +156,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'abaqusrolloversimulation.tex', u'abaqusrolloversimulation Documentation',
-     u'Rostyslav Skrypnyk', 'manual'),
+    (master_doc, 'rollover.tex', u'Rollover Documentation',
+     author, 'manual'),
 ]
 
 
@@ -164,7 +166,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'abaqusrolloversimulation', u'abaqusrolloversimulation Documentation',
+    (master_doc, 'rollover', u'Rollover Documentation',
      [author], 1)
 ]
 
@@ -175,8 +177,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'abaqusrolloversimulation', u'abaqusrolloversimulation Documentation',
-     author, 'abaqusrolloversimulation', 'One line description of project.',
+    (master_doc, 'Rollover', u'Rollover Documentation',
+     author, 'Rollover', 'One line description of project.',
      'Miscellaneous'),
 ]
 
