@@ -20,10 +20,9 @@ the simulation, the user must do the following steps
 3. `Compile user subroutines`_ ("usub (``.obj/.o`` file)"). 
    Normally not required each time
 4. `Create the rollover simulation`_ ("Input files")
-5. `Run simulation`_
 
 Most of the scripts rely on a ``.json`` formatted settings file, for 
-further details on this format see `The json format`_. 
+further details on this format see :ref:`jsonformat`. 
 
 Create the rail
 ===============
@@ -33,7 +32,7 @@ creates a ``.cae`` file. This file can then be edited to adapt to the
 specific simulation (see `Modifying the basic rail`_). The end product 
 will be a ``.cae`` file that may be convenient to store 
 in the data/rails folder in the repository 
-(see `The data folder and how to specify paths`_).
+(see :ref:`datafolder`).
 
 Create a basic rail
 -------------------
@@ -47,7 +46,7 @@ contain the following settings:
   specification`_. If not given, an elastic material will be set.
 - ``"rail_profile"`` (mandatory): Path to an Abaqus sketch, saved as a 
   ``.sat`` file, describing the profile of the rail in the xy-plane. See
-  "Creating a profile sketch" for further details.
+  :ref:`sketchcreation` for further details.
 - ``"rail_length"`` (mandatory): The length (z) of the rail to be 
   created
 - ``"rail_name"`` (mandatory): The name of the ``.cae`` file to be 
@@ -105,6 +104,8 @@ user
             }
 
 
+.. _rail_modifications:
+
 Modifying the basic rail
 ------------------------
 To script all details of how the rail should be meshed, and if there 
@@ -127,6 +128,8 @@ part that is used later when generating the rollover is given here.
    *  "SIDE1_SET" should contain all nodes on the face at z=0
    *  "SIDE2_SET" should contain all nodes on the face at z=L where L is 
       the length of the rail.
+   *  "RAIL_CONTACT_SET" should contain the face where potential 
+      contact with the wheel can occur. 
    *  If present, "SYMMETRY" should contain all nodes on the symmetry face
       at x=0
 
@@ -154,7 +157,7 @@ part that is used later when generating the rollover is given here.
 
 
 When working with TET elements, the script 
-``make_rail_mesh_symmetric.py`` can be used to ensure a symmetric mesh.
+``make_rail_mesh_symmetric.py`` can be used to ensure a periodic mesh.
 Otherwise, if HEX meshes are used as a mapped mesh, this will also give
 the same mesh on both sides. 
 
@@ -173,7 +176,7 @@ A wheel super element is created by calling the abaqus script
    positive rotation around the x-axis. In radians.
 *  ``"wheel_profile"`` (mandatory): Path to an Abaqus sketch, saved as a 
    ``.sat`` file, describing the profile of the wheel in the xy-plane. 
-   See "Creating a profile sketch" above for further details.
+   See :ref:`sketchcreation` for further details.
 *  ``"mesh_sizes"`` (mandatory): ``[fine, coarse]``,
    the fine and coarse mesh sizes for the wheel. 
 *  ``"wheel_contact_pos"`` (mandatory): ``[xmin, xmax]``, the x-interval 
@@ -188,7 +191,7 @@ A wheel super element is created by calling the abaqus script
    
 The created wheel folder can conveniently be placed in the data/wheels
 directory in the repository 
-(see `The data folder and how to specify paths`_).
+(see :ref:`datafolder`).
 
 
 Compile user subroutines
@@ -213,7 +216,7 @@ the compilation process (in case you have any issues). If it works
 successfully, you can delete this folder. The `usubs_combined-std` file 
 should be copied (and probably renamed to a more descriptive name). It 
 can be convenient to put it in the data/usubs directory in the 
-repository (see `The data folder and how to specify paths`_).
+repository (see :ref:`datafolder`).
 
 Create the rollover simulation
 ==============================
@@ -261,7 +264,7 @@ the following settings:
    *  ``"min_incr"``: Minimum (and initial) number of increments during
       rolling. 
    *  ``"num_cycles"``: Number of rollover cycles to calculate (see also
-      `Adding rolling cycles`_). 
+      :ref:`addcycles`). 
    *  ``"cycles"``: ``[1, c_spec_2, ..., c_spec_N]``, 
       for which cycles that loading parameters are changed.
       See also `Specifying load parameters`_.
@@ -320,124 +323,3 @@ And for each of these keys the following keys should be specified:
    saved (i.e. between the active steps of the field output request). 
    If e.g. 25 is specified, output will occur on cycle 1, 26, 51, etc. 
    
-   
-Adding rolling cycles
----------------------
-When adding many 100 steps, Abaqus CAE is rather slow. Therefore, a 
-script is provided to extend a simulation by adding cycles with the same 
-content repeated. Typically, if e.g. 25 is specified as the ``"cycle"``
-above, then it sufficies to generate 26 cycles, and repeat these. The 
-first cycle is not repeated, hence "doubling" the number of cycles will
-then give 51 cycles in total. 
-
-To add cycles, call the python script `append_extra_cycles.py` with the 
-multiplication factor as the first argument and the input file as the 
-second argument. The input file defaults to "rollover.inp".
-If called with multiplication factor 4 in the above example, 101 cycles
-would be created. 
-
-Run simulation
-==============
-To run the simulation the following (generated) files are 
-required to be in the simulation directory:
-
-*  ``rollover.inp`` (can have different name): The Abaqus input file
-*  ``load_param.txt`` (must have this name): 
-   Automatically generated file in the same 
-   directory as ``rollover.inp`` when creating rollver. 
-   Describes the loading parameters 
-*  ``uel_stiffness.txt`` (must have this name): 
-   File specifying the wheel stiffness matrix. 
-   Automatically generated when creating the wheel, automatically copied
-   to the same directory as ``rollover.inp`` when creating rollover
-*  ``rp_coord.txt`` (must have this name): 
-   File specifying the location of the reference points.
-   Automatically generated in the same folder as ``rollover.inp`` 
-   when creating rollover.
-
-In addition, the user subroutine object file must be available, but 
-it does not need to reside in the simulation directory, but can be in 
-a separate directory and its path specified as <path_to_usub>.
-
-Run the simulation by
-
-.. code-block:: bash
-
-   abaqus job=rollover user=<path_to_usub>
-
-
-Generic instructions
-====================
-
-In this section a few points that apply to multiple steps above are 
-described. 
-
-The json format
----------------
-The ``json`` format is used for the input data. Mostly, the files 
-should be written with a similar formatting as for a Python dictionary. 
-However, there are a few important differences:
-
-*  Booleans are written ``true`` and ``false``, 
-   as opposed to ``True`` and ``False``.
-*  All strings (keywords and variables) must be enclosed in double 
-   quotes (single quotes are not accepted).
-*  Exponential formats must be written ``A.BeC`` 
-   (as opposed to ``A.eC``) where ``A``, ``B``, and ``C`` are integers. 
-   E.g. ``1.0e-3`` is ok, but not ``1.e-3``.
-*  Python's ``None`` is written as ``null``.
-*  Comma is not allowed after the last item in a dictionary
-
-To ensure the correct data format, one can write the following code in 
-Python to generate the ``json`` file:
-
-.. code-block:: python
-
-   import json
-   filename = 'example.json'	# Give the filename that you want to save to
-
-   # Define the parameters you want to save as a Python dictionary
-   param = {'key1': [1,2,3],	# Example of list data
-           'key2': 'this is a string example data' # Example of string data
-           }
-   with open(filename, 'w') as fid:
-      # Using indent=1 for nicer output, but not required
-      json.dump(param, fid, indent=1)	
-
-
-The data folder and how to specify paths
-----------------------------------------
-In the repository, there is a folder named "data". This contains some
-examples (which are version controlled). However, additional contents 
-added to the subfolders are ignored by the version control and are 
-suitable for adding data that can be reused later. Examples include 
-profile sketches, generated wheels and rails, and 
-compiled user subroutines. 
-
-To simplify the use of contents from this folder, path inputs in the 
-``*_settings.json`` files can be relative the data folder. To do this, 
-the path should start by ``":/"``, e.g. ``":/rails/rail_example.cae"``.
-Otherwise, and absolute or relative (to the Abaqus working directory) 
-path can be specified. 
-
-
-Creating a profile sketch
--------------------------
-To create a profile sketch in Abaqus CAE, perform the following steps:
-
-1. Open Abaqus CAE
-2. Double-click "Sketches" in the model tree
-3. Give your sketch a name (this will have no effect later) and press
-   "Continue"
-4. Draw a profile and exit the sketch. 
-5. Go "File"-"Export"-"Sketch..." and choose a location to save the 
-   sketch.
-6. In the new dialog box, select the sketch you want to export and press 
-   "OK"
-7. Choose the ACIS version. Just make sure that it can be read by your 
-   system, press ok and you are done.
-   
-.. note:: The sketch will only contain the geometry, so if you later 
-          want to edit a dimension later, you need to save the .cae
-          file containing the sketch. Then you can edit the sketch in 
-          this file later and export it again. 

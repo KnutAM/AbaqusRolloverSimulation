@@ -1,8 +1,9 @@
-""" Script to generate Abaqus user subroutine by combining multiple 
-input sources.
+""" The script :file:`create_usub.py` is used to compile user 
+subroutines by combining multiple input sources.
 
-The usub_3d and the contents from the usub/ folder are automatically 
-added. On the script input, specify the path to the fortran source code
+The :file:`usub/usub_3d.for` and the contents of that folder are 
+automatically added. 
+On the script input, specify the path to additional fortran source code
 containing the Abaqus user subroutine. All content of its folder will be
 added to the temporary directory and the contents of the particular file
 is added to the combined user subroutine file. 
@@ -13,21 +14,24 @@ Note the following restrictions:
   these in one file. The remaining files, that do not have abaqus 
   subroutines can be included via include statements. Hence, the req.
   for the compilation to work is that the given subroutine file would 
-  compile on its own using `abaqus make library=<subroutine_file>`
+  compile on its own using 
+  :command:`abaqus make library=<subroutine_file>`
 - No files can have the same path relative the copied folder because the
   contents of the copied folders are put in the same temporary folder.
 - No module names may overlap.
 
 Example
 
-You have a user material subroutine called `umat.for`, that uses a 
-module `umat_mod` in `umat_mod.f90`. These routines are located in 
-`C:\\umats\my_special_material`. `umat.for` should then have the 
-statement `include 'umat_mod.f90'` before `subroutine umat(...)`. 
+You have a user material subroutine called :file:`umat.for`, that uses a 
+module :command:`umat_mod` in :file:`umat_mod.f90`. 
+These routines are located in :file:`C:/umats/my_special_material`. 
+:file:`umat.for` should then have the statement 
+:command:`include 'umat_mod.f90'` before 
+:command:`subroutine umat(...)`. 
 To compile this subroutine together with the required subroutines for 
 rollover, call the present script from some folder on your computer as:
 
-`python <path_to_this_script> C:/umats/my_special_material/umat.for`
+:command:`python <path_to_create_usub.py> C:/umats/my_special_material/umat.for`
 
 """
 

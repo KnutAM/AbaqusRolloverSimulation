@@ -1,20 +1,22 @@
-""" Script to setup local adaptions, creates the following files that 
-are ignored by git:
+""" :file:`setup.py` sets up local adaptions by creating the following files 
+that are ignored by git:
 
-- `rollover/local_paths.py`
+- :file:`rollover/local_paths.py`:
   This module contains the following variables:
-    - `rollover_repo_path`: Path to the git repository
-    - `data_path`: Path to the data folder (which will contain examples
-       and user data
+    
+    - :file:`rollover_repo_path`: Path to the git repository
+    
+    - :file:`data_path`: Path to the data folder (which will contain examples
+      and user data
        
-- `abaqus_v6.env`
+- :file:`abaqus_v6.env`:
   This file should be added either to the working directory of the 
-  simulation, or to the user's home directory (%HOME% on Windows and ~ 
-  on Linux)
+  simulation, or to the user's home directory 
+  (:file:`%HOME%` on Windows and :file:`~` on Linux)
   
-- `usub_rollover.obj` or `usub_rollover.o`
-  Basic user subroutine required to run rollover simulation. Is saved in 
-  the data/usub directory
+- :file:`data/usub/usub_rollover.obj` or 
+  :file:`data/usub/usub_rollover.o`: 
+  Basic user subroutine required to run rollover simulation.
 
 """
 
