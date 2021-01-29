@@ -2,6 +2,7 @@ import os, sys
 
 from abaqusGui import getAFXApp, FXXPMIcon
 from collections import OrderedDict
+from rollover.local_paths import doc_path
 from rollover.plugins.rail_form import RailForm
 from rollover.plugins.wheel_form import WheelForm
 from rollover.plugins.rollover_form import RolloverForm
@@ -10,15 +11,14 @@ from rollover.plugins import icons as ic
 toolset = getAFXApp().getAFXMainWindow().getPluginToolset()
 
 # Common options
-doc_dir = '' # Should get the doc build dir
 ver = '1.0'
 author = 'Knut Andreas Meyer'
 
 # Create rail
 pluginDesc = 'Create rail base file for further manipulation'
-helpUrl = os.path.join(doc_dir, 'plugins/example.html')
+helpUrl = os.path.join(doc_path, 'index.html')
 icon = FXXPMIcon(getAFXApp(), ic.rail)
-
+sys.__stdout__.write(helpUrl + '\n')
 toolset.registerGuiMenuButton(
     buttonText='Rollover|Create rail...',
     object=RailForm(toolset), 
@@ -33,7 +33,7 @@ toolset.registerGuiToolButton('Rollover',
 
 # Create wheel
 pluginDesc = 'Create wheel super-element'
-helpUrl = os.path.join(doc_dir, 'plugins/example.html')
+helpUrl = os.path.join(doc_path, 'index.html')
 icon = FXXPMIcon(getAFXApp(), ic.wheel)
 
 toolset.registerGuiMenuButton(
@@ -49,7 +49,7 @@ toolset.registerGuiToolButton('Rollover',
 
 # Create rollover
 pluginDesc = 'Create rollover simulation'
-helpUrl = os.path.join(doc_dir, 'plugins/example.html')
+helpUrl = os.path.join(doc_path, 'index.html')
 icon = FXXPMIcon(getAFXApp(), ic.rollover)
 
 toolset.registerGuiMenuButton(
@@ -65,7 +65,7 @@ toolset.registerGuiToolButton('Rollover', icon=icon,
 
 # Make rail mesh periodic
 pluginDesc = 'Attempt to make periodic mesh'
-helpUrl = os.path.join(doc_dir, 'plugins/example.html')
+helpUrl = os.path.join(doc_path, 'index.html')
 icon = FXXPMIcon(getAFXApp(), ic.periodize)
 
 toolset.registerKernelMenuButton(
@@ -82,7 +82,7 @@ toolset.registerKernelToolButton('Rollover',
     
 # Reload modules
 pluginDesc = 'Reload all loaded modules to update any changes'
-helpUrl = os.path.join(doc_dir, 'plugins/reload_modules.html')
+helpUrl = os.path.join(doc_path, 'index.html')
 icon = FXXPMIcon(getAFXApp(), ic.reload)
 
 toolset.registerKernelMenuButton(
@@ -99,7 +99,7 @@ toolset.registerKernelToolButton('Rollover',
 
 
 # Substructure
-helpUrl = os.path.join(doc_dir, 'plugins/substructure.html')
+helpUrl = os.path.join(doc_path, 'index.html')
 icon = None
 
 pluginDesc = 'Use rail substructure (with default name)'
