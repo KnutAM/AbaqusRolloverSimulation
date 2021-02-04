@@ -29,8 +29,8 @@ for p in project_paths:
 # -- Project information -----------------------------------------------------
 
 project = u'Rollover simulation'
-copyright = u'2021, Knut Andreas Meyer, Rostyslav Skrypnyk'
-author = u'Knut Andreas Meyer, Rostyslav Skrypnyk'
+copyright = u'2021, Knut Andreas Meyer, Rostyslav Skrypnyk, and Martin Pletz'
+author = u'Knut Andreas Meyer, Rostyslav Skrypnyk, and Martin Pletz'
 
 # show_authors = True # display values of .. codeauthor:: directive.
 
