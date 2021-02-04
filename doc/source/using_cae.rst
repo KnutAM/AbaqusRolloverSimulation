@@ -196,7 +196,12 @@ to the generated :file:`rail_example.cae`
 and folder :file:`wheel_example`, 
 or moving them to the default path specified. 
 This action will create the following mesh, where the wheel 
-is modeled using membrane elements. 
+is modeled using membrane elements.
+
+The default settings do not add any field output. In that case, 
+Abaqus' default field outputs will be used. 
+Note that this choice can result in very a large
+output database file (.odb) if many cycles are simulated. 
 
 |rollover_mesh|
 
@@ -211,6 +216,15 @@ If running via the command line from a different folder
 Using the command line is required if the input file was 
 modified according to :ref:`addcycles`.
 
+Result
+======
+After successfully run with the default settings, the von Mises stresses
+in the rail at the middle of the rolling cycle become as shown here:
+|rollover_result|
+
+Note that the simulation time is rather long for this example, 
+because the mesh on the rail has not been optimized. 
+It is usually beneficial to use hexagonal elements.
 
 .. |rail_icon| image:: /img/rail_icon.png
 
@@ -232,5 +246,5 @@ modified according to :ref:`addcycles`.
 
 .. |rollover_mesh| image:: /img/rollover_mesh.png
 
-
+.. |rollover_result| image:: /img/example_result.png
 

@@ -5,6 +5,8 @@ In order to install (or rather setup) the library, the following steps
 are required. Before attempting to do so, please verify that your system
 meets all the :ref:`prerequisites`.
 
+.. todo:: Update clone link to github upon paper acceptance
+
 - Download the repository using git:
   :command:`git clone --recurse-submodules git@bitbucket.org:knutan/abaqusrolloversimulation.git`
 - From the top level in the repository, run :file:`scripts_py/setup.py`:
