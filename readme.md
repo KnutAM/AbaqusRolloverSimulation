@@ -23,7 +23,7 @@ The following top-level folders and file are provided
 
 
 ## Steps to run for the first time 
-Before you start, run the python script `setup.py` located in `rollover`. This only has to be done once. If you wish to, you may copy the file `abaqus_v6.env` to your home directory (`%HOME%` on Windows and `~` on Linux). Otherwise, you have to copy this file to Abaqus' working directory (where you call the scripts from, or Abaqus' standard directory)
+Before you start, run `python scripts_py/setup.py`. This only has to be done once. If you wish to, you may copy the file `abaqus_v6.env` to your home directory (`%HOME%` on Windows and `~` on Linux). Otherwise, you have to copy this file to Abaqus' working directory (where you call the scripts from, or Abaqus' standard directory)
 
 1. Create the user subroutine
    * Go to the `usub` folder, and run `abaqus make library=usub_3d.for` 
