@@ -60,7 +60,8 @@ def create(the_model, extend_lengths, Emod=1.0, nu=0.3, thickness=1.e-9):
                                       
     create_mesh(rail_part, contact_surface, z_shift=-rail_length, 
                 shadow_size=extend_lengths[1], set_name=names.rail_shadow_sets[1])
-                                  
+    add_membrane_elements(rail_part, contact_surface, set_name=names.rail_shadow_sets[2])
+    
     shadow_region = rail_part.SetByBoolean(name=names.rail_shadow_set, 
                                            sets=tuple([rail_part.sets[name] 
                                                        for name in names.rail_shadow_sets]))
@@ -100,8 +101,8 @@ def create(the_model, extend_lengths, Emod=1.0, nu=0.3, thickness=1.e-9):
     # verify this by checking for element face normals, should do so if
     # it becomes a problem. 
     contact_surf_elems = {'side1Elements': shadow_region.elements}
-    for face in contact_surface.faces:
-        contact_surf_elems = mt.get_elem_by_face_type(face, elems=contact_surf_elems)
+    #for face in contact_surface.faces:
+    #    contact_surf_elems = mt.get_elem_by_face_type(face, elems=contact_surf_elems)
     
     rail_part.Surface(name=names.rail_full_contact_surf, **contact_surf_elems)
     
@@ -189,4 +190,18 @@ def create_mesh(rail_part, contact_surface, z_shift, shadow_size=None, set_name=
         rail_part.deleteNode(nodes=mesh.MeshNodeArray(nodes=delete_nodes))
     
     return shadow_elems
+    
+    
+def add_membrane_elements(rail_part, contact_surface, set_name):
+    """Add membrane elements to contact_surface using the existing nodes
+    """
+    elem_shapes = {3: TRI3, 4: QUAD4, 6: TRI6, 8: QUAD8}
+    elems = []
+    for face in contact_surface.faces:
+        for ef in face.getElementFaces():
+            ef_nodes = ef.getNodes()
+            elem_shape = elem_shapes[len(ef_nodes)]
+            elems.append(rail_part.Element(nodes=ef.getNodes(), elemShape=elem_shape))
+    
+    rail_part.Set(name=set_name, elements=mesh.MeshElementArray(elements=elems))
     
