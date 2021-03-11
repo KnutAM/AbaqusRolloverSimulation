@@ -31,8 +31,10 @@ def main():
     rail_param = json_io.read(names.rail_settings_file)
     rail_model = rail_basic.create_from_param(rail_param)
     rail_mesh.create_basic_from_param(rail_model.parts[names.rail_part], rail_param)
-    
-    mdb.saveAs(pathName=rail_param['rail_name'])
+    if rail_param['rail_name'].endswith('.cae'):
+        mdb.saveAs(pathName=rail_param['rail_name'])
+    else:
+        mdb.saveAs(pathName=rail_param['rail_name'] + '.cae')
     
     
 if __name__ == '__main__':

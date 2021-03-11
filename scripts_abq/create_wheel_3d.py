@@ -43,7 +43,7 @@ def main():
     
     # Create and run the substructure generation job
     create_substructure(wheel_param)
-    mdb.saveAs(pathName=wheel_param['wheel_name'])
+    mdb.saveAs(pathName=wheel_param['wheel_name'] + '.cae')
     
     # Extract the results from the substructure generation, organize
     # mesh, and save to files
@@ -58,7 +58,7 @@ def create_substructure(wheel_param):
     job.submit()
     job.waitForCompletion()
     if job.status != COMPLETED:
-        mdb.saveAs(pathName=wheel_param['wheel_name'])
+        mdb.saveAs(pathName=wheel_param['wheel_name'] + '.cae')
         raise Exception('Abaqus job failed, please see ' + job.name + '.log')
     
     

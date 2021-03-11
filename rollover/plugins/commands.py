@@ -85,8 +85,11 @@ def create_rail(profile, name, length, mesh_size, pt_min, pt_max,
                        'coarse_mesh': coarse_mesh,
                        'refine_region': refinement_cell}
     rail_mesh.create_basic_from_param(rail_part, rail_mesh_param)
-
-    mdb.saveAs(pathName=name)
+    
+    if name.endswith('.cae'):
+        mdb.saveAs(pathName=name)
+    else:
+        mdb.saveAs(pathName=name+'.cae')
     
     
 def periodicize_mesh():
@@ -331,6 +334,6 @@ def create_rollover(rail, shadow, use_rp, wheel, trans, stiffness,
     the_job.writeInput(consistencyChecking=OFF)
     
     # Save model database
-    mdb.saveAs(pathName=names.model)
+    mdb.saveAs(pathName=names.model + '.cae')
     
 

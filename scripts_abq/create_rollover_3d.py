@@ -66,7 +66,7 @@ def main():
     print('fil output added')
     write_rp_coord(param['wheel']['translation'], [0.0, 0.0, 0.0])
     
-    mdb.saveAs(pathName=names.model)
+    mdb.saveAs(pathName=names.model + '.cae')
     
     # Create job after saving cae file, because job will not have sufficient options to run from 
     # cae, in particular user subroutine path.
