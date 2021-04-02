@@ -35,7 +35,7 @@ rollover, call the present script from some folder on your computer as:
 
 """
 
-import os, shutil, sys
+import os, shutil, sys, time
 
 def main(argv):
     folder_list, file_list = get_default_usubs()
@@ -161,7 +161,34 @@ def make_library(usub_file):
             os.remove(file)
     
     # Compile subroutine
-    os.system('abaqus make library=' + base_name + ' > build.log 2>&1')
+    
+    def run_compilation(abaqus_name):
+        print('Compiling with "' + abaqus_name + '"')
+        os.system(abaqus_name + ' make library=' + base_name + ' > build.log 2>&1')
+    
+    # Try to compile by calling "abaqus" first. 
+    # We assume this to be the default if multiple versions are installed
+    run_compilation('abaqus')
+    
+    # If the default did not work, try the latest available version 
+    # starting from the current year +1 back untill 2016.
+    year = int(time.strftime('%Y')) + 1
+    min_year = 2016
+    abq_user_cmd = None
+    while not os.path.exists(object_file):
+        run_compilation('abq' + str(year))
+        year = year - 1
+        if year < min_year:
+            break
+    
+    # If none of the default names worked, 
+    # let the user choose the correct name. 
+    if not os.path.exists(object_file):
+        abq_user_cmd = input('Could not find your abaqus installation. \n'
+                             + 'Please input your abaqus command.\n'
+                             + 'If you run a job with "abaqus job=<input_file>", ' 
+                             + 'write "abaqus":\n')
+        run_compilation(abq_user_cmd)
     
     return object_file
 
