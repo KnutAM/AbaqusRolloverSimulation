@@ -139,6 +139,8 @@ def compile_default_usub(data_path):
     usub_ofile = create_usub.make_library(usub_file)
     os.chdir('..')
     usub_data_path = os.path.abspath(data_path + '/usub/')
+    if not os.path.exists(usub_data_path):
+        os.mkdir(usub_data_path)
     usub_ofile_name = 'usub_rollover.' + usub_ofile.split('.')[-1]
     try:
         
