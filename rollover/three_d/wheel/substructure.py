@@ -8,8 +8,8 @@
 """
 
 # Python imports
+import os
 import numpy as np
-import uuid
 
 # Abaqus imports
 from abaqusConstants import *
@@ -464,6 +464,16 @@ def save_data(wheel_part):
     contact_nodes = wheel_part.sets[names.wheel_contact_nodes].nodes
     node_coords = np.array([n.coordinates for n in contact_nodes])
     node_labels = np.array([n.label for n in contact_nodes], dtype=np.int)
-    np.save(file=names.substr_node_coords_file, arr=node_coords)
+    try:
+        np.save(file=names.substr_node_coords_file, arr=node_coords)
+    except IOError as e:
+        apt.log('Tried to save "' + names.substr_node_coords_file
+                + '", but this did not work.\n'
+                + 'This bug has occurred before, but little data was available\n'
+                + 'Please create an issue the information below:\n'
+                + 'node_coords.shape = ' + str(node_coords.shape) + '\n'
+                + 'node_coords = ' + str(node_coords) + '\n'
+                + 'cwd = ' + os.getcwd() + '\n')
+        raise e
     np.save(file=names.substr_node_labels_file, arr=node_labels)    
 
