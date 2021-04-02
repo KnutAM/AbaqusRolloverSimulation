@@ -24,6 +24,13 @@ from __future__ import print_function
 import os, sys, shutil
 import create_usub
 
+# Fix to make FileNotFoundError available in Python 2 (a bit more general though...)
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+
+
 def main(argv):
     print('Running initial setup of rollover.')
     print('Use input argument 0 to supress compilation of subroutine')
@@ -143,8 +150,7 @@ def compile_default_usub(data_path):
         os.mkdir(usub_data_path)
     usub_ofile_name = 'usub_rollover.' + usub_ofile.split('.')[-1]
     try:
-        
-        shutil.copyfile(tmp_dir + '/' + usub_ofile, 
+        shutil.copyfile(tmp_dir + '/' + usub_ofile,
                         usub_data_path + '/' + usub_ofile_name)
     except FileNotFoundError as e:
         print('Compilation failed, please see build.log file in ' + tmp_dir)

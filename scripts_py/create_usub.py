@@ -34,8 +34,15 @@ rollover, call the present script from some folder on your computer as:
 :command:`python <path_to_create_usub.py> C:/umats/my_special_material/umat.for`
 
 """
-
+from __future__ import print_function
 import os, shutil, sys, time
+
+# Fix to make FileNotFoundError available in Python 2 (IOError a bit more general though...)
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+
 
 def main(argv):
     folder_list, file_list = get_default_usubs()
