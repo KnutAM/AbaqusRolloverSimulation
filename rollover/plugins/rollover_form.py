@@ -13,7 +13,7 @@ class RolloverForm(AFXForm):
         AFXForm.__init__(self, owner)
         
         # Define form title/name
-        self.title = 'Create wheel'
+        self.title = 'Create rollover simulation'
         
         # Define command to be called
         self.cmd = AFXGuiCommand(self, 'create_rollover', 'commands')
