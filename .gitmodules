@@ -1,3 +1,4 @@
+
 [submodule "usub/utils"]
 	path = usub/utils
-	url = git@github.com:KnutAM/fortran_utilities.git
+	url = https://github.com/KnutAM/fortran_utilities.git
