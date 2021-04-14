@@ -1,7 +1,7 @@
 # Abaqus Rollover Simulation
 Python library to setup rollover simulation in Abaqus for CHARMEC
 
-`git clone --recurse-submodules git@bitbucket.org:knutan/abaqusrolloversimulation.git`
+`git clone --recurse-submodules https://github.com/KnutAM/AbaqusRolloverSimulation.git`
 
 ### Contributors
 * Knut Andreas Meyer 
