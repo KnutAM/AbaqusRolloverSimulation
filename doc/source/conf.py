@@ -66,7 +66,8 @@ extensions = [
 autodoc_mock_imports = ["abaqus", "abaqusConstants", "assembly",
                         "regionToolset", "mesh", "section",
                         "material", "odbAccess", "mdb", "part",
-                        "sketch", "load", "step","interaction","job"]
+                        "sketch", "load", "step","interaction","job",
+                        "rollover.local_paths"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
