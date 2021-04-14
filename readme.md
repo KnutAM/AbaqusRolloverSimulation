@@ -1,5 +1,5 @@
 # Abaqus Rollover Simulation
-[![Documentation Status](https://readthedocs.org/projects/abaqusrolloversimulation/badge/?version=latest&kill_cache=1)](https://abaqusrolloversimulation.readthedocs.io/en/latest/?badge=latest)
+Documentation: [![Documentation Status](https://readthedocs.org/projects/abaqusrolloversimulation/badge/?version=latest&kill_cache=1)](https://abaqusrolloversimulation.readthedocs.io/en/latest/?badge=latest)
 
 If you use this code in your work, please cite "Meyer, K.A., R. Skrypnyk, M. Pletz (2021) *Efficient 3d finite element modeling of cyclic elasto-plastic rolling contact* Tribology International"
 
