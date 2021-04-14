@@ -15,7 +15,7 @@ The following top-level folders and file are provided
 - `rollover`: The python library used to setup and run the Abaqus rollover simulations (imported, but not run directly)
 - `scripts_abq`: Abaqus python scripts that are designed to be called as `abaqus cae noGUI=<script.py>`
 - `scripts_py`: Python scripts that should be called by `python <script.py>`
-- `usub`: Fortran code for user subroutines required for the rollover simulations
+- `usub`: Fortran code for user subroutines required for the rollover simulations (this relies on a submodule)
 - `doc`: Documentation
 - `data`: Folder containing user data (e.g. profile sketches). Everything in this folder, apart from example data, should be ignored by git.
 
