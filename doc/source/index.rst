@@ -6,6 +6,11 @@
 Rollover simulation using Abaqus
 ********************************
 
+The rollover simulation methodology is published in Tribology International. 
+If you use the tools or the entire package for your work, please cite
+[Meyer, K.A., R. Skrypnyk, M. Pletz (2021) "Efficient 3d finite element 
+modeling of cyclic elasto-plastic rolling contact" Tribology International]
+
 
 .. toctree::
    :maxdepth: 2
