@@ -97,7 +97,7 @@ pygments_style = None
 
 
 # -- Options for HTML output -------------------------------------------------
-html_last_updated_fmt = "%Y-%m-%d %H:%M"
+html_last_updated_fmt = "%Y-%m-%d %H:%M GMT"
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
