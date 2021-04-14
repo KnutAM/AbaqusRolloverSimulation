@@ -5,8 +5,13 @@ In order to install (or rather setup) the library, the following steps
 are required. Before attempting to do so, please verify that your system
 meets all the :ref:`prerequisites`.
 
-- Download the repository using git:
-  :command:`git clone --recurse-submodules https://github.com/KnutAM/AbaqusRolloverSimulation.git`
+- Download the repository:
+  
+  - Using git (latest): :command:`git clone --recurse-submodules https://github.com/KnutAM/AbaqusRolloverSimulation.git`,
+  - zip download: `latest <https://github.com/KnutAM/AbaqusRolloverSimulation/archive/refs/heads/main.zip>`_
+  - zip download of published version: 
+    `v1.0 <https://github.com/KnutAM/AbaqusRolloverSimulation/archive/refs/tags/v1.0.zip>`_
+  
 - From the top level in the repository, run :file:`scripts_py/setup.py`:
   :command:`python scripts_py/setup.py`. This will, amongst others, 
   create :file:`abaqus_v6.env`, which you might modify in the next step.
