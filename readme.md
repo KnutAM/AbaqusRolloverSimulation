@@ -1,6 +1,7 @@
 # Abaqus Rollover Simulation
-Python library to setup rollover simulation in Abaqus for CHARMEC
+If you use this code in your work, please cite "Meyer, K.A., R. Skrypnyk, M. Pletz (2021) *Efficient 3d finite element modeling of cyclic elasto-plastic rolling contact* Tribology International"
 
+To clone the repository, use
 `git clone --recurse-submodules https://github.com/KnutAM/AbaqusRolloverSimulation.git`
 
 ### Contributors
