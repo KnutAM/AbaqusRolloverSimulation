@@ -1,0 +1,4 @@
+sphinx==3.5.4
+sphinx_rtd_theme==0.5.2
+numpy==1.20.2
+datetime==4.3
