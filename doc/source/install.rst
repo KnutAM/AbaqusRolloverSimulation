@@ -24,17 +24,17 @@ meets all the :ref:`prerequisites`.
      This can only be done for one folder, therefore, make sure you 
      don't require this for other plugins.
   #. Alternatively, copy the :file:`plugins/rollover_plugin.py` to 
-     :file:`%HOME%/abaqus_plugins` (Windows) or 
-     :file:`~/abaqus_plugins` (Linux). This approach has the 
+     :file:`%HOME%/abaqus_plugins` (Windows, if the environment variable :command:`HOME` exists), :file:`%HOMEDRIVE%%HOMEPATH%/abaqus_plugins` (Windows, otherwise), or :file:`~/abaqus_plugins` (Linux). This approach has the 
      downside that any fetched updates from the online 
      repositories containing changes to 
      :file:`plugins/rollover_plugin.py` will require manually 
      repeating this step.
      
-- Copy :file:`abaqus_v6.env` to :file:`%HOME%` or :file:`~`. If you 
-  already have an environment file in your home directory, you need to 
-  manually merge the changes (most likely you can just append the 
-  contents of this new file to the old.
+- Copy :file:`abaqus_v6.env` to :file:`%HOME%` (Windows, if the environment variable :command:`HOME` exists), 
+  :file:`%HOMEDRIVE%%HOMEPATH%` (Windows, otherwise),  or :file:`~`. 
+  If you already have an environment file in your home directory, you need to 
+  manually merge the changes (most likely you can just append the contents 
+  of this new file to the old.)
 
 .. _prerequisites:
 
