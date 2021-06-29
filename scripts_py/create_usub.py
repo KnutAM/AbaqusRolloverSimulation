@@ -152,6 +152,8 @@ def make_library(usub_file):
     
     """
     
+    check_utils()
+    
     base_name = usub_file.split('.')[0]
     
     # Make platform independent
@@ -198,6 +200,14 @@ def make_library(usub_file):
         run_compilation(abq_user_cmd)
     
     return object_file
+
+
+def check_utils():
+    if not os.path.exists("utils/src"):
+        print("Could not find fortran_utils")
+        print("If you downloaded using zip-files, please ensure that the content of fortran_utils is copied to the usub/utils folder")
+        print("If you used git, with '--recurse-submodules', this is a bug so please report an issue")
+        raise FileNotFoundError("fortran_utils not found") 
 
     
 if __name__ == '__main__':
