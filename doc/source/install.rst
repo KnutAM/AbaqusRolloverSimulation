@@ -8,9 +8,10 @@ meets all the :ref:`prerequisites`.
 - Download the repository:
   
   - Using git (latest): :command:`git clone --recurse-submodules https://github.com/KnutAM/AbaqusRolloverSimulation.git`,
-  - zip download: `latest <https://github.com/KnutAM/AbaqusRolloverSimulation/archive/refs/heads/main.zip>`_
+  - zip download: `latest <https://github.com/KnutAM/AbaqusRolloverSimulation/archive/refs/heads/main.zip>`_ and `fortran_utils (latest) <https://github.com/KnutAM/fortran_utilities/archive/refs/heads/main.zip>`_
   - zip download of published version: 
-    `v1.0 <https://github.com/KnutAM/AbaqusRolloverSimulation/archive/refs/tags/v1.0.zip>`_
+    `v1.0 <https://github.com/KnutAM/AbaqusRolloverSimulation/archive/refs/tags/v1.0.zip>`_ and `fortran_utils (v0.1) <https://github.com/KnutAM/fortran_utilities/archive/refs/tags/v0.1.zip>`_
+  **Note**: When using the zip downloads, you must manually copy the content of :file:`fortran_utils` to the :file:`AbaqusRolloverSimulation/usub/utils` folder
   
 - From the top level in the repository, run :file:`scripts_py/setup.py`:
   :command:`python scripts_py/setup.py`. This will, amongst others, 
