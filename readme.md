@@ -1,7 +1,7 @@
 # Abaqus Rollover Simulation
 Documentation: [![Documentation Status](https://readthedocs.org/projects/abaqusrolloversimulation/badge/?version=latest&kill_cache=1)](https://abaqusrolloversimulation.readthedocs.io/en/latest/?badge=latest)
 
-If you use this code in your work, please cite "Meyer, Knut Andreas, Rostyslav Skrypnyk, and Martin Pletz. 2021. “Efficient 3d Finite Element Modeling of Cyclic Elasto-Plastic Rolling Contact.” Tribology International 161: 107053. https://doi.org/10.1016/j.triboint.2021.107053." (For latex, a [bib file](citation.bib) is available)
+If you use this code in your work, please cite `Meyer, Knut Andreas, Rostyslav Skrypnyk, and Martin Pletz. 2021. “Efficient 3d Finite Element Modeling of Cyclic Elasto-Plastic Rolling Contact.” Tribology International 161: 107053. https://doi.org/10.1016/j.triboint.2021.107053.` (For latex, a [bib file](citation.bib) is available)
 
 To clone the repository, use
 `git clone --recurse-submodules https://github.com/KnutAM/AbaqusRolloverSimulation.git`
