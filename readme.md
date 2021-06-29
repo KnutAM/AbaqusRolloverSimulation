@@ -6,10 +6,6 @@ If you use this code in your work, please cite `Meyer, Knut Andreas, Rostyslav S
 To clone the repository, use
 `git clone --recurse-submodules https://github.com/KnutAM/AbaqusRolloverSimulation.git`
 
-### Contributors
-* Knut Andreas Meyer 
-* Rostyslav Skrypnyk
-
 ### Project structure
 The following top-level folders and file are provided
 - `rollover`: The python library used to setup and run the Abaqus rollover simulations (imported, but not run directly)
