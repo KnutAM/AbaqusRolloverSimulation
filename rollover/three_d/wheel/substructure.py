@@ -470,10 +470,12 @@ def save_data(wheel_part):
         apt.log('Tried to save "' + names.substr_node_coords_file
                 + '", but this did not work.\n'
                 + 'This bug has occurred before, but little data was available\n'
-                + 'Please create an issue the information below:\n'
+                + 'Please comment on the issue https://github.com/KnutAM/AbaqusRolloverSimulation/issues/4\n'
+                + 'Alternatively, mail to knutam at gmail.com\n'
+                + 'Please include the information below including the error stack trace:\n'
                 + 'node_coords.shape = ' + str(node_coords.shape) + '\n'
-                + 'node_coords = ' + str(node_coords) + '\n'
-                + 'cwd = ' + os.getcwd() + '\n')
+                + 'cwd = ' + os.getcwd() + '\n'
+                + 'directory contents:\n' + str(os.listdir()) + '\n')
         raise e
-    np.save(file=names.substr_node_labels_file, arr=node_labels)    
+    np.save(file=names  .substr_node_labels_file, arr=node_labels)    
 
