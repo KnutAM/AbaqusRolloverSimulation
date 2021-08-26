@@ -113,7 +113,10 @@ Rail
                     (.cae)
 shadow extents      Name of the folder in which the wheel super element
                     files should be saved. 
-use ref pt.         
+use ref pt.         If rail extension should be used, a reference point
+                    is required. Otherwise, fewer constraints are added
+                    creating a slightly more efficient simulation. Set 
+                    to 0 for no reference point, 1 otherwise.
 =================== ====================================================
 
 =================== ====================================================
@@ -125,10 +128,7 @@ translation         The vector (x,y,z) which the wheel should be
                     at (0,0,0). The rail sketch determines the (x,y) 
                     position of the rail, and it starts at z=0 and ends
                     at z=L, where L is the rail length specified above. 
-use ref pt.         If rail extension should be used, a reference point
-                    is required. Otherwise, fewer constraints are added
-                    creating a slightly more efficient simulation. Set 
-                    to 0 for no reference point, 1 otherwise. 
+stiffness           Young's modulus for the wheel
 =================== ====================================================
 
 =================== ====================================================
