@@ -153,7 +153,7 @@ rolling radius      The rolling radius used to convert slip to rotation
 max increments      Maximum number of increments for one rolling step
 min increments      Minimum number of increments for one rolling step
 num cycles          Number of cycles to simulate. 
-                    Please read :ref:`addcycles`
+                    If more than 25, please read :ref:`addcycles`
 cycles spec         The cycles for which a change in loading conditions 
                     are specified.
                     Given as csv, matching "cycles spec"
