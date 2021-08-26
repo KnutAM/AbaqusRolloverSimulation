@@ -7,15 +7,18 @@ in the methods.
 
 Adding rolling cycles
 ---------------------
-When adding many 100 steps, Abaqus CAE is rather slow. Therefore, a 
+When adding many cycles, Abaqus CAE is rather slow. Therefore, a 
 script is provided to extend a simulation by adding cycles with the same 
-content repeated. Typically, if e.g. 25 is specified as the ``"cycle"``
-above, then it sufficies to generate 26 cycles, and repeat these. The 
-first cycle is not repeated, hence "doubling" the number of cycles will
-then give 51 cycles in total. 
+content repeated. Consider the case that you want to run approximately 1000 cycles. 
+Abaqus CAE will spend a long time generating all the required steps. But you would 
+only like to have the full stress and strain field output saved every 25th cycle. In that case, 
+specify 26 cycles under ``"num cycles"`` under "loading". Request output every 25th cycle by
+specifying 25 under ``"cycles"`` in the specific row in the "output" table. 
+This script can then be used to duplicate the last 25 steps 40 times via direct input file editing. 
+In total, 1001 cycles will then be simulated with the specific output each 25th cycle. 
 
 To add cycles, call the python script `append_extra_cycles.py` with the 
-multiplication factor as the first argument and the input file as the 
+multiplication factor (e.g. 40 above) as the first argument and the input file as the 
 second argument. The input file defaults to "rollover.inp".
 If called with multiplication factor 4 in the above example, 101 cycles
 would be created. 
