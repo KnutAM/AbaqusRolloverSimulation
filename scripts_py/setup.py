@@ -82,15 +82,15 @@ def create_local_paths():
     return rollover_repo_path, data_path
         
 
-def create_abaqus_env(rollover_repo_path):
+def create_abaqus_env(rollover_repo_path): 
     rollover_path_spec = get_rollover_path_spec(rollover_repo_path)
-    ifort_adaptation = get_ifort_adaptation()
-    
     with open(rollover_repo_path + '/abaqus_v6.env', 'w') as fid:
         fid.write(rollover_path_spec)
-        fid.write(ifort_adaptation)
-    
-    
+    print('Note: If your ifort version > 16, you will have to add the '
+                  + '"nostandard-realloc-lhs" option to "compile_fortran" in abaqus_v6.env')
+    print('Note: If you are using ifx, you need to replace ifort with ifx, and remove `-prec-sqrt`'
+            + 'and `-mP2OPT_hop_vec_divbyzero=F` from `compile_fortran`, and remove `-parallel` from `link_sl`')
+
 def get_rollover_path_spec(rollover_repo_path):
     rollover_path_spec = ('import sys \n' 
                           + 'rollover_repo_path = "' + rollover_repo_path + '"\n'
@@ -99,35 +99,7 @@ def get_rollover_path_spec(rollover_repo_path):
                           + 'del rollover_repo_path \n')
     return rollover_path_spec
 
-    
-def get_ifort_adaptation():
-    if os.name == 'posix':  # Linux
-        keyword_sign = '-'
-    else:                   # Windows
-        keyword_sign = '/'
-    
-    ifort_strs = get_shell_output('ifort ' + keyword_sign + 'logo').split()
-    try:
-        version = [int(n) for n in ifort_strs[ifort_strs.index('Version')+1].split('.')]
-    except:
-        try:
-            version = [int(n) for n in input('Could not identify ifort version automatically, please give the version (e.g. 16.0.1)')]
-        except:
-            print('Could not read input of version')
-            print('If your version > 16, you will have to add the '
-                  + '"nostandard-realloc-lhs" compiler option to abaqus_v6.env yourself')
-            version = None
-    
-    add_compile_option = ''
-    if version is not None:
-        if version[0] > 16:
-            add_compile_option = ('compile_fortran.append("'
-                                  + keyword_sign 
-                                  + 'nostandard-realloc-lhs")')
-    
-    return add_compile_option
-            
-    
+
 def get_shell_output(cmd):
     tmp_file = 'setup_output_tmp.tmp'
     os.system(cmd + ' > ' + tmp_file + ' 2>&1')
