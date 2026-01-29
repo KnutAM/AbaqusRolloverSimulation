@@ -165,7 +165,6 @@ def reorder_stiffness(ke_raw, rp_nr):
     
     ndof = ke_raw.shape[0]
     nnods = (ndof - ndof_rot)/ndof_trans    # Number of nodes incl. rp
-    
     # Add the dofs for the reference point first
     reorder = [ndof_trans*rp_nr + i for i in range(ndof_trans+ndof_rot)]
     
@@ -175,7 +174,7 @@ def reorder_stiffness(ke_raw, rp_nr):
             reorder.append(node_nr*ndof_trans + dof_nr)
     
     # Finally add nodes that previously were after the rp
-    for node_nr in range(rp_nr+1, nnods):
+    for node_nr in range(int(rp_nr+1), int(nnods)):
         for dof_nr in range(ndof_trans):
             reorder.append(ndof_rot + node_nr*ndof_trans + dof_nr)
     

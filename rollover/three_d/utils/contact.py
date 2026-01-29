@@ -50,7 +50,7 @@ def setup(the_model, contact_stiffness=1.e6,
     wheel_inst = the_model.rootAssembly.instances[names.wheel_inst]
     
     the_model.SurfaceToSurfaceContactStd(name='RailWheelContact', createStepName=names.step0, 
-                                         master=rail_inst.surfaces[names.rail_full_contact_surf],
-                                         slave=wheel_inst.surfaces[names.wheel_contact_surf], 
+                                         main=rail_inst.surfaces[names.rail_full_contact_surf],
+                                         secondary=wheel_inst.surfaces[names.wheel_contact_surf], 
                                          sliding=FINITE, interactionProperty='InteractionProperty')
     

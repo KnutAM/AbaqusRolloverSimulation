@@ -67,7 +67,7 @@ def from_file(the_model, model_file, shadow_extents, use_rail_rp=False):
         # Apply tie between the compatible meshes
         retained=rail_inst.sets[names.rail_substructure_interface_set]
         constrained=ss_inst.sets['RETAINED_NODES']
-        the_model.Tie(name='SUBSTRUCTURE_TIE', master=retained, slave=constrained,
+        the_model.Tie(name='SUBSTRUCTURE_TIE', main=retained, secondary=constrained,
                       positionToleranceMethod=SPECIFIED, positionTolerance=1.e-6,
                       adjust=ON)
     

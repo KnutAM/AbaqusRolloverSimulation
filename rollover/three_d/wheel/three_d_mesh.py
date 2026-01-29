@@ -83,10 +83,10 @@ def get_2d_mesh(wheel_part):
                              + '- Element nodes: ' + enods + '\n'
                              + '- Element type : ' + e.type + '\n')
         if num_enods > 4:   # 2nd order, second half of nodes on edges
-            for n in enods[:num_enods/2]:
+            for n in enods[:num_enods//2]:
                 if n not in corner_nodes:
                     corner_nodes.append(n)
-            for n in enods[num_enods/2:]:
+            for n in enods[num_enods//2:]:
                 if n not in edge_nodes:
                     edge_nodes.append(n)
         else:               # 1st order elements, all nodes at corners
@@ -227,7 +227,7 @@ def get_elements(elem_2d_con, angle_inds, corner_node_num_2d, edge_node_num_2d,
     
     """
     elems = []
-    n = len(elem_2d_con[0])/2
+    n = len(elem_2d_con[0])//2
     
     for enodes in elem_2d_con:
         corner_rows = [corner_node_num_2d.index(node_num) for node_num in enodes[:n]]
