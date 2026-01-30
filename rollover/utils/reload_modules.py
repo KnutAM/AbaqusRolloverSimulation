@@ -5,12 +5,16 @@ made. Having this as a separate modules removes unecessary clotter from the real
 """
 
 import sys
+import importlib
 
 def execute():
-    for module in sys.modules.values():
+    modules = [m for m in sys.modules.values()]
+    for module in modules:
+        if not hasattr(module, '__file__'):
+            continue
         try:
             if 'rollover' in module.__file__:
-                reload(module)
+                importlib.reload(module)
         except AttributeError:
             pass    # Seems like not all items in sys.modules.values() contain __file__
                     # This is ok, as those containing 'rollover' will. 

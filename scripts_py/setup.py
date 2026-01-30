@@ -51,7 +51,7 @@ def main(argv):
 def create_local_paths():
     this_path = os.path.dirname(os.path.abspath(__file__))
     rollover_repo_path = os.path.dirname(this_path)
-
+    rollover_repo_path = rollover_repo_path.replace('\\','/')
     data_path = os.path.abspath(rollover_repo_path + '/data')
     usub_path = os.path.abspath(rollover_repo_path + '/usub')
     doc_path = os.path.abspath(rollover_repo_path + '/doc/build')
@@ -107,24 +107,30 @@ def get_ifort_adaptation():
         keyword_sign = '/'
     
     ifort_strs = get_shell_output('ifort ' + keyword_sign + 'logo').split()
+    ifx_strs = get_shell_output('ifx ' + keyword_sign + 'logo').split()
     try:
         version = [int(n) for n in ifort_strs[ifort_strs.index('Version')+1].split('.')]
     except:
-        try:
-            version = [int(n) for n in input('Could not identify ifort version automatically, please give the version (e.g. 16.0.1)')]
+        try: 
+            version = [int(n) for n in ifx_strs[ifx_strs.index('Version')+1].split('.')]
         except:
-            print('Could not read input of version')
-            print('If your version > 16, you will have to add the '
-                  + '"nostandard-realloc-lhs" compiler option to abaqus_v6.env yourself')
-            version = None
-    
+            try:
+                version = [int(n) for n in input('Could not identify ifort or ifx version automatically, please give the version (e.g. 16.0.1)')]
+            except:
+                print('Could not read input of version')
+                print('If your version > 16, you will have to add the '
+                    + '"nostandard-realloc-lhs" compiler option to abaqus_v6.env yourself')
+                version = None
+        
     add_compile_option = ''
     if version is not None:
         if version[0] > 16:
             add_compile_option = ('compile_fortran.append("'
                                   + keyword_sign 
-                                  + 'nostandard-realloc-lhs")')
-    
+                                  + 'nostandard-realloc-lhs")\n'
+                                  +'compile_fortran.append("'
+                                  + keyword_sign 
+                                  + 'Qmkl:sequential")\n')
     return add_compile_option
             
     
@@ -141,6 +147,8 @@ def get_shell_output(cmd):
 def compile_default_usub(data_path):
     folder_list, file_list = create_usub.get_default_usubs()
     tmp_dir = create_usub.create_tmpdir(folder_list)
+    shutil.copyfile('abaqus_v6.env',
+                        tmp_dir + '/' + 'abaqus_v6.env')
     os.chdir(tmp_dir)
     usub_file = create_usub.combine_usub_files(file_list)
     usub_ofile = create_usub.make_library(usub_file)
@@ -156,7 +164,10 @@ def compile_default_usub(data_path):
         print('Compilation failed, please see build.log file in ' + tmp_dir)
         raise e
     
-    shutil.rmtree(tmp_dir)
+    try:
+        shutil.rmtree(tmp_dir)
+    except:
+        print("Could not remove the folder: " + '"' +tmp_dir + '"' + ' Do it yourself!')
     
 
 if __name__ == '__main__':
